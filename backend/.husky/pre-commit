@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+# Husky pre-commit hook
+# Runs lint-staged to check and fix code before commit
+
+npx lint-staged
