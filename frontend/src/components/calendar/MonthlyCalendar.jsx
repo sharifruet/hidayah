@@ -4,14 +4,15 @@ import { useApp } from '../../context/AppContext.jsx';
 import Loading from '../common/Loading.jsx';
 import ErrorMessage from '../common/ErrorMessage.jsx';
 import CalendarDay from './CalendarDay.jsx';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday } from 'date-fns';
 import { PRAYER_LABELS, PRAYER_LABELS_BN } from '../../utils/constants.js';
+import { gregorianToHijri } from '../../utils/hijri.js';
 
 export default function MonthlyCalendar({ year, month, onDateClick = null }) {
   const { location, method, language } = useApp();
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['monthly-calendar', location.lat, location.lng, year, month, method],
-    queryFn: () => getMonthlyCalendar(location.lat, location.lng, year, month, method, true),
+    queryKey: ['monthly-calendar', location.lat, location.lng, year, month, method, 'sunset_adj_29'],
+    queryFn: () => getMonthlyCalendar(location.lat, location.lng, year, month, method, true, { sunset_adjustment: 29 }),
     enabled: !!location.lat && !!location.lng,
   });
 
@@ -49,6 +50,11 @@ export default function MonthlyCalendar({ year, month, onDateClick = null }) {
     ? ['রবি', 'সোম', 'মঙ্গল', 'বুধ', 'বৃহ', 'শুক্র', 'শনি']
     : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+  // Derive Hijri month range (start–end) for display
+  const hijriStart = gregorianToHijri(monthStart);
+  const hijriEnd = gregorianToHijri(monthEnd);
+  const sameHijriMonth = hijriStart.month === hijriEnd.month && hijriStart.year === hijriEnd.year;
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="mb-4">
@@ -57,6 +63,11 @@ export default function MonthlyCalendar({ year, month, onDateClick = null }) {
         </h2>
         <p className="text-sm text-gray-600">
           {location.name || `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`} • {method}
+        </p>
+        <p className="text-xs text-gray-500 mt-1">
+          {sameHijriMonth
+            ? `${hijriStart.monthNameEn} ${hijriStart.year} AH (${hijriStart.monthNameAr})`
+            : `${hijriStart.monthNameEn} ${hijriStart.year} – ${hijriEnd.monthNameEn} ${hijriEnd.year} AH`}
         </p>
       </div>
 

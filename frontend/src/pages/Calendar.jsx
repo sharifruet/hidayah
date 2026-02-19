@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import MonthlyCalendar from '../components/calendar/MonthlyCalendar.jsx';
 import YearlyCalendar from '../components/calendar/YearlyCalendar.jsx';
@@ -8,32 +9,102 @@ import { useQuery } from '@tanstack/react-query';
 import { getMonthlyCalendar, getYearlyCalendar, getDateRangeCalendar } from '../services/prayerTimesService.js';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { CALENDAR_VIEWS } from '../utils/constants.js';
+import { gregorianToHijri } from '../utils/hijri.js';
+
+/**
+ * Calculate the Gregorian start and end dates for the current Hijri month
+ * that contains the given base date.
+ */
+function getCurrentHijriMonthRange(baseDate = new Date()) {
+  const targetHijri = gregorianToHijri(baseDate);
+
+  // Find start of Hijri month (Hijri day === 1)
+  let start = new Date(baseDate);
+  for (let i = 0; i < 35; i++) {
+    const h = gregorianToHijri(start);
+    if (h.year === targetHijri.year && h.month === targetHijri.month && h.day === 1) {
+      break;
+    }
+    start.setDate(start.getDate() - 1);
+  }
+
+  // Find end of Hijri month (last day before month/year changes)
+  let end = new Date(baseDate);
+  for (let i = 0; i < 35; i++) {
+    const h = gregorianToHijri(end);
+    if (h.year !== targetHijri.year || h.month !== targetHijri.month) {
+      // Step back one day to stay within the target Hijri month
+      end.setDate(end.getDate() - 1);
+      break;
+    }
+    end.setDate(end.getDate() + 1);
+  }
+
+  // Safety: ensure start is not after end
+  if (start > end) {
+    end = new Date(start);
+  }
+
+  return {
+    startDate: format(start, 'yyyy-MM-dd'),
+    endDate: format(end, 'yyyy-MM-dd'),
+  };
+}
 
 export default function Calendar() {
   const { location, method, language } = useApp();
-  const [viewType, setViewType] = useState(CALENDAR_VIEWS.MONTHLY);
-  const [year, setYear] = useState(new Date().getFullYear());
-  const [month, setMonth] = useState(new Date().getMonth() + 1);
-  const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
-  const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
+  const [searchParams] = useSearchParams();
+
+  const initialView = (() => {
+    const view = searchParams.get('view');
+    if (view === CALENDAR_VIEWS.MONTHLY || view === CALENDAR_VIEWS.YEARLY || view === CALENDAR_VIEWS.DATE_RANGE) {
+      return view;
+    }
+    // Default: show current Hijri (Islamic) month as a date-range view
+    return CALENDAR_VIEWS.DATE_RANGE;
+  })();
+
+  const now = new Date();
+  const { startDate: hijriStart, endDate: hijriEnd } = getCurrentHijriMonthRange(now);
+  const initialYear = (() => {
+    const yearParam = searchParams.get('year');
+    const parsed = yearParam ? parseInt(yearParam, 10) : NaN;
+    return Number.isNaN(parsed) ? now.getFullYear() : parsed;
+  })();
+
+  const initialMonth = (() => {
+    const monthParam = searchParams.get('month');
+    const parsed = monthParam ? parseInt(monthParam, 10) : NaN;
+    const monthValue = Number.isNaN(parsed) ? now.getMonth() + 1 : parsed;
+    return Math.min(Math.max(monthValue, 1), 12);
+  })();
+
+  const initialStartDate = searchParams.get('startDate') || hijriStart;
+  const initialEndDate = searchParams.get('endDate') || hijriEnd;
+
+  const [viewType, setViewType] = useState(initialView);
+  const [year, setYear] = useState(initialYear);
+  const [month, setMonth] = useState(initialMonth);
+  const [startDate, setStartDate] = useState(initialStartDate);
+  const [endDate, setEndDate] = useState(initialEndDate);
   const [selectedDate, setSelectedDate] = useState(null);
 
   // Fetch data based on view type
   const { data: monthlyData } = useQuery({
-    queryKey: ['monthly-calendar', location.lat, location.lng, year, month, method],
-    queryFn: () => getMonthlyCalendar(location.lat, location.lng, year, month, method, true),
+    queryKey: ['monthly-calendar', location.lat, location.lng, year, month, method, 'sunset_adj_29'],
+    queryFn: () => getMonthlyCalendar(location.lat, location.lng, year, month, method, true, { sunset_adjustment: 29 }),
     enabled: viewType === CALENDAR_VIEWS.MONTHLY && !!location.lat && !!location.lng,
   });
 
   const { data: yearlyData } = useQuery({
-    queryKey: ['yearly-calendar', location.lat, location.lng, year, method, 'summary'],
-    queryFn: () => getYearlyCalendar(location.lat, location.lng, year, method, 'summary', true),
+    queryKey: ['yearly-calendar', location.lat, location.lng, year, method, 'summary', 'sunset_adj_29'],
+    queryFn: () => getYearlyCalendar(location.lat, location.lng, year, method, 'summary', true, { sunset_adjustment: 29 }),
     enabled: viewType === CALENDAR_VIEWS.YEARLY && !!location.lat && !!location.lng,
   });
 
   const { data: dateRangeData } = useQuery({
-    queryKey: ['date-range-calendar', location.lat, location.lng, startDate, endDate, method],
-    queryFn: () => getDateRangeCalendar(location.lat, location.lng, startDate, endDate, method, true),
+    queryKey: ['date-range-calendar', location.lat, location.lng, startDate, endDate, method, 'sunset_adj_29'],
+    queryFn: () => getDateRangeCalendar(location.lat, location.lng, startDate, endDate, method, true, { sunset_adjustment: 29 }),
     enabled: viewType === CALENDAR_VIEWS.DATE_RANGE && !!location.lat && !!location.lng && !!startDate && !!endDate,
   });
 

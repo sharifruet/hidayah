@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { useLocation } from '../hooks/useLocation.js';
 import LocationMap from '../components/map/LocationMap.jsx';
@@ -41,6 +42,33 @@ export default function PrayerTimes() {
           <p className="mt-2 text-gray-600">
             {language === 'bn' ? 'অবস্থান এবং তারিখ নির্বাচন করুন' : 'Select a location and date to view prayer times'}
           </p>
+        </div>
+
+        <div className="mb-6">
+          <div className="p-4 bg-white rounded-lg shadow-sm border border-gray-100">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+              {language === 'bn' ? 'মাসিক বা তারিখ অনুযায়ী দেখুন' : 'View by month or date range'}
+            </h2>
+            <p className="text-sm text-gray-600 mb-3">
+              {language === 'bn'
+                ? 'সম্পূর্ণ মাস বা নির্দিষ্ট তারিখ পরিসীমার সালাতের সময় ক্যালেন্ডার আকারে দেখতে ক্যালেন্ডার পেজে যান।'
+                : 'To see prayer times for a full month or a custom date range, open the calendar view.'}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                to={`/calendar?view=monthly&year=${selectedDate.getFullYear()}&month=${selectedDate.getMonth() + 1}`}
+                className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md bg-primary-600 text-white hover:bg-primary-700"
+              >
+                {language === 'bn' ? 'এই মাসের ক্যালেন্ডার' : 'This month\'s calendar'}
+              </Link>
+              <Link
+                to={`/calendar?view=date-range&startDate=${format(selectedDate, 'yyyy-MM-dd')}&endDate=${format(selectedDate, 'yyyy-MM-dd')}`}
+                className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md bg-gray-100 text-gray-800 hover:bg-gray-200"
+              >
+                {language === 'bn' ? 'এই তারিখের জন্য ক্যালেন্ডার' : 'Calendar for this date'}
+              </Link>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">

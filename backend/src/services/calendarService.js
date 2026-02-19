@@ -1,5 +1,6 @@
 import pool from '../config/database.js';
 import { calculatePrayerTimes, calculateFastingTimes } from '../utils/calculations.js';
+import { gregorianToHijri } from '../utils/hijri.js';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -31,6 +32,8 @@ export async function getMonthlyCalendarService(latitude, longitude, year, month
     asr_method: options.asrMethod || options.asr_method,
     dhuhr_adjustment: options.dhuhrAdjustment || options.dhuhr_adjustment,
     maghrib_adjustment: options.maghribAdjustment || options.maghrib_adjustment,
+    sunset_adjustment: options.sunsetAdjustment || options.sunset_adjustment,
+    sunset_angle: options.sunsetAngle || options.sunset_angle,
     timezone_offset: options.timezoneOffset || options.timezone_offset
   };
 
@@ -47,10 +50,20 @@ export async function getMonthlyCalendarService(latitude, longitude, year, month
 
     const prayerTimes = calculatePrayerTimes(latitude, longitude, calculationDate, method, normalizedOptions);
 
+    const hijri = gregorianToHijri(calculationDate);
+
     const dayData = {
       date: dateStr,
       day_of_week: dayOfWeek,
-      prayer_times: prayerTimes
+      prayer_times: prayerTimes,
+      hijri: {
+        date: `${hijri.year}-${String(hijri.month).padStart(2, '0')}-${String(hijri.day).padStart(2, '0')}`,
+        year: hijri.year,
+        month: hijri.month,
+        day: hijri.day,
+        month_name_en: hijri.monthNameEn,
+        month_name_ar: hijri.monthNameAr
+      }
     };
 
     if (includeFasting) {
@@ -141,6 +154,8 @@ export async function getYearlyCalendarService(latitude, longitude, year, method
     asr_method: options.asrMethod || options.asr_method,
     dhuhr_adjustment: options.dhuhrAdjustment || options.dhuhr_adjustment,
     maghrib_adjustment: options.maghribAdjustment || options.maghrib_adjustment,
+    sunset_adjustment: options.sunsetAdjustment || options.sunset_adjustment,
+    sunset_angle: options.sunsetAngle || options.sunset_angle,
     timezone_offset: options.timezoneOffset || options.timezone_offset
   };
 
@@ -157,9 +172,19 @@ export async function getYearlyCalendarService(latitude, longitude, year, method
     const dateStr = calculationDate.toISOString().split('T')[0];
     const dayOfWeek = DAY_NAMES[calculationDate.getDay()];
 
+    const hijri = gregorianToHijri(calculationDate);
+
     const dayData = {
       date: dateStr,
-      day_of_week: dayOfWeek
+      day_of_week: dayOfWeek,
+      hijri: {
+        date: `${hijri.year}-${String(hijri.month).padStart(2, '0')}-${String(hijri.day).padStart(2, '0')}`,
+        year: hijri.year,
+        month: hijri.month,
+        day: hijri.day,
+        month_name_en: hijri.monthNameEn,
+        month_name_ar: hijri.monthNameAr
+      }
     };
 
     if (format === 'full') {
@@ -263,6 +288,8 @@ export async function getDateRangeCalendarService(latitude, longitude, startDate
     asr_method: options.asrMethod || options.asr_method,
     dhuhr_adjustment: options.dhuhrAdjustment || options.dhuhr_adjustment,
     maghrib_adjustment: options.maghribAdjustment || options.maghrib_adjustment,
+    sunset_adjustment: options.sunsetAdjustment || options.sunset_adjustment,
+    sunset_angle: options.sunsetAngle || options.sunset_angle,
     timezone_offset: options.timezoneOffset || options.timezone_offset
   };
 
@@ -281,10 +308,20 @@ export async function getDateRangeCalendarService(latitude, longitude, startDate
 
     const prayerTimes = calculatePrayerTimes(latitude, longitude, calculationDate, method, normalizedOptions);
 
+    const hijri = gregorianToHijri(calculationDate);
+
     const dayData = {
       date: dateStr,
       day_of_week: dayOfWeek,
-      prayer_times: prayerTimes
+      prayer_times: prayerTimes,
+      hijri: {
+        date: `${hijri.year}-${String(hijri.month).padStart(2, '0')}-${String(hijri.day).padStart(2, '0')}`,
+        year: hijri.year,
+        month: hijri.month,
+        day: hijri.day,
+        month_name_en: hijri.monthNameEn,
+        month_name_ar: hijri.monthNameAr
+      }
     };
 
     if (includeFasting) {

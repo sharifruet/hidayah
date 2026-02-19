@@ -8,8 +8,8 @@ import { format, startOfYear, endOfYear, eachMonthOfInterval } from 'date-fns';
 export default function YearlyCalendar({ year, format: viewFormat = 'summary' }) {
   const { location, method, language } = useApp();
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['yearly-calendar', location.lat, location.lng, year, method, viewFormat],
-    queryFn: () => getYearlyCalendar(location.lat, location.lng, year, method, viewFormat, true),
+    queryKey: ['yearly-calendar', location.lat, location.lng, year, method, viewFormat, 'sunset_adj_29'],
+    queryFn: () => getYearlyCalendar(location.lat, location.lng, year, method, viewFormat, true, { sunset_adjustment: 29 }),
     enabled: !!location.lat && !!location.lng,
   });
 

@@ -136,6 +136,12 @@ function extractCalculationOptions(query) {
   if (query.maghrib_adjustment !== undefined) {
     options.maghrib_adjustment = parseInt(query.maghrib_adjustment);
   }
+  if (query.sunset_adjustment !== undefined) {
+    options.sunset_adjustment = parseInt(query.sunset_adjustment);
+  }
+  if (query.sunset_angle !== undefined) {
+    options.sunset_angle = parseFloat(query.sunset_angle);
+  }
   if (query.hijri_adjustment !== undefined) {
     options.hijriAdjustment = parseInt(query.hijri_adjustment);
   }

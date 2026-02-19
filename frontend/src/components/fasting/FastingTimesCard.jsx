@@ -7,7 +7,7 @@ import { formatDate, formatDurationDetailed } from '../../utils/formatters.js';
 
 export default function FastingTimesCard({ date = new Date(), onMethodChange = null, onSehriMarginChange = null }) {
   const { location, method, sehriMargin, language } = useApp();
-  const { data, isLoading, error, refetch } = useFastingTimes(location.lat, location.lng, date, method, sehriMargin);
+  const { data, isLoading, error, refetch } = useFastingTimes(location.lat, location.lng, date, method, sehriMargin, { sunset_adjustment: 29 });
 
   if (isLoading) {
     return <Loading message="Loading fasting times..." />;

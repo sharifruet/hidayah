@@ -1,7 +1,9 @@
 import { format } from 'date-fns';
+import { gregorianToHijri } from '../../utils/hijri.js';
 
 export default function CalendarDay({ day, dayData, isToday = false, onClick = null, labels = {} }) {
   const dayNumber = format(day, 'd');
+  const hijri = gregorianToHijri(day);
 
   return (
     <div
@@ -15,6 +17,11 @@ export default function CalendarDay({ day, dayData, isToday = false, onClick = n
       <div className="flex flex-col h-full">
         <div className={`text-sm font-semibold mb-1 ${isToday ? 'text-primary-700' : 'text-gray-700'}`}>
           {dayNumber}
+        </div>
+
+        <div className="text-[11px] text-gray-500 mb-1 leading-tight">
+          {hijri.day} {hijri.monthNameEn}
+          <span className="ml-1 text-gray-400">({hijri.monthNameAr})</span>
         </div>
 
         {dayData?.prayer_times && (

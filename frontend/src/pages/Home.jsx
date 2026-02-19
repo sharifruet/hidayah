@@ -5,11 +5,13 @@ import LocationMap from '../components/map/LocationMap.jsx';
 import LocationSearch from '../components/location/LocationSearch.jsx';
 import PrayerTimesCard from '../components/prayer/PrayerTimesCard.jsx';
 import FastingTimesCard from '../components/fasting/FastingTimesCard.jsx';
+import MonthlyCalendar from '../components/calendar/MonthlyCalendar.jsx';
 
 export default function Home() {
   const { location, updateLocation, updateMethod, updateSehriMargin, language } = useApp();
   const { getByCoordinates, getCurrentLocation, loading: locationLoading } = useLocation();
   const [mapCenter, setMapCenter] = useState([location.lat, location.lng]);
+  const today = new Date();
 
   const handleMapClick = async (lat, lng) => {
     const locationData = await getByCoordinates(lat, lng);
@@ -102,6 +104,10 @@ export default function Home() {
             <FastingTimesCard
               onMethodChange={updateMethod}
               onSehriMarginChange={updateSehriMargin}
+            />
+            <MonthlyCalendar
+              year={today.getFullYear()}
+              month={today.getMonth() + 1}
             />
           </div>
         </div>

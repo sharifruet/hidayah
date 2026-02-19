@@ -27,6 +27,8 @@ export async function getPrayerTimesService(latitude, longitude, date, method, o
     asr_method: options.asrMethod || options.asr_method,
     dhuhr_adjustment: options.dhuhrAdjustment || options.dhuhr_adjustment,
     maghrib_adjustment: options.maghribAdjustment || options.maghrib_adjustment,
+    sunset_adjustment: options.sunsetAdjustment || options.sunset_adjustment,
+    sunset_angle: options.sunsetAngle || options.sunset_angle,
     timezone_offset: options.timezoneOffset || options.timezone_offset
   };
 

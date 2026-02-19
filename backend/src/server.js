@@ -55,24 +55,28 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Rate limiting
-const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
-  message: {
-    error: {
-      code: 'RATE_LIMIT_EXCEEDED',
-      message: 'Too many requests from this IP, please try again later.',
-      details: {
-        limit: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
-        window_ms: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000
+// In development/test, disable or relax rate limiting to avoid 429s during local usage.
+// Keep full protection in production.
+if (process.env.NODE_ENV === 'production') {
+  const limiter = rateLimit({
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000, // 15 minutes
+    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS, 10) || 100, // limit each IP to 100 requests per windowMs
+    message: {
+      error: {
+        code: 'RATE_LIMIT_EXCEEDED',
+        message: 'Too many requests from this IP, please try again later.',
+        details: {
+          limit: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS, 10) || 100,
+          window_ms: parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10) || 15 * 60 * 1000
+        }
       }
-    }
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
 
-app.use(limiter);
+  app.use(limiter);
+}
 
 // Health check endpoint with database status
 app.get('/health', async (req, res) => {

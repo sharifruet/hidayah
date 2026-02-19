@@ -12,8 +12,8 @@ export default function DateRangeCalendar({ startDate, endDate }) {
   const endDateStr = format(endDate, 'yyyy-MM-dd');
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['date-range-calendar', location.lat, location.lng, startDateStr, endDateStr, method],
-    queryFn: () => getDateRangeCalendar(location.lat, location.lng, startDateStr, endDateStr, method, true),
+    queryKey: ['date-range-calendar', location.lat, location.lng, startDateStr, endDateStr, method, 'sunset_adj_29'],
+    queryFn: () => getDateRangeCalendar(location.lat, location.lng, startDateStr, endDateStr, method, true, { sunset_adjustment: 29 }),
     enabled: !!location.lat && !!location.lng && !!startDate && !!endDate,
   });
 

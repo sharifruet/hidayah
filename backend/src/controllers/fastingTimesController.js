@@ -32,6 +32,12 @@ export async function getFastingTimes(req, res, next) {
     if (req.query.maghrib_adjustment !== undefined) {
       options.maghrib_adjustment = parseInt(req.query.maghrib_adjustment);
     }
+    if (req.query.sunset_adjustment !== undefined) {
+      options.sunset_adjustment = parseInt(req.query.sunset_adjustment);
+    }
+    if (req.query.sunset_angle !== undefined) {
+      options.sunset_angle = parseFloat(req.query.sunset_angle);
+    }
     if (req.query.hijri_adjustment !== undefined) {
       options.hijriAdjustment = parseInt(req.query.hijri_adjustment);
     }

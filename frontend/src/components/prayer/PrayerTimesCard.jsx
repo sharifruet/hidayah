@@ -10,7 +10,7 @@ import { useState, useEffect } from 'react';
 
 export default function PrayerTimesCard({ date = new Date(), onMethodChange = null }) {
   const { location, method, language } = useApp();
-  const { data, isLoading, error, refetch } = usePrayerTimes(location.lat, location.lng, date, method);
+  const { data, isLoading, error, refetch } = usePrayerTimes(location.lat, location.lng, date, method, { sunset_adjustment: 29 });
   const [currentPrayer, setCurrentPrayer] = useState(null);
   const [countdown, setCountdown] = useState(null);
 

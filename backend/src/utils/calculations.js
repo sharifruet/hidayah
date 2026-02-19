@@ -254,6 +254,8 @@ export function validateBangladeshBounds(latitude, longitude) {
  * @param {string} options.asr_method - Asr calculation method ('standard' or 'hanafi')
  * @param {number} options.dhuhr_adjustment - Minutes after solar noon for Dhuhr (default: 1)
  * @param {number} options.maghrib_adjustment - Minutes after sunset for Maghrib (default: 1)
+ * @param {number} options.sunset_adjustment - Minutes adjustment for sunset time (default: 0)
+ * @param {number} options.sunset_angle - Custom sunset angle in degrees (default: -0.833)
  * @param {number} options.timezone_offset - Timezone offset in hours (default: 6 for Bangladesh)
  * @returns {object} Prayer times object
  */
@@ -289,7 +291,10 @@ export function calculatePrayerTimes(latitude, longitude, date, method = 'karach
   const solarNoonMinutes = calculateSolarNoon(longitude, date, timezoneOffset);
 
   // Calculate hour angles
-  const sunsetAngle = -0.833; // Sun radius + atmospheric refraction
+  // Sunset angle: -0.833 degrees accounts for sun radius (0.266°) + atmospheric refraction (0.583°)
+  // For more accurate results in tropical regions, some sources use -0.85 to -0.9
+  const sunsetAngle = options.sunset_angle !== undefined ? options.sunset_angle : -0.833;
+  const sunsetAdjustment = options.sunset_adjustment !== undefined ? options.sunset_adjustment : 0;
 
   const fajrHourAngle = calculateHourAngle(latitude, declination, fajrAngle);
   const sunriseHourAngle = calculateHourAngle(latitude, declination, sunsetAngle);
@@ -304,8 +309,8 @@ export function calculatePrayerTimes(latitude, longitude, date, method = 'karach
   const dhuhr = solarNoonMinutes + dhuhrAdjustment;
   const asr = calculatePrayerTime(solarNoonMinutes, asrHourAngle, false);
   const sunsetBase = calculatePrayerTime(solarNoonMinutes, sunriseHourAngle, false);
-  const maghrib = sunsetBase + maghribAdjustment;
-  const sunset = sunsetBase;
+  const sunset = sunsetBase + sunsetAdjustment;
+  const maghrib = sunset + maghribAdjustment;
 
   // Calculate Isha
   let isha;
@@ -418,14 +423,16 @@ export function calculateFastingTimes(latitude, longitude, date, method = 'karac
  * @param {number} timezoneOffset - Timezone offset in hours (default: 6)
  * @returns {object} Sunrise and sunset times
  */
-export function calculateSunTimes(latitude, longitude, date, timezoneOffset = 6) {
+export function calculateSunTimes(latitude, longitude, date, timezoneOffset = 6, options = {}) {
   const declination = calculateSolarDeclination(date);
   const solarNoonMinutes = calculateSolarNoon(longitude, date, timezoneOffset);
-  const sunsetAngle = -0.833; // Sun radius + atmospheric refraction
+  const sunsetAngle = options.sunset_angle !== undefined ? options.sunset_angle : -0.833;
+  const sunsetAdjustment = options.sunset_adjustment !== undefined ? options.sunset_adjustment : 0;
 
   const sunriseHourAngle = calculateHourAngle(latitude, declination, sunsetAngle);
   const sunrise = calculatePrayerTime(solarNoonMinutes, sunriseHourAngle, true);
-  const sunset = calculatePrayerTime(solarNoonMinutes, sunriseHourAngle, false);
+  const sunsetBase = calculatePrayerTime(solarNoonMinutes, sunriseHourAngle, false);
+  const sunset = sunsetBase + sunsetAdjustment;
 
   return {
     sunrise: minutesToTime(sunrise),
