@@ -91,20 +91,20 @@ export default function Calendar() {
 
   // Fetch data based on view type
   const { data: monthlyData } = useQuery({
-    queryKey: ['monthly-calendar', location.lat, location.lng, year, month, method, 'sunset_adj_29'],
-    queryFn: () => getMonthlyCalendar(location.lat, location.lng, year, month, method, true, { sunset_adjustment: 29 }),
+    queryKey: ['monthly-calendar', location.lat, location.lng, year, month, method],
+    queryFn: () => getMonthlyCalendar(location.lat, location.lng, year, month, method, true),
     enabled: viewType === CALENDAR_VIEWS.MONTHLY && !!location.lat && !!location.lng,
   });
 
   const { data: yearlyData } = useQuery({
-    queryKey: ['yearly-calendar', location.lat, location.lng, year, method, 'summary', 'sunset_adj_29'],
-    queryFn: () => getYearlyCalendar(location.lat, location.lng, year, method, 'summary', true, { sunset_adjustment: 29 }),
+    queryKey: ['yearly-calendar', location.lat, location.lng, year, method, 'summary'],
+    queryFn: () => getYearlyCalendar(location.lat, location.lng, year, method, 'summary', true),
     enabled: viewType === CALENDAR_VIEWS.YEARLY && !!location.lat && !!location.lng,
   });
 
   const { data: dateRangeData } = useQuery({
-    queryKey: ['date-range-calendar', location.lat, location.lng, startDate, endDate, method, 'sunset_adj_29'],
-    queryFn: () => getDateRangeCalendar(location.lat, location.lng, startDate, endDate, method, true, { sunset_adjustment: 29 }),
+    queryKey: ['date-range-calendar', location.lat, location.lng, startDate, endDate, method],
+    queryFn: () => getDateRangeCalendar(location.lat, location.lng, startDate, endDate, method, true),
     enabled: viewType === CALENDAR_VIEWS.DATE_RANGE && !!location.lat && !!location.lng && !!startDate && !!endDate,
   });
 
@@ -169,7 +169,7 @@ export default function Calendar() {
             {language === 'bn' ? 'ক্যালেন্ডার' : 'Calendar'}
           </h1>
           <p className="mt-2 text-gray-600">
-            {language === 'bn' ? 'সালাত ও সাওমের সময় ক্যালেন্ডার দেখুন' : 'View prayer and fasting times calendar'}
+            {language === 'bn' ? 'সালাতের সময় ক্যালেন্ডার দেখুন' : 'View prayer times calendar'}
           </p>
         </div>
 

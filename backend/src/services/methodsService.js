@@ -77,11 +77,6 @@ export async function getMethodsService() {
         increment: 1,
         description: 'Hijri date adjustment in days (-2 to +2)'
       },
-      sehri_margin: {
-        range: [5, 15],
-        increment: 1,
-        description: 'Sehri margin in minutes before Fajr (5 to 15)'
-      }
     };
 
     return {
@@ -104,7 +99,6 @@ export async function getMethodsService() {
         dhuhr_adjustment: { range: [1, 60], increment: 1 },
         maghrib_adjustment: { range: [1, 15], increment: 1 },
         hijri_adjustment: { range: [-2, 2], increment: 1 },
-        sehri_margin: { range: [5, 15], increment: 1 }
       }
     };
   }

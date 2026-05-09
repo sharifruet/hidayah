@@ -12,8 +12,8 @@ export default function DateRangeCalendar({ startDate, endDate }) {
   const endDateStr = format(endDate, 'yyyy-MM-dd');
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['date-range-calendar', location.lat, location.lng, startDateStr, endDateStr, method, 'sunset_adj_29'],
-    queryFn: () => getDateRangeCalendar(location.lat, location.lng, startDateStr, endDateStr, method, true, { sunset_adjustment: 29 }),
+    queryKey: ['date-range-calendar', location.lat, location.lng, startDateStr, endDateStr, method],
+    queryFn: () => getDateRangeCalendar(location.lat, location.lng, startDateStr, endDateStr, method, true),
     enabled: !!location.lat && !!location.lng && !!startDate && !!endDate,
   });
 
@@ -67,16 +67,6 @@ export default function DateRangeCalendar({ startDate, endDate }) {
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 {labels.isha || 'Isha'}
               </th>
-              {data.days[0]?.fasting && (
-                <>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Sehri
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Iftar
-                  </th>
-                </>
-              )}
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -103,16 +93,6 @@ export default function DateRangeCalendar({ startDate, endDate }) {
                 <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
                   {day.prayer_times?.isha || '--'}
                 </td>
-                {day.fasting && (
-                  <>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-orange-600 font-medium">
-                      {day.fasting.sehri_end || '--'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-orange-600 font-medium">
-                      {day.fasting.iftar || '--'}
-                    </td>
-                  </>
-                )}
               </tr>
             ))}
           </tbody>

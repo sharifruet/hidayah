@@ -32,11 +32,6 @@ export default function CalendarDay({ day, dayData, isToday = false, onClick = n
             <div className="text-gray-600">
               <span className="font-medium">{labels.maghrib || 'Maghrib'}:</span> {dayData.prayer_times.maghrib}
             </div>
-            {dayData.fasting && (
-              <div className="text-orange-600 font-medium mt-1">
-                {dayData.fasting.iftar}
-              </div>
-            )}
           </div>
         )}
       </div>

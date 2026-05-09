@@ -114,90 +114,6 @@ export async function storePrayerTimesInCache(latitude, longitude, date, method,
 }
 
 /**
- * Get fasting times from cache
- */
-export async function getFastingTimesFromCache(latitude, longitude, date, method, sehriMargin, options = {}) {
-  try {
-    const hasCustomOptions = options.fajr_angle !== undefined ||
-                            options.isha_angle !== undefined ||
-                            options.isha_time_adjustment !== undefined ||
-                            options.asr_method !== undefined ||
-                            options.dhuhr_adjustment !== undefined ||
-                            options.maghrib_adjustment !== undefined;
-
-    if (hasCustomOptions) {
-      return null;
-    }
-
-    const [rows] = await pool.query(
-      `SELECT * FROM fasting_times_cache
-       WHERE latitude = ? AND longitude = ? AND date = ? AND method = ? AND sehri_margin = ?
-       LIMIT 1`,
-      [latitude, longitude, date, method, sehriMargin]
-    );
-
-    if (rows.length === 0) {
-      return null;
-    }
-
-    return rows[0];
-  } catch (error) {
-    console.error('Cache lookup error:', error);
-    return null;
-  }
-}
-
-/**
- * Store fasting times in cache
- */
-export async function storeFastingTimesInCache(latitude, longitude, date, method, sehriMargin, fastingData, timezone = '+06:00', options = {}) {
-  try {
-    const hasCustomOptions = options.fajr_angle !== undefined ||
-                            options.isha_angle !== undefined ||
-                            options.isha_time_adjustment !== undefined ||
-                            options.asr_method !== undefined ||
-                            options.dhuhr_adjustment !== undefined ||
-                            options.maghrib_adjustment !== undefined;
-
-    if (hasCustomOptions) {
-      return;
-    }
-
-    await pool.query(
-      `INSERT INTO fasting_times_cache
-       (latitude, longitude, date, method, sehri_margin, sehri_end, fajr, sunrise, sunset, iftar, maghrib, fasting_duration_minutes, day_length_minutes, timezone)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-       sehri_end = VALUES(sehri_end),
-       fajr = VALUES(fajr),
-       sunrise = VALUES(sunrise),
-       sunset = VALUES(sunset),
-       iftar = VALUES(iftar),
-       maghrib = VALUES(maghrib),
-       fasting_duration_minutes = VALUES(fasting_duration_minutes),
-       day_length_minutes = VALUES(day_length_minutes),
-       updated_at = CURRENT_TIMESTAMP`,
-      [
-        latitude, longitude, date, method, sehriMargin,
-        fastingData.sehri_end + ':00',
-        fastingData.fajr + ':00',
-        fastingData.sunrise + ':00',
-        fastingData.sunset + ':00',
-        fastingData.iftar + ':00',
-        fastingData.maghrib + ':00',
-        fastingData.fasting_duration_minutes,
-        fastingData.day_length_minutes,
-        timezone
-      ]
-    );
-  } catch (error) {
-    if (!error.message.includes('Duplicate entry')) {
-      console.error('Cache store error:', error);
-    }
-  }
-}
-
-/**
  * Clear old cache entries (older than specified days)
  */
 export async function clearOldCacheEntries(daysOld = 365) {
@@ -210,14 +126,8 @@ export async function clearOldCacheEntries(daysOld = 365) {
       [cutoffDate.toISOString().split('T')[0]]
     );
 
-    const [result2] = await pool.query(
-      `DELETE FROM fasting_times_cache WHERE date < ?`,
-      [cutoffDate.toISOString().split('T')[0]]
-    );
-
     return {
-      prayer_times_deleted: result1.affectedRows,
-      fasting_times_deleted: result2.affectedRows
+      prayer_times_deleted: result1.affectedRows
     };
   } catch (error) {
     console.error('Cache cleanup error:', error);

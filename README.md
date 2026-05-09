@@ -95,6 +95,7 @@ npm run dev
 
 - [Technical Document](./docs/TECHNICAL_DOCUMENT.md) - Complete technical specifications
 - [Implementation Plan](./docs/IMPLEMENTATION_PLAN.md) - Phase-by-phase implementation guide
+- [Qur’an Requirements](./docs/QURAN_REQUIREMENTS.md) - Product requirements for a Quran.com-like Qur’an module
 - [Backend README](./backend/README.md) - Backend-specific documentation
 - [Setup Guide](./SETUP.md) - Detailed setup instructions
 

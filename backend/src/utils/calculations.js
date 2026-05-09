@@ -1,5 +1,5 @@
 /**
- * Astronomical calculations for prayer and fasting times
+ * Astronomical calculations for prayer times
  * Based on formulas from Section 3 of the technical document
  * Supports all 20 calculation methods
  */
@@ -52,12 +52,13 @@ export function calculateEquationOfTime(date) {
  * @returns {number} Solar noon in minutes from midnight
  */
 export function calculateSolarNoon(longitude, date, timezoneOffset = 6) {
-  const standardMeridian = timezoneOffset * 15; // 90°E for Bangladesh
-  const longitudeCorrection = 4 * (longitude - standardMeridian) / 60; // in minutes
+  // NOAA-style solar noon approximation (minutes from midnight, local clock time)
+  // solarNoon = 720 - 4*longitude - EoT + timezoneOffset*60
+  // - longitude in degrees East (positive)
+  // - EoT in minutes
+  // - timezoneOffset in hours (e.g., +6 for Bangladesh)
   const eot = calculateEquationOfTime(date);
-
-  const solarNoonMinutes = 12 * 60 + longitudeCorrection + eot;
-  return solarNoonMinutes; // in minutes from midnight
+  return 12 * 60 - 4 * longitude - eot + timezoneOffset * 60;
 }
 
 /**
@@ -345,74 +346,6 @@ export function calculatePrayerTimes(latitude, longitude, date, method = 'karach
   }
 
   return times;
-}
-
-/**
- * Calculate fasting times
- * @param {number} latitude - Latitude in degrees
- * @param {number} longitude - Longitude in degrees
- * @param {Date} date - Date for calculation
- * @param {string} method - Calculation method code (default: 'karachi')
- * @param {number} sehriMargin - Minutes before Fajr for Sehri end (default: 10)
- * @param {object} options - Additional options (same as calculatePrayerTimes)
- * @returns {object} Fasting times object
- */
-export function calculateFastingTimes(latitude, longitude, date, method = 'karachi', sehriMargin = 10, options = {}) {
-  // Validate sehri margin
-  if (sehriMargin < 5 || sehriMargin > 15) {
-    throw new Error('Sehri margin must be between 5 and 15 minutes');
-  }
-
-  // Calculate prayer times with all options
-  const prayerTimes = calculatePrayerTimes(latitude, longitude, date, method, options);
-
-  // Parse times to calculate durations
-  const parseTime = (timeStr) => {
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    return hours * 60 + minutes;
-  };
-
-  const fajrMinutes = parseTime(prayerTimes.fajr);
-  const sunriseMinutes = parseTime(prayerTimes.sunrise);
-  const sunsetMinutes = parseTime(prayerTimes.sunset);
-  const maghribMinutes = parseTime(prayerTimes.maghrib);
-
-  // Calculate Sehri end (Fajr - margin)
-  let sehriEndMinutes = fajrMinutes - sehriMargin;
-  if (sehriEndMinutes < 0) sehriEndMinutes += 24 * 60;
-
-  // Iftar is at Maghrib (which may have adjustment)
-  const iftarMinutes = maghribMinutes;
-
-  // Calculate durations
-  let fastingDurationMinutes = iftarMinutes - fajrMinutes;
-  if (fastingDurationMinutes < 0) fastingDurationMinutes += 24 * 60;
-
-  let dayLengthMinutes = sunsetMinutes - sunriseMinutes;
-  if (dayLengthMinutes < 0) dayLengthMinutes += 24 * 60;
-
-  const fastingDurationHours = fastingDurationMinutes / 60;
-  const dayLengthHours = dayLengthMinutes / 60;
-
-  const fastingHours = Math.floor(fastingDurationHours);
-  const fastingMins = fastingDurationMinutes % 60;
-  const dayHours = Math.floor(dayLengthHours);
-  const dayMins = dayLengthMinutes % 60;
-
-  return {
-    sehri_end: minutesToTime(sehriEndMinutes),
-    fajr: prayerTimes.fajr,
-    sunrise: prayerTimes.sunrise,
-    sunset: prayerTimes.sunset,
-    iftar: minutesToTime(iftarMinutes),
-    maghrib: prayerTimes.maghrib,
-    fasting_duration_minutes: fastingDurationMinutes,
-    fasting_duration_hours: parseFloat(fastingDurationHours.toFixed(2)),
-    fasting_duration_formatted: `${fastingHours} hours ${fastingMins} minutes`,
-    day_length_minutes: dayLengthMinutes,
-    day_length_hours: parseFloat(dayLengthHours.toFixed(2)),
-    day_length_formatted: `${dayHours} hours ${dayMins} minutes`
-  };
 }
 
 /**

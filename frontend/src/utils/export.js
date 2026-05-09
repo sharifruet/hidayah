@@ -9,9 +9,6 @@ export function exportToCSV(data, filename) {
   }
 
   const headers = ['Date', 'Day', 'Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
-  if (data.days[0]?.fasting) {
-    headers.push('Sehri End', 'Iftar', 'Fasting Duration (minutes)', 'Day Length (minutes)');
-  }
 
   const rows = data.days.map(day => {
     const row = [
@@ -24,15 +21,6 @@ export function exportToCSV(data, filename) {
       day.prayer_times?.maghrib || '',
       day.prayer_times?.isha || ''
     ];
-
-    if (day.fasting) {
-      row.push(
-        day.fasting.sehri_end || '',
-        day.fasting.iftar || '',
-        day.fasting.fasting_duration_minutes || '',
-        day.fasting.day_length_minutes || ''
-      );
-    }
 
     return row.map(cell => `"${cell}"`).join(',');
   });
@@ -94,18 +82,6 @@ export function exportToICal(data, filename, locationName = '') {
       ].join('\r\n') + '\r\n';
     }
 
-    // Iftar event
-    if (day.fasting?.iftar) {
-      const iftarTime = `${date}T${day.fasting.iftar.replace(':', '')}00`;
-      icalContent += [
-        'BEGIN:VEVENT',
-        `DTSTART:${iftarTime}`,
-        `DTEND:${iftarTime}`,
-        `SUMMARY:Iftar - ${day.fasting.iftar}`,
-        `DESCRIPTION:Iftar time${locationName ? ` at ${locationName}` : ''}`,
-        'END:VEVENT'
-      ].join('\r\n') + '\r\n';
-    }
   });
 
   icalContent += 'END:VCALENDAR\r\n';
@@ -178,12 +154,7 @@ function generatePrintHTML(data, title) {
 
   let tableRows = '';
   if (data.days) {
-    tableRows = data.days.map(day => {
-      const fastingRow = day.fasting
-        ? `<td>${day.fasting.sehri_end || '--'}</td><td>${day.fasting.iftar || '--'}</td>`
-        : '';
-
-      return `
+    tableRows = data.days.map(day => `
         <tr>
           <td>${day.date}</td>
           <td>${day.prayer_times?.fajr || '--'}</td>
@@ -192,10 +163,8 @@ function generatePrintHTML(data, title) {
           <td>${day.prayer_times?.asr || '--'}</td>
           <td>${day.prayer_times?.maghrib || '--'}</td>
           <td>${day.prayer_times?.isha || '--'}</td>
-          ${fastingRow}
         </tr>
-      `;
-    }).join('');
+      `).join('');
   }
 
   return `
@@ -234,7 +203,6 @@ function generatePrintHTML(data, title) {
             <th>Asr</th>
             <th>Maghrib</th>
             <th>Isha</th>
-            ${data.days?.[0]?.fasting ? '<th>Sehri</th><th>Iftar</th>' : ''}
           </tr>
         </thead>
         <tbody>

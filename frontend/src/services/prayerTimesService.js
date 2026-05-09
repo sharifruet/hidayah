@@ -18,14 +18,13 @@ export async function getPrayerTimes(lat, lng, date, method = 'karachi', options
 /**
  * Get monthly calendar
  */
-export async function getMonthlyCalendar(lat, lng, year, month, method = 'karachi', includeFasting = true, options = {}) {
+export async function getMonthlyCalendar(lat, lng, year, month, method = 'karachi', _includeFasting, options = {}) {
   const params = {
     latitude: lat,
     longitude: lng,
     year: year,
     month: month,
     method: method,
-    include_fasting: includeFasting,
     ...options
   };
 
@@ -35,14 +34,13 @@ export async function getMonthlyCalendar(lat, lng, year, month, method = 'karach
 /**
  * Get yearly calendar
  */
-export async function getYearlyCalendar(lat, lng, year, method = 'karachi', format = 'summary', includeFasting = true, options = {}) {
+export async function getYearlyCalendar(lat, lng, year, method = 'karachi', format = 'summary', _includeFasting, options = {}) {
   const params = {
     latitude: lat,
     longitude: lng,
     year: year,
     method: method,
     format: format,
-    include_fasting: includeFasting,
     ...options
   };
 
@@ -52,14 +50,13 @@ export async function getYearlyCalendar(lat, lng, year, method = 'karachi', form
 /**
  * Get date range calendar
  */
-export async function getDateRangeCalendar(lat, lng, startDate, endDate, method = 'karachi', includeFasting = true, options = {}) {
+export async function getDateRangeCalendar(lat, lng, startDate, endDate, method = 'karachi', _includeFasting, options = {}) {
   const params = {
     latitude: lat,
     longitude: lng,
     start_date: startDate,
     end_date: endDate,
     method: method,
-    include_fasting: includeFasting,
     ...options
   };
 

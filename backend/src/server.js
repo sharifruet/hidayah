@@ -5,15 +5,20 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Import routes
 import prayerTimesRoutes from './routes/prayerTimes.js';
-import fastingTimesRoutes from './routes/fastingTimes.js';
 import sunTimesRoutes from './routes/sunTimes.js';
 import calendarRoutes from './routes/calendar.js';
 import batchRoutes from './routes/batch.js';
 import locationsRoutes from './routes/locations.js';
 import methodsRoutes from './routes/methods.js';
+import quranRoutes from './routes/quran.js';
+import booksRoutes from './routes/books.js';
 
 // Import middleware
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
@@ -89,24 +94,30 @@ app.get('/health', async (req, res) => {
   });
 });
 
+// Static audio files — served from backend/public/audio/
+app.use('/audio', express.static(path.join(__dirname, '..', '..', 'public', 'audio'), {
+  maxAge: '30d',
+  immutable: true,
+}));
+
 // API routes
 app.use(`/${API_VERSION}/prayer-times`, prayerTimesRoutes);
-app.use(`/${API_VERSION}/fasting-times`, fastingTimesRoutes);
 app.use(`/${API_VERSION}/sun-times`, sunTimesRoutes);
 app.use(`/${API_VERSION}/calendar`, calendarRoutes);
 app.use(`/${API_VERSION}/batch`, batchRoutes);
 app.use(`/${API_VERSION}/locations`, locationsRoutes);
 app.use(`/${API_VERSION}/methods`, methodsRoutes);
+app.use(`/${API_VERSION}/quran`, quranRoutes);
+app.use(`/${API_VERSION}/books`, booksRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
     name: 'Salat and Saom Timing API',
     version: '1.0.0',
-    description: 'Coordinate-based Salat and Saom (Fasting) Timing API for Bangladesh',
+    description: 'Coordinate-based Prayer Times API for Bangladesh',
     endpoints: {
       prayer_times: `/${API_VERSION}/prayer-times`,
-      fasting_times: `/${API_VERSION}/fasting-times`,
       sun_times: `/${API_VERSION}/sun-times`,
       calendar_monthly: `/${API_VERSION}/calendar/monthly`,
       calendar_yearly: `/${API_VERSION}/calendar/yearly`,

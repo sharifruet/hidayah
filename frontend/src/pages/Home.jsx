@@ -4,11 +4,11 @@ import { useLocation } from '../hooks/useLocation.js';
 import LocationMap from '../components/map/LocationMap.jsx';
 import LocationSearch from '../components/location/LocationSearch.jsx';
 import PrayerTimesCard from '../components/prayer/PrayerTimesCard.jsx';
-import FastingTimesCard from '../components/fasting/FastingTimesCard.jsx';
 import MonthlyCalendar from '../components/calendar/MonthlyCalendar.jsx';
+import DailyAyah from '../components/common/DailyAyah.jsx';
 
 export default function Home() {
-  const { location, updateLocation, updateMethod, updateSehriMargin, language } = useApp();
+  const { location, updateLocation, updateMethod, language } = useApp();
   const { getByCoordinates, getCurrentLocation, loading: locationLoading } = useLocation();
   const [mapCenter, setMapCenter] = useState([location.lat, location.lng]);
   const today = new Date();
@@ -51,15 +51,20 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">
-            {language === 'bn' ? 'সালাত ও সাওমের সময়' : 'Salat & Saom Timing'}
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+            {language === 'bn' ? 'সালাতের সময়' : 'Prayer Times'}
           </h1>
-          <p className="mt-2 text-gray-600">
-            {language === 'bn' ? 'মানচিত্রে একটি অবস্থান নির্বাচন করুন বা অনুসন্ধান করুন' : 'Select a location on the map or search to view prayer and fasting times'}
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
+            {language === 'bn' ? 'মানচিত্রে একটি অবস্থান নির্বাচন করুন বা অনুসন্ধান করুন' : 'Select a location on the map or search to view prayer times'}
           </p>
+        </div>
+
+        {/* Daily Ayah widget */}
+        <div className="mb-6">
+          <DailyAyah language={language} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -100,10 +105,6 @@ export default function Home() {
           <div className="space-y-6">
             <PrayerTimesCard
               onMethodChange={updateMethod}
-            />
-            <FastingTimesCard
-              onMethodChange={updateMethod}
-              onSehriMarginChange={updateSehriMargin}
             />
             <MonthlyCalendar
               year={today.getFullYear()}

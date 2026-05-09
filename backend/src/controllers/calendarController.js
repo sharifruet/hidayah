@@ -11,8 +11,6 @@ export async function getMonthlyCalendar(req, res, next) {
     const year = parseInt(req.query.year) || new Date().getFullYear();
     const month = parseInt(req.query.month) || new Date().getMonth() + 1;
     const method = req.query.method || 'karachi';
-    const includeFasting = req.query.include_fasting !== 'false';
-    const sehriMargin = parseInt(req.query.sehri_margin) || 10;
 
     if (!year || !month || month < 1 || month > 12) {
       throw new ValidationError('Year and month (1-12) are required', {
@@ -24,7 +22,7 @@ export async function getMonthlyCalendar(req, res, next) {
     // Extract optional parameters
     const options = extractCalculationOptions(req.query);
 
-    const result = await getMonthlyCalendarService(latitude, longitude, year, month, method, includeFasting, sehriMargin, options);
+    const result = await getMonthlyCalendarService(latitude, longitude, year, month, method, false, 10, options);
 
     res.json({
       ...result,
@@ -46,8 +44,6 @@ export async function getYearlyCalendar(req, res, next) {
     const year = parseInt(req.query.year) || new Date().getFullYear();
     const method = req.query.method || 'karachi';
     const format = req.query.format || 'summary';
-    const includeFasting = req.query.include_fasting !== 'false';
-    const sehriMargin = parseInt(req.query.sehri_margin) || 10;
 
     if (!year || year < 1900 || year > 2100) {
       throw new ValidationError('Valid year (1900-2100) is required', {
@@ -65,7 +61,7 @@ export async function getYearlyCalendar(req, res, next) {
     // Extract optional parameters
     const options = extractCalculationOptions(req.query);
 
-    const result = await getYearlyCalendarService(latitude, longitude, year, method, format, includeFasting, sehriMargin, options);
+    const result = await getYearlyCalendarService(latitude, longitude, year, method, format, false, 10, options);
 
     res.json({
       ...result,
@@ -87,8 +83,6 @@ export async function getDateRangeCalendar(req, res, next) {
     const startDate = req.query.start_date;
     const endDate = req.query.end_date;
     const method = req.query.method || 'karachi';
-    const includeFasting = req.query.include_fasting !== 'false';
-    const sehriMargin = parseInt(req.query.sehri_margin) || 10;
 
     if (!startDate || !endDate) {
       throw new ValidationError('Both start_date and end_date are required', {
@@ -100,7 +94,7 @@ export async function getDateRangeCalendar(req, res, next) {
     // Extract optional parameters
     const options = extractCalculationOptions(req.query);
 
-    const result = await getDateRangeCalendarService(latitude, longitude, startDate, endDate, method, includeFasting, sehriMargin, options);
+    const result = await getDateRangeCalendarService(latitude, longitude, startDate, endDate, method, false, 10, options);
 
     res.json({
       ...result,

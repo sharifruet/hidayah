@@ -11,8 +11,8 @@ import { gregorianToHijri } from '../../utils/hijri.js';
 export default function MonthlyCalendar({ year, month, onDateClick = null }) {
   const { location, method, language } = useApp();
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['monthly-calendar', location.lat, location.lng, year, month, method, 'sunset_adj_29'],
-    queryFn: () => getMonthlyCalendar(location.lat, location.lng, year, month, method, true, { sunset_adjustment: 29 }),
+    queryKey: ['monthly-calendar', location.lat, location.lng, year, month, method],
+    queryFn: () => getMonthlyCalendar(location.lat, location.lng, year, month, method, true),
     enabled: !!location.lat && !!location.lng,
   });
 

@@ -83,9 +83,6 @@ export const EXPORT_FORMATS = {
 // Default calculation method
 export const DEFAULT_METHOD = 'karachi';
 
-// Default Sehri margin (minutes)
-export const DEFAULT_SEHRI_MARGIN = 10;
-
 // Default sunset adjustment for Bangladesh/Dhaka (minutes)
 // This adjusts sunset time to match local observations (29 minutes for Dhaka)
 export const DEFAULT_SUNSET_ADJUSTMENT = 29;

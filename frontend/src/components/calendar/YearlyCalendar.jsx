@@ -8,8 +8,8 @@ import { format, startOfYear, endOfYear, eachMonthOfInterval } from 'date-fns';
 export default function YearlyCalendar({ year, format: viewFormat = 'summary' }) {
   const { location, method, language } = useApp();
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['yearly-calendar', location.lat, location.lng, year, method, viewFormat, 'sunset_adj_29'],
-    queryFn: () => getYearlyCalendar(location.lat, location.lng, year, method, viewFormat, true, { sunset_adjustment: 29 }),
+    queryKey: ['yearly-calendar', location.lat, location.lng, year, method, viewFormat],
+    queryFn: () => getYearlyCalendar(location.lat, location.lng, year, method, viewFormat, true),
     enabled: !!location.lat && !!location.lng,
   });
 
@@ -66,7 +66,6 @@ export default function YearlyCalendar({ year, format: viewFormat = 'summary' })
                     <div key={dayIndex} className="text-sm text-gray-600 border-b pb-1">
                       <span className="font-medium">{format(new Date(day.date), 'd')}:</span>
                       {' '}Fajr: {day.fajr}, Maghrib: {day.maghrib}
-                      {day.iftar && <span className="text-orange-600">, Iftar: {day.iftar}</span>}
                     </div>
                   ))
                 ) : (

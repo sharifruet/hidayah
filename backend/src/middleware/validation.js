@@ -144,29 +144,6 @@ export const validateMethod = (req, res, next) => {
   next();
 };
 
-/**
- * Validate sehri margin
- */
-export const validateSehriMargin = (req, res, next) => {
-  const margin = req.query.sehri_margin !== undefined ? parseInt(req.query.sehri_margin) : 10;
-
-  if (req.query.sehri_margin !== undefined && (isNaN(margin) || margin < 5 || margin > 15)) {
-    return res.status(400).json({
-      error: {
-        code: 'INVALID_SEHRI_MARGIN',
-        message: 'Sehri margin must be between 5 and 15 minutes',
-        details: {
-          parameter: 'sehri_margin',
-          value: req.query.sehri_margin,
-          valid_range: [5, 15]
-        },
-        request_id: req.id
-      }
-    });
-  }
-
-  next();
-};
 
 /**
  * Validate prayer times advanced parameters

@@ -195,3 +195,54 @@ CREATE TABLE IF NOT EXISTS api_requests (
   INDEX idx_requests_coordinate (latitude, longitude),
   INDEX idx_requests_method (calculation_method, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ─── Quran ────────────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS quran_surahs (
+  number        TINYINT UNSIGNED PRIMARY KEY,        -- 1–114
+  name_ar       VARCHAR(100)  NOT NULL,
+  name_en       VARCHAR(100)  NOT NULL,
+  name_en_trans VARCHAR(200)  NOT NULL,
+  revelation_type ENUM('Meccan','Medinan') NOT NULL,
+  ayah_count    SMALLINT UNSIGNED NOT NULL,
+  INDEX idx_qs_revelation (revelation_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS quran_ayahs (
+  id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  surah_number  TINYINT UNSIGNED NOT NULL,
+  ayah_number   SMALLINT UNSIGNED NOT NULL,   -- within surah (1-indexed)
+  number_global SMALLINT UNSIGNED NOT NULL,   -- 1–6236
+  text_ar       TEXT NOT NULL,
+  page          SMALLINT UNSIGNED NOT NULL,
+  juz           TINYINT UNSIGNED NOT NULL,
+  hizb          TINYINT UNSIGNED NOT NULL,
+  sajdah        TINYINT(1) NOT NULL DEFAULT 0,
+  UNIQUE KEY uq_surah_ayah (surah_number, ayah_number),
+  UNIQUE KEY uq_global (number_global),
+  INDEX idx_qa_page (page),
+  INDEX idx_qa_juz (juz),
+  FOREIGN KEY (surah_number) REFERENCES quran_surahs(number)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS quran_editions (
+  identifier  VARCHAR(50) PRIMARY KEY,
+  language    VARCHAR(10)  NOT NULL,
+  name        VARCHAR(200) NOT NULL,
+  author      VARCHAR(200) NOT NULL DEFAULT '',
+  direction   ENUM('ltr','rtl') NOT NULL DEFAULT 'ltr',
+  INDEX idx_qe_language (language)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS quran_translations (
+  id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  edition     VARCHAR(50)  NOT NULL,
+  surah_number TINYINT UNSIGNED NOT NULL,
+  ayah_number  SMALLINT UNSIGNED NOT NULL,
+  text        MEDIUMTEXT   NOT NULL,
+  UNIQUE KEY uq_tr_edition_ayah (edition, surah_number, ayah_number),
+  INDEX idx_tr_surah (edition, surah_number),
+  FULLTEXT INDEX idx_tr_fulltext (text),
+  FOREIGN KEY (edition) REFERENCES quran_editions(identifier),
+  FOREIGN KEY (surah_number, ayah_number) REFERENCES quran_ayahs(surah_number, ayah_number)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
