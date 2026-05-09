@@ -43,9 +43,15 @@ code {
     monospace;
 }
 
-/* Arabic font for Qur'an reader */
+/* Arabic font — Scheherazade New matches the Uthmanic Naskh style
+   used in King Fahad Press (Madinah) Mushafs.
+   Applied globally to any element with lang="ar" or .font-arabic class. */
+:lang(ar),
+[lang="ar"],
 .font-arabic {
-  font-family: 'Amiri', 'Scheherazade New', serif;
+  font-family: 'Scheherazade New', 'Amiri', serif;
+  font-weight: 400;
+  font-feature-settings: 'calt' 1, 'liga' 1, 'rlig' 1;
 }
 
 /* Leaflet map container */
@@ -83,6 +89,15 @@ code {
 [dir="rtl"] .mr-auto  { margin-right: unset; margin-left: auto;   }
 [dir="rtl"] .text-left  { text-align: right; }
 [dir="rtl"] .text-right { text-align: left;  }
+
+/* Bengali font — Noto Sans Bengali, regular and above weights only */
+:lang(bn),
+[lang="bn"],
+.lang-bn {
+  font-family: 'Noto Sans Bengali', sans-serif;
+  font-weight: 400;
+  font-optical-sizing: auto;
+}
 
 /* Urdu body font override */
 :lang(ur) body,

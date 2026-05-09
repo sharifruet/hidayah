@@ -1,4 +1,5 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/v1';
+import { API_BASE_URL, API_VERSION } from '../utils/constants.js';
+const API_BASE = `${API_BASE_URL}/${API_VERSION}`;
 
 async function get(path) {
   const res = await fetch(`${API_BASE}/books${path}`);

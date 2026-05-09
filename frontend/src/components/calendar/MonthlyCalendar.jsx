@@ -5,7 +5,6 @@ import Loading from '../common/Loading.jsx';
 import ErrorMessage from '../common/ErrorMessage.jsx';
 import CalendarDay from './CalendarDay.jsx';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday } from 'date-fns';
-import { PRAYER_LABELS, PRAYER_LABELS_BN } from '../../utils/constants.js';
 import { gregorianToHijri } from '../../utils/hijri.js';
 
 export default function MonthlyCalendar({ year, month, onDateClick = null }) {
@@ -15,8 +14,6 @@ export default function MonthlyCalendar({ year, month, onDateClick = null }) {
     queryFn: () => getMonthlyCalendar(location.lat, location.lng, year, month, method, true),
     enabled: !!location.lat && !!location.lng,
   });
-
-  const labels = language === 'bn' ? PRAYER_LABELS_BN : PRAYER_LABELS;
 
   if (isLoading) {
     return <Loading message="Loading calendar..." />;
@@ -56,15 +53,15 @@ export default function MonthlyCalendar({ year, month, onDateClick = null }) {
   const sameHijriMonth = hijriStart.month === hijriEnd.month && hijriStart.year === hijriEnd.year;
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
       <div className="mb-4">
-        <h2 className="text-2xl font-bold text-gray-800">
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
           {format(monthStart, 'MMMM yyyy')}
         </h2>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
           {location.name || `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`} • {method}
         </p>
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
           {sameHijriMonth
             ? `${hijriStart.monthNameEn} ${hijriStart.year} AH (${hijriStart.monthNameAr})`
             : `${hijriStart.monthNameEn} ${hijriStart.year} – ${hijriEnd.monthNameEn} ${hijriEnd.year} AH`}
@@ -73,7 +70,7 @@ export default function MonthlyCalendar({ year, month, onDateClick = null }) {
 
       <div className="grid grid-cols-7 gap-2 mb-2">
         {weekDays.map((day, index) => (
-          <div key={index} className="text-center font-semibold text-gray-700 text-sm py-2">
+          <div key={index} className="text-center font-semibold text-gray-600 dark:text-gray-400 text-sm py-2">
             {day}
           </div>
         ))}
@@ -81,7 +78,7 @@ export default function MonthlyCalendar({ year, month, onDateClick = null }) {
 
       <div className="grid grid-cols-7 gap-2">
         {emptyCells.map((_, index) => (
-          <div key={`empty-${index}`} className="aspect-square" />
+          <div key={`empty-${index}`} />
         ))}
 
         {daysInMonth.map((day) => {
@@ -95,7 +92,7 @@ export default function MonthlyCalendar({ year, month, onDateClick = null }) {
               dayData={dayData}
               isToday={isCurrentDay}
               onClick={() => onDateClick && onDateClick(day)}
-              labels={labels}
+              language={language}
             />
           );
         })}

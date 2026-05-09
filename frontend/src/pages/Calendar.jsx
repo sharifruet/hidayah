@@ -161,28 +161,31 @@ export default function Calendar() {
     }
   };
 
+  const inputCls = "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500";
+  const labelCls = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2";
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {language === 'bn' ? 'ক্যালেন্ডার' : 'Calendar'}
           </h1>
-          <p className="mt-2 text-gray-600">
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
             {language === 'bn' ? 'সালাতের সময় ক্যালেন্ডার দেখুন' : 'View prayer times calendar'}
           </p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className={labelCls}>
                 {language === 'bn' ? 'দেখার ধরন' : 'View Type'}
               </label>
               <select
                 value={viewType}
                 onChange={(e) => setViewType(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className={inputCls}
               >
                 <option value={CALENDAR_VIEWS.MONTHLY}>
                   {language === 'bn' ? 'মাসিক' : 'Monthly'}
@@ -199,7 +202,7 @@ export default function Calendar() {
             {viewType === CALENDAR_VIEWS.MONTHLY && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={labelCls}>
                     {language === 'bn' ? 'বছর' : 'Year'}
                   </label>
                   <input
@@ -208,11 +211,11 @@ export default function Calendar() {
                     onChange={(e) => setYear(parseInt(e.target.value))}
                     min="2020"
                     max="2100"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className={inputCls}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={labelCls}>
                     {language === 'bn' ? 'মাস' : 'Month'}
                   </label>
                   <input
@@ -221,13 +224,13 @@ export default function Calendar() {
                     onChange={(e) => setMonth(parseInt(e.target.value))}
                     min="1"
                     max="12"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className={inputCls}
                   />
                 </div>
                 <div className="flex items-end gap-2">
                   <button
                     onClick={() => navigateMonth('prev')}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                    className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600"
                   >
                     ←
                   </button>
@@ -243,7 +246,7 @@ export default function Calendar() {
                   </button>
                   <button
                     onClick={() => navigateMonth('next')}
-                    className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                    className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600"
                   >
                     →
                   </button>
@@ -253,7 +256,7 @@ export default function Calendar() {
 
             {viewType === CALENDAR_VIEWS.YEARLY && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelCls}>
                   {language === 'bn' ? 'বছর' : 'Year'}
                 </label>
                 <input
@@ -262,7 +265,7 @@ export default function Calendar() {
                   onChange={(e) => setYear(parseInt(e.target.value))}
                   min="2020"
                   max="2100"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className={inputCls}
                 />
               </div>
             )}
@@ -270,25 +273,25 @@ export default function Calendar() {
             {viewType === CALENDAR_VIEWS.DATE_RANGE && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={labelCls}>
                     {language === 'bn' ? 'শুরুর তারিখ' : 'Start Date'}
                   </label>
                   <input
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className={inputCls}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={labelCls}>
                     {language === 'bn' ? 'শেষ তারিখ' : 'End Date'}
                   </label>
                   <input
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className={inputCls}
                   />
                 </div>
               </>

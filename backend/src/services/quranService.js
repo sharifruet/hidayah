@@ -248,31 +248,31 @@ export async function getTranslations() {
 }
 
 export function getReciters() {
-  const base = process.env.API_BASE_URL || 'http://localhost:3000';
+  const CDN = 'https://everyayah.com/data';
   return [
     {
       id:    'Alafasy_128kbps',
       name:  'Mishary Rashid Alafasy',
       style: 'Murattal',
-      audio_url_template: `${base}/audio/Alafasy_128kbps/{surah3}{ayah3}.mp3`,
+      audio_url_template: `${CDN}/Alafasy_128kbps/{surah3}{ayah3}.mp3`,
     },
     {
       id:    'Abdul_Basit_Murattal_64kbps',
       name:  'Abdul Basit Abd us-Samad',
       style: 'Murattal',
-      audio_url_template: `${base}/audio/Abdul_Basit_Murattal_64kbps/{surah3}{ayah3}.mp3`,
+      audio_url_template: `${CDN}/Abdul_Basit_Murattal_64kbps/{surah3}{ayah3}.mp3`,
     },
     {
       id:    'Husary_128kbps',
       name:  'Mahmoud Khalil Al-Husary',
       style: 'Murattal',
-      audio_url_template: `${base}/audio/Husary_128kbps/{surah3}{ayah3}.mp3`,
+      audio_url_template: `${CDN}/Husary_128kbps/{surah3}{ayah3}.mp3`,
     },
     {
       id:    'Mohammad_al_Tablaway_128kbps',
       name:  'Muhammad al-Tablawi',
       style: 'Murattal',
-      audio_url_template: `${base}/audio/Mohammad_al_Tablaway_128kbps/{surah3}{ayah3}.mp3`,
+      audio_url_template: `${CDN}/Mohammad_al_Tablaway_128kbps/{surah3}{ayah3}.mp3`,
     },
   ];
 }

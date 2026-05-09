@@ -13,7 +13,6 @@ export default function Header() {
   const navLinks = [
     { path: '/',               key: 'nav_home' },
     { path: '/prayer-times',   key: 'nav_prayer' },
-    { path: '/calendar',       key: 'nav_calendar' },
     { path: '/quran',          key: 'nav_quran',    prefix: true },
     { path: '/books',          key: 'nav_books',    prefix: true },
     { path: '/duas',           key: 'nav_duas' },
@@ -26,7 +25,17 @@ export default function Header() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <Link to="/" className="flex items-center">
+            <Link to="/" className="flex items-center gap-2">
+              {/* Logo mark — mix-blend-mode:multiply knocks out the white background;
+                  dark mode wrapper restores a white surface for the blend to work on */}
+              <span className="flex items-center justify-center w-8 h-8 rounded-md dark:bg-white dark:p-0.5 overflow-hidden flex-shrink-0">
+                <img
+                  src="/icons/logo.png"
+                  alt="Hidayah logo"
+                  className="w-full h-full object-contain mix-blend-multiply"
+                  style={{ filter: 'hue-rotate(122deg) saturate(1.4) brightness(0.72)' }}
+                />
+              </span>
               <h1 className="text-xl font-bold text-primary-600 dark:text-green-400">
                 {tr('app_name', language)}
               </h1>

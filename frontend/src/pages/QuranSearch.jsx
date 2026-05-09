@@ -127,7 +127,7 @@ export default function QuranSearch() {
                     <span className="text-xs font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded">
                       {match.surah_name} {match.surah_number}:{match.ayah_number}
                     </span>
-                    <span className="text-xs text-gray-400" dir="rtl">{match.surah_name_ar}</span>
+                    <span className="text-xs text-gray-400" dir="rtl" lang="ar">{match.surah_name_ar}</span>
                   </div>
                   <p className="text-sm text-gray-700 line-clamp-3">{match.text}</p>
                 </Link>

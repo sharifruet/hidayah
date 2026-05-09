@@ -33,23 +33,26 @@ export default function PrayerTimes() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        {/* Page header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {language === 'bn' ? 'সালাতের সময়' : 'Prayer Times'}
           </h1>
-          <p className="mt-2 text-gray-600">
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
             {language === 'bn' ? 'অবস্থান এবং তারিখ নির্বাচন করুন' : 'Select a location and date to view prayer times'}
           </p>
         </div>
 
+        {/* Calendar link card */}
         <div className="mb-6">
-          <div className="p-4 bg-white rounded-lg shadow-sm border border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-900 mb-1">
+          <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
               {language === 'bn' ? 'মাসিক বা তারিখ অনুযায়ী দেখুন' : 'View by month or date range'}
             </h2>
-            <p className="text-sm text-gray-600 mb-3">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
               {language === 'bn'
                 ? 'সম্পূর্ণ মাস বা নির্দিষ্ট তারিখ পরিসীমার সালাতের সময় ক্যালেন্ডার আকারে দেখতে ক্যালেন্ডার পেজে যান।'
                 : 'To see prayer times for a full month or a custom date range, open the calendar view.'}
@@ -59,11 +62,11 @@ export default function PrayerTimes() {
                 to={`/calendar?view=monthly&year=${selectedDate.getFullYear()}&month=${selectedDate.getMonth() + 1}`}
                 className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md bg-primary-600 text-white hover:bg-primary-700"
               >
-                {language === 'bn' ? 'এই মাসের ক্যালেন্ডার' : 'This month\'s calendar'}
+                {language === 'bn' ? 'এই মাসের ক্যালেন্ডার' : "This month's calendar"}
               </Link>
               <Link
                 to={`/calendar?view=date-range&startDate=${format(selectedDate, 'yyyy-MM-dd')}&endDate=${format(selectedDate, 'yyyy-MM-dd')}`}
-                className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md bg-gray-100 text-gray-800 hover:bg-gray-200"
+                className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600"
               >
                 {language === 'bn' ? 'এই তারিখের জন্য ক্যালেন্ডার' : 'Calendar for this date'}
               </Link>
@@ -72,16 +75,17 @@ export default function PrayerTimes() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Left column — controls + map */}
           <div>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 {language === 'bn' ? 'তারিখ নির্বাচন করুন' : 'Select Date'}
               </label>
               <input
                 type="date"
                 value={format(selectedDate, 'yyyy-MM-dd')}
                 onChange={(e) => setSelectedDate(new Date(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
 
@@ -113,13 +117,16 @@ export default function PrayerTimes() {
             />
 
             {location.name && (
-              <div className="mt-4 p-4 bg-white rounded-lg shadow">
-                <p className="font-semibold">{location.name}</p>
-                {location.district && <p className="text-sm text-gray-600">{location.district}, {location.division}</p>}
+              <div className="mt-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-100 dark:border-gray-700">
+                <p className="font-semibold text-gray-900 dark:text-gray-100">{location.name}</p>
+                {location.district && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{location.district}, {location.division}</p>
+                )}
               </div>
             )}
           </div>
 
+          {/* Right column — prayer times card */}
           <div>
             <PrayerTimesCard
               date={selectedDate}

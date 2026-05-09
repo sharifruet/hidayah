@@ -95,7 +95,10 @@ app.get('/health', async (req, res) => {
 });
 
 // Static audio files — served from backend/public/audio/
-app.use('/audio', express.static(path.join(__dirname, '..', '..', 'public', 'audio'), {
+app.use('/audio', (req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(path.join(__dirname, '..', '..', 'public', 'audio'), {
   maxAge: '30d',
   immutable: true,
 }));
