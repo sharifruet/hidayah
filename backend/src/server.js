@@ -19,6 +19,7 @@ import locationsRoutes from './routes/locations.js';
 import methodsRoutes from './routes/methods.js';
 import quranRoutes from './routes/quran.js';
 import booksRoutes from './routes/books.js';
+import adminRoutes from './routes/admin.js';
 
 // Import middleware
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
@@ -112,6 +113,7 @@ app.use(`/${API_VERSION}/locations`, locationsRoutes);
 app.use(`/${API_VERSION}/methods`, methodsRoutes);
 app.use(`/${API_VERSION}/quran`, quranRoutes);
 app.use(`/${API_VERSION}/books`, booksRoutes);
+app.use(`/${API_VERSION}/admin`, adminRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

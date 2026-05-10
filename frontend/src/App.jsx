@@ -1,11 +1,13 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppProvider, useApp } from './context/AppContext.jsx';
+import { AdminProvider } from './context/AdminContext.jsx';
 import Header from './components/common/Header.jsx';
 import Footer from './components/common/Footer.jsx';
 import BottomTabBar from './components/common/BottomTabBar.jsx';
 import ErrorBoundary from './components/common/ErrorBoundary.jsx';
 import OfflineBanner from './components/common/OfflineBanner.jsx';
+import ProtectedRoute from './components/admin/ProtectedRoute.jsx';
 import Home from './pages/Home.jsx';
 import PrayerTimes from './pages/PrayerTimes.jsx';
 import Calendar from './pages/Calendar.jsx';
@@ -20,6 +22,10 @@ import Duas from './pages/Duas.jsx';
 import Books from './pages/Books.jsx';
 import BookDetail from './pages/BookDetail.jsx';
 import BookReader from './pages/BookReader.jsx';
+import AdminLogin from './pages/admin/AdminLogin.jsx';
+import AdminDashboard from './pages/admin/AdminDashboard.jsx';
+import AdminBooks from './pages/admin/AdminBooks.jsx';
+import AdminDuas from './pages/admin/AdminDuas.jsx';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -68,9 +74,19 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AppProvider>
-        <Router>
-          <AppShell />
-        </Router>
+        <AdminProvider>
+          <Router>
+            <Routes>
+              {/* Admin routes — no header/footer */}
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+              <Route path="/admin/books" element={<ProtectedRoute><AdminBooks /></ProtectedRoute>} />
+              <Route path="/admin/duas" element={<ProtectedRoute><AdminDuas /></ProtectedRoute>} />
+              {/* Public app */}
+              <Route path="/*" element={<AppShell />} />
+            </Routes>
+          </Router>
+        </AdminProvider>
       </AppProvider>
     </QueryClientProvider>
   );

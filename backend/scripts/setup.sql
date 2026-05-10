@@ -396,4 +396,43 @@ VALUES
 ON DUPLICATE KEY UPDATE
   title=VALUES(title), description=VALUES(description), embed_url=VALUES(embed_url), cover_url=VALUES(cover_url), status=VALUES(status);
 
+-- -----------------------------------------------------------------------------
+-- admin_users
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `admin_users` (
+  `id`            INT AUTO_INCREMENT PRIMARY KEY,
+  `username`      VARCHAR(80) UNIQUE NOT NULL,
+  `password_hash` VARCHAR(255) NOT NULL,
+  `is_active`     TINYINT(1) NOT NULL DEFAULT 1,
+  `last_login`    TIMESTAMP NULL,
+  `created_at`    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Default admin — password: admin123 (CHANGE THIS IMMEDIATELY after first login)
+-- Hash generated with bcrypt rounds=10
+INSERT INTO `admin_users` (username, password_hash) VALUES
+  ('admin', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi')
+ON DUPLICATE KEY UPDATE username=username;
+
+-- -----------------------------------------------------------------------------
+-- duas
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `duas` (
+  `id`              INT AUTO_INCREMENT PRIMARY KEY,
+  `category`        VARCHAR(50) NOT NULL,
+  `arabic`          TEXT NOT NULL,
+  `transliteration` TEXT,
+  `translation_en`  TEXT NOT NULL,
+  `translation_bn`  TEXT,
+  `reference`       VARCHAR(200),
+  `count`           TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  `quran_surah`     TINYINT UNSIGNED,
+  `quran_ayah`      SMALLINT UNSIGNED,
+  `sort_order`      SMALLINT NOT NULL DEFAULT 0,
+  `created_at`      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at`      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_duas_category (category),
+  INDEX idx_duas_sort (category, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET foreign_key_checks = 1;
