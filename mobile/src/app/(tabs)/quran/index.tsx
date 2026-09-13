@@ -79,6 +79,9 @@ export default function QuranIndexScreen() {
           <TouchableOpacity onPress={() => router.push('/quran/juz')} className="px-3 py-1.5">
             <Text className="font-body-medium text-sm text-ink-400">{tr('quran_juz_tab', language)}</Text>
           </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/quran/page/1' as never)} className="px-3 py-1.5">
+            <Text className="font-body-medium text-sm text-ink-400">{tr('quran_mushaf_tab', language)}</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={() => router.push('/quran/search')}
             className="flex-1 flex-row items-center justify-end"

@@ -42,6 +42,29 @@ export interface SurahAyahsResponse {
   };
 }
 
+// The Qur'an text source prefixes ayah 1 of every surah except At-Tawbah (9) with the
+// Basmalah (4 words) — for Al-Faatiha (1) that prefix *is* ayah 1 itself; for every other
+// surah it's not actually part of the ayah and should render as its own decorative line
+// above it (quran.com / Madinah mushaf convention), not merged into the ayah's text.
+// Split on whitespace rather than matching a hardcoded string: the source text's Arabic
+// diacritics can be encoded with the combining marks in a different (but visually
+// identical) order than a literal typed into this file, which silently breaks exact
+// string matching — taking the first 4 words avoids that entirely.
+export function splitBasmalah(
+  surahNumber: number,
+  ayahNumber: number,
+  textAr: string
+): { basmalah: string | null; text: string } {
+  if (ayahNumber !== 1 || surahNumber === 1 || surahNumber === 9) {
+    return { basmalah: null, text: textAr };
+  }
+  const words = textAr.replace(/^﻿/, '').split(' ');
+  if (words.length <= 4) {
+    return { basmalah: null, text: textAr };
+  }
+  return { basmalah: words.slice(0, 4).join(' '), text: words.slice(4).join(' ') };
+}
+
 export function findTranslation(ayah: Ayah, edition: string): string | undefined {
   return ayah.translations?.find((t) => t.edition === edition)?.text;
 }

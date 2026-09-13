@@ -13,6 +13,7 @@ export interface AyahRowData {
   ayah: number;
   surahName: string;
   text_ar: string;
+  basmalah?: string | null;
   translation?: string;
   translationBn?: string;
 }
@@ -24,12 +25,26 @@ interface AyahRowProps {
   hideTranslation: boolean;
   onPlay: () => void;
   language: LanguageCode;
+  memorisationMode?: boolean;
+  isRevealed?: boolean;
+  onReveal?: () => void;
 }
 
-export function AyahRow({ data, isPlaying, isCurrent, hideTranslation, onPlay, language }: AyahRowProps) {
+export function AyahRow({
+  data,
+  isPlaying,
+  isCurrent,
+  hideTranslation,
+  onPlay,
+  language,
+  memorisationMode,
+  isRevealed,
+  onReveal,
+}: AyahRowProps) {
   const [revealed, setRevealed] = useState(!hideTranslation);
   const [bookmarked, setBookmarked] = useState(() => isBookmarked(data.surah, data.ayah));
   const [tafsirOpen, setTafsirOpen] = useState(false);
+  const memorisationHidden = memorisationMode === true && isRevealed !== true;
 
   // Cached (and, via the query persister, kept on-device) so re-opening an ayah's
   // tafsir — even offline — doesn't need a network round trip after the first time.
@@ -72,6 +87,12 @@ export function AyahRow({ data, isPlaying, isCurrent, hideTranslation, onPlay, l
         isCurrent ? 'border-primary-400' : 'border-ink-100 dark:border-ink-800'
       }`}
     >
+      {data.basmalah ? (
+        <Text className="font-arabic text-xl text-center text-primary-700 dark:text-primary-400 mb-3">
+          {data.basmalah}
+        </Text>
+      ) : null}
+
       <View className="flex-row items-center justify-between mb-3">
         <View className="w-7 h-7 rounded-full bg-primary-50 dark:bg-primary-900/30 items-center justify-center">
           <Text className="font-body-semibold text-[11px] text-primary-700 dark:text-primary-400">{data.ayah}</Text>
@@ -92,21 +113,33 @@ export function AyahRow({ data, isPlaying, isCurrent, hideTranslation, onPlay, l
         </View>
       </View>
 
-      <Text className="font-arabic text-[26px] leading-[52px] text-right text-ink-900 dark:text-white">
-        {data.text_ar}
-      </Text>
-
-      {hideTranslation && !revealed ? (
-        <TouchableOpacity onPress={() => setRevealed(true)} className="mt-2 py-2 items-center bg-ink-50 dark:bg-ink-800 rounded-lg">
-          <Text className="font-body-medium text-xs text-ink-400">{tr('quran_reveal_translation', language)}</Text>
+      {memorisationHidden ? (
+        <TouchableOpacity
+          onPress={onReveal}
+          className="py-6 items-center justify-center rounded-xl border-2 border-dashed border-ink-200 dark:border-ink-700 bg-ink-50 dark:bg-ink-800/60"
+        >
+          <Ionicons name="eye-outline" size={18} color="#7d879a" />
+          <Text className="font-body-medium text-xs text-ink-400 mt-1.5">{tr('quran_tap_to_reveal', language)}</Text>
         </TouchableOpacity>
-      ) : data.translation ? (
-        <Text className="font-body text-sm text-ink-600 dark:text-ink-300 leading-relaxed mt-3">{data.translation}</Text>
-      ) : null}
+      ) : (
+        <>
+          <Text className="font-arabic text-[26px] leading-[52px] text-right text-ink-900 dark:text-white">
+            {data.text_ar}
+          </Text>
 
-      {revealed && data.translationBn ? (
-        <Text className="font-body text-sm text-ink-500 dark:text-ink-400 leading-relaxed mt-1.5">{data.translationBn}</Text>
-      ) : null}
+          {hideTranslation && !revealed ? (
+            <TouchableOpacity onPress={() => setRevealed(true)} className="mt-2 py-2 items-center bg-ink-50 dark:bg-ink-800 rounded-lg">
+              <Text className="font-body-medium text-xs text-ink-400">{tr('quran_reveal_translation', language)}</Text>
+            </TouchableOpacity>
+          ) : data.translation ? (
+            <Text className="font-body text-sm text-ink-600 dark:text-ink-300 leading-relaxed mt-3">{data.translation}</Text>
+          ) : null}
+
+          {revealed && data.translationBn ? (
+            <Text className="font-body text-sm text-ink-500 dark:text-ink-400 leading-relaxed mt-1.5">{data.translationBn}</Text>
+          ) : null}
+        </>
+      )}
 
       {tafsirOpen ? (
         <View className="mt-3 pt-3 border-t border-ink-100 dark:border-ink-800">

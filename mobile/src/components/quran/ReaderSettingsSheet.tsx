@@ -8,10 +8,13 @@ import { tr } from '../../data/translations';
 export interface ReaderSettings {
   showBengali: boolean;
   hideTranslation: boolean;
+  memorisationMode: boolean;
+  repeatCount: number;
   playbackRate: number;
 }
 
 const RATES = [0.75, 1, 1.25, 1.5, 2];
+const REPEAT_COUNTS = [1, 2, 3, 5];
 
 export function ReaderSettingsSheet({
   visible,
@@ -54,7 +57,7 @@ export function ReaderSettingsSheet({
 
               <View className="flex-row items-center justify-between mb-4">
                 <View>
-                  <Text className="font-body-medium text-sm text-ink-900 dark:text-white">{tr('quran_memorisation_mode', language)}</Text>
+                  <Text className="font-body-medium text-sm text-ink-900 dark:text-white">{tr('quran_hide_translation', language)}</Text>
                   <Text className="font-body text-xs text-ink-400 mt-0.5">{tr('quran_hide_translation_note', language)}</Text>
                 </View>
                 <Switch
@@ -63,6 +66,43 @@ export function ReaderSettingsSheet({
                   trackColor={{ true: '#15805a' }}
                 />
               </View>
+
+              <View className="flex-row items-center justify-between mb-4">
+                <View className="flex-1 pr-3">
+                  <Text className="font-body-medium text-sm text-ink-900 dark:text-white">{tr('quran_memorisation_mode', language)}</Text>
+                  <Text className="font-body text-xs text-ink-400 mt-0.5">{tr('quran_memorisation_note', language)}</Text>
+                </View>
+                <Switch
+                  value={settings.memorisationMode}
+                  onValueChange={(v) => onChange({ ...settings, memorisationMode: v })}
+                  trackColor={{ true: '#15805a' }}
+                />
+              </View>
+
+              {settings.memorisationMode ? (
+                <View className="mb-4">
+                  <Text className="font-body-medium text-sm text-ink-900 dark:text-white mb-2">{tr('quran_repeat_count', language)}</Text>
+                  <View className="flex-row gap-2">
+                    {REPEAT_COUNTS.map((n) => (
+                      <TouchableOpacity
+                        key={n}
+                        onPress={() => onChange({ ...settings, repeatCount: n })}
+                        className={`px-3 py-2 rounded-lg border ${
+                          settings.repeatCount === n ? 'bg-primary-600 border-primary-600' : 'border-ink-200 dark:border-ink-700'
+                        }`}
+                      >
+                        <Text
+                          className={`font-body-medium text-xs ${
+                            settings.repeatCount === n ? 'text-white' : 'text-ink-600 dark:text-ink-300'
+                          }`}
+                        >
+                          {n}×
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
 
               <Text className="font-body-medium text-sm text-ink-900 dark:text-white mb-2">{tr('quran_playback_speed', language)}</Text>
               <View className="flex-row gap-2">

@@ -14,7 +14,7 @@ import { RamadanBanner } from '../../components/home/RamadanBanner';
 import { useApp } from '../../context/AppContext';
 import { usePrayerTimes } from '../../hooks/usePrayerTimes';
 import { gregorianToHijri } from '../../lib/hijri';
-import { scheduleTodaysPrayerNotifications } from '../../lib/notifications';
+import { scheduleUpcomingPrayerNotifications } from '../../lib/notifications';
 import { tr } from '../../data/translations';
 import type { LanguageCode } from '../../lib/constants';
 
@@ -26,17 +26,24 @@ function greetingKey(hour: number): string {
 
 const LOCALE_MAP: Record<LanguageCode, string> = { en: 'en-US', bn: 'bn-BD', ur: 'ur-PK', tr: 'tr-TR', id: 'id-ID' };
 
+const tomorrowISO = (() => {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+})();
+
 export default function HomeScreen() {
   const { location, language, notificationsEnabled } = useApp();
   const { data } = usePrayerTimes();
+  const { data: tomorrowData } = usePrayerTimes(tomorrowISO);
   const today = new Date();
   const hijri = gregorianToHijri(today);
 
   useEffect(() => {
     if (notificationsEnabled && data?.times) {
-      scheduleTodaysPrayerNotifications(data.times).catch(() => {});
+      scheduleUpcomingPrayerNotifications(data.times, tomorrowData?.times).catch(() => {});
     }
-  }, [notificationsEnabled, data?.times]);
+  }, [notificationsEnabled, data?.times, tomorrowData?.times]);
 
   return (
     <Screen>

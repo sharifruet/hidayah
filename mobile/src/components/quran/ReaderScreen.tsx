@@ -3,26 +3,36 @@ import { FlatList, Text, TouchableOpacity, View, type ViewToken } from 'react-na
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AyahRow } from './AyahRow';
+import { AudioPlayerBar } from './AudioPlayerBar';
 import { ReaderSettingsSheet, type ReaderSettings } from './ReaderSettingsSheet';
-import { fetchReciters, fetchSurahAyahs, findTranslation, resolveAudioUrl, type Ayah } from '../../lib/services/quran';
+import { fetchReciters, fetchSurahAyahs, findTranslation, splitBasmalah, type Ayah } from '../../lib/services/quran';
 import { loadReaderSettings, markSurahRead, saveLastRead, saveReaderSettings } from '../../lib/progress';
-import { useAyahAudioPlayer } from '../../hooks/useAyahAudioPlayer';
-import { cacheSurahAudio, getLocalAyahAudioUri } from '../../lib/offlineAudio';
+import { useSurahPlayback } from '../../hooks/useSurahPlayback';
+import { cacheSurahAudio } from '../../lib/offlineAudio';
 import { useApp } from '../../context/AppContext';
 import { tr } from '../../data/translations';
 
-const DEFAULT_SETTINGS: ReaderSettings = { showBengali: false, hideTranslation: false, playbackRate: 1 };
+const DEFAULT_SETTINGS: ReaderSettings = {
+  showBengali: false,
+  hideTranslation: false,
+  memorisationMode: false,
+  repeatCount: 3,
+  playbackRate: 1,
+};
 
 export function ReaderScreen({ surahNumber, initialAyah }: { surahNumber: number; initialAyah?: number }) {
   const { language } = useApp();
+  const insets = useSafeAreaInsets();
   const [settings, setSettings] = useState<ReaderSettings>(() => ({
     ...DEFAULT_SETTINGS,
     ...loadReaderSettings<ReaderSettings>(),
   }));
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [audioCached, setAudioCached] = useState(false);
+  const [revealedAyahs, setRevealedAyahs] = useState<Set<number>>(new Set());
   const listRef = useRef<FlatList<Ayah>>(null);
   const scrolledOnce = useRef(false);
 
@@ -42,18 +52,24 @@ export function ReaderScreen({ surahNumber, initialAyah }: { surahNumber: number
   const { data: recitersData } = useQuery({ queryKey: ['reciters'], queryFn: fetchReciters, staleTime: Infinity });
   const reciter = recitersData?.data?.[0];
 
-  const { play, isPlaying, setRate } = useAyahAudioPlayer();
-
   const surahMeta = data?.data.surah;
   const ayahs = data?.data.ayahs ?? [];
+
+  const player = useSurahPlayback(surahNumber, ayahs, reciter, settings.memorisationMode ? settings.repeatCount : 1);
 
   useEffect(() => {
     saveReaderSettings(settings);
   }, [settings]);
 
   useEffect(() => {
-    setRate(settings.playbackRate);
-  }, [settings.playbackRate, setRate]);
+    player.setRate(settings.playbackRate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.playbackRate]);
+
+  // Reset per-ayah reveal state whenever memorisation mode is toggled off or the surah changes.
+  useEffect(() => {
+    setRevealedAyahs(new Set());
+  }, [settings.memorisationMode, surahNumber]);
 
   // Once a chapter is opened, quietly download its recitation audio in the background
   // so it plays back offline afterwards — one ayah at a time, skipping anything already cached.
@@ -93,16 +109,13 @@ export function ReaderScreen({ surahNumber, initialAyah }: { surahNumber: number
     }
   }
 
-  function onPlayAyah(ayah: Ayah) {
-    if (!reciter) return;
-    const local = getLocalAyahAudioUri(reciter.id, surahNumber, ayah.number);
-    const url = local ?? resolveAudioUrl(reciter.audio_url_template, surahNumber, ayah.number);
-    play(`${surahNumber}:${ayah.number}`, url);
+  function handleReveal(ayahNumber: number) {
+    setRevealedAyahs((prev) => new Set(prev).add(ayahNumber));
   }
 
   return (
     <View className="flex-1 bg-ink-50 dark:bg-ink-950">
-      <View className="flex-row items-center justify-between px-4 pt-4 pb-3">
+      <View className="flex-row items-center justify-between px-4 pb-3" style={{ paddingTop: insets.top + 16 }}>
         <View className="flex-row items-center flex-1">
           <TouchableOpacity onPress={() => router.back()} className="mr-2 p-1">
             <Ionicons name="chevron-back" size={22} color="#5b6579" />
@@ -138,28 +151,37 @@ export function ReaderScreen({ surahNumber, initialAyah }: { surahNumber: number
         ref={listRef}
         data={ayahs}
         keyExtractor={(item) => String(item.number)}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 128, paddingTop: 4 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: player.currentAyah != null ? 176 : 128, paddingTop: 4 }}
         showsVerticalScrollIndicator={false}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={{ itemVisiblePercentThreshold: 60 }}
         onScrollToIndexFailed={() => {}}
-        renderItem={({ item }) => (
+        renderItem={({ item }) => {
+          const { basmalah, text } = splitBasmalah(surahNumber, item.number, item.text_ar);
+          return (
           <AyahRow
             data={{
               surah: surahNumber,
               ayah: item.number,
               surahName: surahMeta?.name_en ?? '',
-              text_ar: item.text_ar,
+              text_ar: text,
+              basmalah,
               translation: findTranslation(item, 'en.sahih'),
               translationBn: settings.showBengali ? findTranslation(item, 'bn.bengali') : undefined,
             }}
-            isPlaying={isPlaying(`${surahNumber}:${item.number}`)}
+            isPlaying={player.currentAyah === item.number && player.isPlaying}
             hideTranslation={settings.hideTranslation}
-            onPlay={() => onPlayAyah(item)}
+            onPlay={() => player.playAyah(item.number)}
             language={language}
+            memorisationMode={settings.memorisationMode}
+            isRevealed={revealedAyahs.has(item.number)}
+            onReveal={() => handleReveal(item.number)}
           />
-        )}
+          );
+        }}
       />
+
+      <AudioPlayerBar player={player} surahName={surahMeta?.name_en ?? ''} language={language} />
 
       <ReaderSettingsSheet
         visible={settingsOpen}
