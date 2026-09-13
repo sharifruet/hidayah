@@ -15,6 +15,7 @@ export default function BooksListScreen() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['books', q],
     queryFn: () => booksService.listBooks({ q: q || undefined, limit: 50 }),
+    staleTime: 24 * 60 * 60 * 1000,
   });
 
   const books = data?.books ?? [];
@@ -41,8 +42,12 @@ export default function BooksListScreen() {
         </View>
       </View>
 
-      {isError ? <Text className="font-body text-sm text-red-500 px-4 mb-2">{tr('books_load_error', language)}</Text> : null}
-      {isLoading ? <Text className="font-body text-sm text-ink-400 px-4">{tr('loading', language)}</Text> : null}
+      {isError && books.length === 0 ? (
+        <Text className="font-body text-sm text-red-500 px-4 mb-2">{tr('books_load_error', language)}</Text>
+      ) : null}
+      {isLoading && books.length === 0 ? (
+        <Text className="font-body text-sm text-ink-400 px-4">{tr('loading', language)}</Text>
+      ) : null}
 
       <FlatList
         data={books}

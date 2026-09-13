@@ -15,6 +15,7 @@ export default function BookDetailScreen() {
   const { data: book, isLoading } = useQuery({
     queryKey: ['book', slug],
     queryFn: () => booksService.getBook(slug),
+    staleTime: 24 * 60 * 60 * 1000,
   });
 
   return (

@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Share, Text, TouchableOpacity, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useQuery } from '@tanstack/react-query';
 
 import { addBookmark, isBookmarked, removeBookmark } from '../../lib/bookmarks';
+import { fetchTafsir } from '../../lib/services/quran';
 import { tr } from '../../data/translations';
 import type { LanguageCode } from '../../lib/constants';
 
@@ -13,7 +15,6 @@ export interface AyahRowData {
   text_ar: string;
   translation?: string;
   translationBn?: string;
-  tafsir?: string;
 }
 
 interface AyahRowProps {
@@ -22,16 +23,23 @@ interface AyahRowProps {
   isCurrent?: boolean;
   hideTranslation: boolean;
   onPlay: () => void;
-  onLoadTafsir: () => Promise<string | null>;
   language: LanguageCode;
 }
 
-export function AyahRow({ data, isPlaying, isCurrent, hideTranslation, onPlay, onLoadTafsir, language }: AyahRowProps) {
+export function AyahRow({ data, isPlaying, isCurrent, hideTranslation, onPlay, language }: AyahRowProps) {
   const [revealed, setRevealed] = useState(!hideTranslation);
   const [bookmarked, setBookmarked] = useState(() => isBookmarked(data.surah, data.ayah));
   const [tafsirOpen, setTafsirOpen] = useState(false);
-  const [tafsirText, setTafsirText] = useState<string | null>(data.tafsir ?? null);
-  const [loadingTafsir, setLoadingTafsir] = useState(false);
+
+  // Cached (and, via the query persister, kept on-device) so re-opening an ayah's
+  // tafsir — even offline — doesn't need a network round trip after the first time.
+  const { data: tafsirData, isLoading: loadingTafsir } = useQuery({
+    queryKey: ['tafsir', data.surah, data.ayah, 'en.kathir'],
+    queryFn: () => fetchTafsir(data.surah, data.ayah, 'en.kathir'),
+    enabled: tafsirOpen,
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+  const tafsirText: string | null = (tafsirData as any)?.text ?? (tafsirData as any)?.data?.text ?? null;
 
   function toggleBookmark() {
     if (bookmarked) {
@@ -54,13 +62,7 @@ export function AyahRow({ data, isPlaying, isCurrent, hideTranslation, onPlay, o
     await Share.share({ message: text });
   }
 
-  async function toggleTafsir() {
-    if (!tafsirOpen && !tafsirText) {
-      setLoadingTafsir(true);
-      const text = await onLoadTafsir();
-      setTafsirText(text);
-      setLoadingTafsir(false);
-    }
+  function toggleTafsir() {
     setTafsirOpen((o) => !o);
   }
 

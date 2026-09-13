@@ -6,16 +6,10 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { AyahRow } from './AyahRow';
 import { ReaderSettingsSheet, type ReaderSettings } from './ReaderSettingsSheet';
-import {
-  fetchReciters,
-  fetchSurahAyahs,
-  fetchTafsir,
-  findTranslation,
-  resolveAudioUrl,
-  type Ayah,
-} from '../../lib/services/quran';
+import { fetchReciters, fetchSurahAyahs, findTranslation, resolveAudioUrl, type Ayah } from '../../lib/services/quran';
 import { loadReaderSettings, markSurahRead, saveLastRead, saveReaderSettings } from '../../lib/progress';
 import { useAyahAudioPlayer } from '../../hooks/useAyahAudioPlayer';
+import { cacheSurahAudio, getLocalAyahAudioUri } from '../../lib/offlineAudio';
 import { useApp } from '../../context/AppContext';
 import { tr } from '../../data/translations';
 
@@ -28,6 +22,7 @@ export function ReaderScreen({ surahNumber, initialAyah }: { surahNumber: number
     ...loadReaderSettings<ReaderSettings>(),
   }));
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [audioCached, setAudioCached] = useState(false);
   const listRef = useRef<FlatList<Ayah>>(null);
   const scrolledOnce = useRef(false);
 
@@ -39,6 +34,9 @@ export function ReaderScreen({ surahNumber, initialAyah }: { surahNumber: number
   const { data, isLoading, isError } = useQuery({
     queryKey: ['surah-ayahs', surahNumber, translations.join(',')],
     queryFn: () => fetchSurahAyahs(surahNumber, { translations }),
+    // Qur'an text doesn't change — once cached (on-device or in-memory), don't spend a
+    // network round trip re-validating it just because the screen was reopened.
+    staleTime: 24 * 60 * 60 * 1000,
   });
 
   const { data: recitersData } = useQuery({ queryKey: ['reciters'], queryFn: fetchReciters, staleTime: Infinity });
@@ -56,6 +54,24 @@ export function ReaderScreen({ surahNumber, initialAyah }: { surahNumber: number
   useEffect(() => {
     setRate(settings.playbackRate);
   }, [settings.playbackRate, setRate]);
+
+  // Once a chapter is opened, quietly download its recitation audio in the background
+  // so it plays back offline afterwards — one ayah at a time, skipping anything already cached.
+  useEffect(() => {
+    if (!reciter || ayahs.length === 0) return;
+    const controller = new AbortController();
+    setAudioCached(false);
+    cacheSurahAudio(
+      reciter.id,
+      reciter.audio_url_template,
+      surahNumber,
+      ayahs.map((a) => a.number),
+      controller.signal
+    ).then(() => {
+      if (!controller.signal.aborted) setAudioCached(true);
+    });
+    return () => controller.abort();
+  }, [reciter, surahNumber, ayahs.length]);
 
   useEffect(() => {
     if (!scrolledOnce.current && initialAyah && ayahs.length > 0) {
@@ -77,18 +93,10 @@ export function ReaderScreen({ surahNumber, initialAyah }: { surahNumber: number
     }
   }
 
-  async function loadTafsir(ayahNumber: number): Promise<string | null> {
-    try {
-      const res: any = await fetchTafsir(surahNumber, ayahNumber, 'en.kathir');
-      return res?.text ?? res?.data?.text ?? null;
-    } catch {
-      return null;
-    }
-  }
-
   function onPlayAyah(ayah: Ayah) {
     if (!reciter) return;
-    const url = resolveAudioUrl(reciter.audio_url_template, surahNumber, ayah.number);
+    const local = getLocalAyahAudioUri(reciter.id, surahNumber, ayah.number);
+    const url = local ?? resolveAudioUrl(reciter.audio_url_template, surahNumber, ayah.number);
     play(`${surahNumber}:${ayah.number}`, url);
   }
 
@@ -111,15 +119,20 @@ export function ReaderScreen({ surahNumber, initialAyah }: { surahNumber: number
           </View>
         </View>
         {surahMeta ? <Text className="font-arabic text-xl text-ink-700 dark:text-ink-300 mr-2">{surahMeta.name_ar}</Text> : null}
+        {audioCached ? (
+          <Ionicons name="cloud-done-outline" size={16} color="#15805a" style={{ marginRight: 6 }} />
+        ) : null}
         <TouchableOpacity onPress={() => setSettingsOpen(true)} className="p-1.5">
           <Ionicons name="options-outline" size={20} color="#5b6579" />
         </TouchableOpacity>
       </View>
 
-      {isError ? (
+      {isError && ayahs.length === 0 ? (
         <Text className="font-body text-sm text-red-500 px-4">{tr('error_generic', language)}</Text>
       ) : null}
-      {isLoading ? <Text className="font-body text-sm text-ink-400 px-4">{tr('quran_loading', language)}</Text> : null}
+      {isLoading && ayahs.length === 0 ? (
+        <Text className="font-body text-sm text-ink-400 px-4">{tr('quran_loading', language)}</Text>
+      ) : null}
 
       <FlatList
         ref={listRef}
@@ -143,7 +156,6 @@ export function ReaderScreen({ surahNumber, initialAyah }: { surahNumber: number
             isPlaying={isPlaying(`${surahNumber}:${item.number}`)}
             hideTranslation={settings.hideTranslation}
             onPlay={() => onPlayAyah(item)}
-            onLoadTafsir={() => loadTafsir(item.number)}
             language={language}
           />
         )}

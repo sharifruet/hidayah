@@ -99,7 +99,9 @@ export default function QuranIndexScreen() {
           />
         </View>
 
-        {isError ? <Text className="font-body text-sm text-red-500 mb-3">{tr('quran_load_error', language)}</Text> : null}
+        {isError && surahs.length === 0 ? (
+          <Text className="font-body text-sm text-red-500 mb-3">{tr('quran_load_error', language)}</Text>
+        ) : null}
       </View>
 
       <FlatList

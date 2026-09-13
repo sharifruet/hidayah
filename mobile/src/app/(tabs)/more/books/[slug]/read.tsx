@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -8,6 +8,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { booksService, type BookChapter } from '../../../../../lib/services/books';
+import { getLocalBookUri, ensureBookDownloaded } from '../../../../../lib/offlineBooks';
 import { useApp } from '../../../../../context/AppContext';
 import { tr } from '../../../../../data/translations';
 
@@ -26,12 +27,34 @@ export default function BookReaderScreen() {
   const [activeChapterId, setActiveChapterId] = useState<number | null>(null);
   const [tocOpen, setTocOpen] = useState(false);
   const [pdfError, setPdfError] = useState(false);
+  const [localPdfUri, setLocalPdfUri] = useState<string | null>(() => getLocalBookUri(slug));
 
-  const { data: book } = useQuery({ queryKey: ['book', slug], queryFn: () => booksService.getBook(slug) });
+  const { data: book } = useQuery({
+    queryKey: ['book', slug],
+    queryFn: () => booksService.getBook(slug),
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+
+  // Download once, then read from disk from here on — the book stays available offline.
+  useEffect(() => {
+    if (localPdfUri || !book?.pdf_url) return;
+    let cancelled = false;
+    ensureBookDownloaded(slug, book.pdf_url)
+      .then((uri) => {
+        if (!cancelled) setLocalPdfUri(uri);
+      })
+      .catch(() => {
+        if (!cancelled) setPdfError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [book?.pdf_url, slug, localPdfUri]);
   const { data: chapters } = useQuery({
     queryKey: ['book-chapters', slug],
     queryFn: () => booksService.listChapters(slug),
     enabled: !book || book.content_type === 'text',
+    staleTime: 24 * 60 * 60 * 1000,
   });
 
   const flat = useMemo(() => flattenChapters(chapters ?? []), [chapters]);
@@ -44,6 +67,7 @@ export default function BookReaderScreen() {
     queryKey: ['book-chapter', slug, currentId],
     queryFn: () => booksService.getChapter(slug, String(currentId)),
     enabled: currentId != null,
+    staleTime: 24 * 60 * 60 * 1000,
   });
 
   if (book && book.content_type !== 'text') {
@@ -68,13 +92,17 @@ export default function BookReaderScreen() {
               {tr('books_file_error', language)}
             </Text>
           </View>
-        ) : book.pdf_url ? (
+        ) : localPdfUri ? (
           <Pdf
-            source={{ uri: book.pdf_url, cache: true }}
+            source={{ uri: localPdfUri }}
             style={{ flex: 1, backgroundColor: '#0a0c11' }}
             renderActivityIndicator={() => <ActivityIndicator color="#fff" />}
             onError={() => setPdfError(true)}
           />
+        ) : book.pdf_url ? (
+          <View className="flex-1 items-center justify-center">
+            <ActivityIndicator color="#fff" />
+          </View>
         ) : book.embed_url ? (
           <WebView source={{ uri: book.embed_url }} style={{ flex: 1 }} startInLoadingState />
         ) : (
