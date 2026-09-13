@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { getMethods } from '../services/locationService.js';
 import { useQuery } from '@tanstack/react-query';
@@ -101,6 +102,9 @@ export default function Settings() {
               </select>
             )}
             <p className="mt-1 text-sm text-gray-500">{tr('settings_calc_note', language)}</p>
+            <Link to="/methods" className="mt-2 inline-block text-sm font-medium text-primary-600 dark:text-green-400 hover:underline">
+              {tr('settings_view_methods', language)}
+            </Link>
           </div>
 
           {/* Location */}

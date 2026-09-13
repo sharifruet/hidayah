@@ -29,28 +29,6 @@ export const validateCoordinates = (req, res, next) => {
     });
   }
 
-  // Validate Bangladesh bounds
-  const lat = parseFloat(req.query.latitude);
-  const lng = parseFloat(req.query.longitude);
-
-  if (lat < 20.738 || lat > 26.638 || lng < 88.084 || lng > 92.673) {
-    return res.status(400).json({
-      error: {
-        code: 'COORDINATES_OUT_OF_BOUNDS',
-        message: 'Coordinates outside Bangladesh bounds',
-        details: {
-          latitude: lat,
-          longitude: lng,
-          valid_range: {
-            latitude: [20.738, 26.638],
-            longitude: [88.084, 92.673]
-          }
-        },
-        request_id: req.id
-      }
-    });
-  }
-
   next();
 };
 

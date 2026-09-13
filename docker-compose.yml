@@ -48,6 +48,8 @@ services:
       - ./backend/src:/app/src
       - ./backend/package.json:/app/package.json
       - ./backend/package-lock.json:/app/package-lock.json
+      # Persist uploaded files (e.g. book covers) on the host
+      - ./backend/public:/app/public
       # Exclude node_modules (use container's)
       - /app/node_modules
     depends_on:

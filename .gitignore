@@ -64,3 +64,6 @@ temp/
 # Misc
 .cache/
 .parcel-cache/
+
+# Uploaded/generated assets (book covers, audio) — not source
+backend/public/

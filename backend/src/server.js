@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID as uuidv4 } from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -102,6 +102,14 @@ app.use('/audio', (req, res, next) => {
 }, express.static(path.join(__dirname, '..', '..', 'public', 'audio'), {
   maxAge: '30d',
   immutable: true,
+}));
+
+// Static uploads (e.g. book covers) — served from backend/public/uploads/
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(path.join(__dirname, '..', 'public', 'uploads'), {
+  maxAge: '7d',
 }));
 
 // API routes

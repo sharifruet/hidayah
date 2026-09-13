@@ -17,30 +17,80 @@ export function getDayOfYear(date) {
   return Math.floor(diff / (1000 * 60 * 60 * 24));
 }
 
+const DEG2RAD = Math.PI / 180;
+
+// Days since the J2000.0 epoch (2000-01-01 12:00 UTC), evaluated at 12:00 UTC
+// on the given calendar date. Declination/EoT vary by at most ~1°/6s per day,
+// so using a fixed representative hour instead of the exact local instant
+// costs a negligible fraction of this formula's own ~0.01° / ~few-second precision.
+function daysSinceJ2000(date) {
+  const utcNoon = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
+  const j2000 = Date.UTC(2000, 0, 1, 12, 0, 0);
+  return (utcNoon - j2000) / 86400000;
+}
+
+function wrapDegrees360(deg) {
+  const d = deg % 360;
+  return d < 0 ? d + 360 : d;
+}
+
+function wrapDegrees180(deg) {
+  let d = deg % 360;
+  if (d > 180) d -= 360;
+  if (d <= -180) d += 360;
+  return d;
+}
+
+/**
+ * Low-precision solar coordinates (The Astronomical Almanac's approximation,
+ * good to ~0.01° in ecliptic longitude / declination and a few seconds of
+ * time in the equation of time, for years 1950-2050). Replaces the previous
+ * single-term Cooper's-equation-style approximations, which could be off by
+ * up to ~1° in declination and ~1 minute in equation of time depending on
+ * time of year — enough to shift sunrise/sunset by several minutes at higher
+ * latitudes.
+ * @param {Date} date - Date object
+ * @returns {{declination: number, equationOfTime: number}} declination in
+ *   degrees, equation of time in minutes
+ */
+function getSunPosition(date) {
+  const D = daysSinceJ2000(date);
+
+  const g = wrapDegrees360(357.529 + 0.98560028 * D); // mean anomaly
+  const q = wrapDegrees360(280.459 + 0.98564736 * D); // mean longitude
+  const L = wrapDegrees360(
+    q + 1.915 * Math.sin(g * DEG2RAD) + 0.020 * Math.sin(2 * g * DEG2RAD)
+  ); // apparent ecliptic longitude
+  const e = 23.439 - 0.00000036 * D; // obliquity of the ecliptic
+
+  const sinL = Math.sin(L * DEG2RAD);
+  const declination = Math.asin(Math.sin(e * DEG2RAD) * sinL) / DEG2RAD;
+
+  const rightAscension = wrapDegrees360(
+    Math.atan2(Math.cos(e * DEG2RAD) * sinL, Math.cos(L * DEG2RAD)) / DEG2RAD
+  );
+  // 4 minutes of time per degree of Earth's rotation
+  const equationOfTime = 4 * wrapDegrees180(q - rightAscension);
+
+  return { declination, equationOfTime };
+}
+
 /**
  * Calculate solar declination
- * δ = 23.45° × sin(360° × (284 + n) / 365.25)
  * @param {Date} date - Date object
  * @returns {number} Solar declination in degrees
  */
 export function calculateSolarDeclination(date) {
-  const n = getDayOfYear(date);
-  const declination = 23.45 * Math.sin((360 * (284 + n) / 365.25) * Math.PI / 180);
-  return declination;
+  return getSunPosition(date).declination;
 }
 
 /**
  * Calculate Equation of Time
- * EoT = 9.87 × sin(2B) - 7.53 × cos(B) - 1.5 × sin(B)
- * Where B = 360° × (n - 81) / 365.25
  * @param {Date} date - Date object
  * @returns {number} Equation of time in minutes
  */
 export function calculateEquationOfTime(date) {
-  const n = getDayOfYear(date);
-  const B = (360 * (n - 81) / 365.25) * Math.PI / 180;
-  const eot = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
-  return eot; // in minutes
+  return getSunPosition(date).equationOfTime;
 }
 
 /**
@@ -112,8 +162,11 @@ export function minutesToTime(minutes) {
   while (normalizedMinutes < 0) normalizedMinutes += 24 * 60;
   while (normalizedMinutes >= 24 * 60) normalizedMinutes -= 24 * 60;
 
-  const hours = Math.floor(normalizedMinutes / 60);
-  const mins = Math.floor(normalizedMinutes % 60);
+  // Round to the nearest minute (rather than truncating) before splitting into
+  // hours/minutes, so e.g. 3:43.6 displays as 03:44 instead of being cut down to 03:43.
+  const totalMinutes = Math.round(normalizedMinutes) % (24 * 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
   return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
 }
 
@@ -145,7 +198,11 @@ export function calculatePrayerTime(solarNoonMinutes, hourAngle, isBeforeNoon = 
  * @returns {number} Asr altitude in degrees
  */
 export function calculateAsrAltitude(latitude, declination, asrMethod = 'standard') {
-  const diffRad = (latitude - declination) * Math.PI / 180;
+  // Must use the absolute angular difference: the shadow-length formula depends on
+  // the sun's zenith distance at noon, which is |latitude - declination| regardless
+  // of which one is larger or their signs (e.g. southern hemisphere, or latitudes
+  // smaller than the current declination near the summer solstice).
+  const diffRad = Math.abs(latitude - declination) * Math.PI / 180;
 
   // Standard method: shadow = object + shadow at noon (k=1)
   // Formula: tan(α_asr) = 1 / (1 + tan(φ - δ))
@@ -154,11 +211,12 @@ export function calculateAsrAltitude(latitude, declination, asrMethod = 'standar
     return Math.atan(tanAsr) * 180 / Math.PI;
   }
 
-  // Hanafi method: shadow = object + shadow at noon (k=1) - same as standard in Bangladesh
-  // Some implementations use k=2 (shadow = 2 × object), but k=1 is standard
+  // Hanafi method: shadow = 2 × object + shadow at noon (k=2)
+  // Formula: tan(α_asr) = 1 / (2 + tan(φ - δ))
+  // This is the well-agreed Hanafi convention (adhan.js, praytimes.org, Aladhan),
+  // and is what makes Hanafi Asr meaningfully later than Shafi/Maliki/Hanbali Asr.
   if (asrMethod === 'hanafi') {
-    // Using k=1 (same as standard)
-    const tanAsr = 1 / (1 + Math.tan(diffRad));
+    const tanAsr = 1 / (2 + Math.tan(diffRad));
     return Math.atan(tanAsr) * 180 / Math.PI;
   }
 
@@ -218,21 +276,21 @@ export function validatePrayerTimesSequence(times) {
  * @returns {object} Validation result
  */
 export function validateBangladeshBounds(latitude, longitude) {
-  const BANGLADESH_BOUNDS = {
-    minLat: 20.738,
-    maxLat: 26.638,
-    minLng: 88.084,
-    maxLng: 92.673
+  const GLOBAL_BOUNDS = {
+    minLat: -90,
+    maxLat: 90,
+    minLng: -180,
+    maxLng: 180
   };
 
   const errors = [];
 
-  if (latitude < BANGLADESH_BOUNDS.minLat || latitude > BANGLADESH_BOUNDS.maxLat) {
-    errors.push(`Latitude ${latitude} is outside Bangladesh bounds (${BANGLADESH_BOUNDS.minLat} to ${BANGLADESH_BOUNDS.maxLat})`);
+  if (latitude < GLOBAL_BOUNDS.minLat || latitude > GLOBAL_BOUNDS.maxLat) {
+    errors.push(`Latitude ${latitude} must be between ${GLOBAL_BOUNDS.minLat} and ${GLOBAL_BOUNDS.maxLat}`);
   }
 
-  if (longitude < BANGLADESH_BOUNDS.minLng || longitude > BANGLADESH_BOUNDS.maxLng) {
-    errors.push(`Longitude ${longitude} is outside Bangladesh bounds (${BANGLADESH_BOUNDS.minLng} to ${BANGLADESH_BOUNDS.maxLng})`);
+  if (longitude < GLOBAL_BOUNDS.minLng || longitude > GLOBAL_BOUNDS.maxLng) {
+    errors.push(`Longitude ${longitude} must be between ${GLOBAL_BOUNDS.minLng} and ${GLOBAL_BOUNDS.maxLng}`);
   }
 
   return {
@@ -285,6 +343,12 @@ export function calculatePrayerTimes(latitude, longitude, date, method = 'karach
   const asrMethod = methodParams.asr_method || 'standard';
   const dhuhrAdjustment = methodParams.dhuhr_adjustment || 1;
   const maghribAdjustment = methodParams.maghrib_adjustment || 1;
+  // Method-specific fixed-minute corrections (e.g. Diyanet/Turkey) applied on
+  // top of the plain angle-based calculation. Zero for methods that don't set them.
+  const sunriseOffset = methodParams.sunrise_offset || 0;
+  const dhuhrOffset = methodParams.dhuhr_offset || 0;
+  const asrOffset = methodParams.asr_offset || 0;
+  const maghribOffset = methodParams.maghrib_offset || 0;
   const timezoneOffset = options.timezone_offset !== undefined ? options.timezone_offset : 6;
 
   // Calculate base parameters
@@ -306,12 +370,12 @@ export function calculatePrayerTimes(latitude, longitude, date, method = 'karach
 
   // Calculate times
   const fajr = calculatePrayerTime(solarNoonMinutes, fajrHourAngle, true);
-  const sunrise = calculatePrayerTime(solarNoonMinutes, sunriseHourAngle, true);
-  const dhuhr = solarNoonMinutes + dhuhrAdjustment;
-  const asr = calculatePrayerTime(solarNoonMinutes, asrHourAngle, false);
+  const sunrise = calculatePrayerTime(solarNoonMinutes, sunriseHourAngle, true) + sunriseOffset;
+  const dhuhr = solarNoonMinutes + dhuhrAdjustment + dhuhrOffset;
+  const asr = calculatePrayerTime(solarNoonMinutes, asrHourAngle, false) + asrOffset;
   const sunsetBase = calculatePrayerTime(solarNoonMinutes, sunriseHourAngle, false);
   const sunset = sunsetBase + sunsetAdjustment;
-  const maghrib = sunset + maghribAdjustment;
+  const maghrib = sunset + maghribAdjustment + maghribOffset;
 
   // Calculate Isha
   let isha;

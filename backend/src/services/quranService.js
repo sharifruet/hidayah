@@ -433,28 +433,50 @@ export async function getWordByWord(surahNumber) {
   }
 }
 
-// ─── Tafsir (still from alquran.cloud — tafsir is large, seed separately if needed) ──
+// ─── Tafsir (from quran.com's tafsir API — alquran.cloud's /ayah/{ref}/{edition}
+// endpoint only serves Quran text/translation editions, not commentary, so these
+// edition codes are mapped to quran.com's numeric tafsir resource IDs instead) ──
 
 export const TAFSIR_EDITIONS = ['en.kathir', 'en.maarifulquran', 'bn.bengali'];
 
+const TAFSIR_RESOURCE_MAP = {
+  'en.kathir':        { id: 169, name: 'Ibn Kathir (Abridged)' },
+  'en.maarifulquran': { id: 168, name: "Ma'arif al-Qur'an" },
+  'bn.bengali':       { id: 166, name: 'Tafsir Abu Bakr Zakaria' },
+};
+
+function stripTafsirHtml(html) {
+  return html
+    .replace(/<\/(p|h[1-6]|div|li)>/gi, '\n\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export async function getTafsir(surahNumber, ayahNumber, edition = 'en.kathir') {
   if (!TAFSIR_EDITIONS.includes(edition)) edition = 'en.kathir';
+  const resource = TAFSIR_RESOURCE_MAP[edition];
 
   const cacheKey = `tafsir-${surahNumber}:${ayahNumber}-${edition}`;
   const cached = getCache(cacheKey);
   if (cached) return cached;
 
   try {
-    const url = `${ALQURAN_BASE}/ayah/${surahNumber}:${ayahNumber}/${edition}`;
+    const url = `${QURANCOM_BASE}/tafsirs/${resource.id}/by_ayah/${surahNumber}:${ayahNumber}`;
     const res = await fetch(url, { headers: { Accept: 'application/json' } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
-    if (json.code !== 200) throw new Error(json.status);
-    const data = json.data;
     const result = {
       surah: surahNumber, ayah: ayahNumber, edition,
-      name:  data.edition?.englishName || edition,
-      text:  data.text || '',
+      name:  json.tafsir?.resource_name || resource.name,
+      text:  stripTafsirHtml(json.tafsir?.text || ''),
     };
     setCache(cacheKey, result, TTL_SURAH);
     return result;

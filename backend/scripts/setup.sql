@@ -372,6 +372,7 @@ CREATE TABLE IF NOT EXISTS `books` (
   `cover_url`             VARCHAR(500),
   `embed_url`             VARCHAR(500),
   `pdf_url`               VARCHAR(500),
+  `content_type`          ENUM('pdf','text') NOT NULL DEFAULT 'pdf',
   `page_count`            SMALLINT UNSIGNED,
   `license_class`         ENUM('public_domain','cc_by','cc_by_sa','cc_by_nc','permission') DEFAULT 'public_domain',
   `status`                ENUM('live','draft','removed') NOT NULL DEFAULT 'draft',
@@ -382,10 +383,33 @@ CREATE TABLE IF NOT EXISTS `books` (
   FULLTEXT INDEX idx_books_search (title, subtitle, description, author)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- -----------------------------------------------------------------------------
+-- book_chapters — hierarchical text content for content_type='text' books.
+-- Self-referencing tree (book/section/chapter/scene/paragraph) via parent_id;
+-- `position` orders siblings under the same parent. A node is "readable" when
+-- content is non-null — containers (e.g. a section with no text of its own)
+-- just organize their children.
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `book_chapters` (
+  `id`              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `book_id`         INT UNSIGNED NOT NULL,
+  `parent_id`       INT UNSIGNED,
+  `type`            ENUM('section','chapter','scene','paragraph') NOT NULL DEFAULT 'chapter',
+  `position`        SMALLINT UNSIGNED NOT NULL,
+  `title`           VARCHAR(300),
+  `content`         LONGTEXT,
+  `created_at`      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at`      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_chapters_parent (parent_id),
+  INDEX idx_chapters_book_parent_position (book_id, parent_id, position),
+  FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+  FOREIGN KEY (parent_id) REFERENCES book_chapters(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 INSERT INTO `books`
   (slug, title, title_ar, subtitle, description, language, primary_text_language, islamic_topics, author, translator, publisher, published_year, cover_url, embed_url, pdf_url, page_count, license_class, status)
 VALUES
-  ('riyad-as-salihin',          'Riyad as-Salihin',          'رياض الصالحين',   'Gardens of the Righteous',             'A comprehensive collection of authentic hadiths compiled by Imam al-Nawawi, covering every aspect of Islamic life and spirituality.',                                                                                                     'en','en','["hadith","spirituality"]',    'Imam al-Nawawi',              NULL, NULL,          NULL, 'https://archive.org/services/img/riyad-us-saliheen',                                     'https://archive.org/embed/riyad-us-saliheen',                                     'https://archive.org/download/riyad-us-saliheen/riyad-us-saliheen.pdf',                                               NULL, 'public_domain', 'live'),
+  ('riyad-as-salihin',         'Riyad as-Salihin',          'رياض الصالحين',   'Gardens of the Righteous',             'A comprehensive collection of authentic hadiths compiled by Imam al-Nawawi, covering every aspect of Islamic life and spirituality.',                                                                                                     'en','en','["hadith","spirituality"]',    'Imam al-Nawawi',              NULL, NULL,          NULL, 'https://archive.org/services/img/riyad-us-saliheen',                                     'https://archive.org/embed/riyad-us-saliheen',                                     'https://archive.org/download/riyad-us-saliheen/riyad-us-saliheen.pdf',                                               NULL, 'public_domain', 'live'),
   ('sealed-nectar',             'The Sealed Nectar',          'الرحيق المختوم',  'Biography of the Noble Prophet',       'An award-winning biography of Prophet Muhammad ﷺ by Saif ur-Rahman Mubarakpuri. Winner of the First Prize by the Muslim World League at a worldwide competition on the Prophet\'s biography.',                                         'en','en','["seerah"]',                  'Saif ur-Rahman Mubarakpuri',  NULL, 'Darussalam',  1996, 'https://archive.org/services/img/TheSealedNectarBiographyOfTheProphetMuhammadPBUH',    'https://archive.org/embed/TheSealedNectarBiographyOfTheProphetMuhammadPBUH',      'https://archive.org/download/TheSealedNectarBiographyOfTheProphetMuhammadPBUH/TheSealedNectar.pdf',                  580,  'public_domain', 'live'),
   ('fiqh-us-sunnah',            'Fiqh us-Sunnah',             'فقه السنة',       'Vol. 1 — Purification and Prayer',     'A clear and authoritative guide to Islamic jurisprudence based on the Quran and Sunnah. Covers the fundamentals of Islamic law with clear evidence from primary sources.',                                                               'en','en','["fiqh"]',                    'Sayyid Sabiq',                NULL, NULL,          NULL, 'https://archive.org/services/img/FiqhUsSunnahVolume1SayyidSabiq',                       'https://archive.org/embed/FiqhUsSunnahVolume1SayyidSabiq',                        'https://archive.org/download/FiqhUsSunnahVolume1SayyidSabiq/Fiqh-Us-Sunnah-Volume-1.pdf',                            NULL, 'public_domain', 'live'),
   ('tafsir-ibn-kathir-1',       'Tafsir Ibn Kathir',          'تفسير ابن كثير',  'Vol. 1 — Abridged',                    'The abridged version of the renowned Tafsir by Ibn Kathir, one of the most comprehensive and authentic explanations of the Quran. An essential reference for students of Islamic knowledge.',                                          'en','en','["tafsir"]',                  'Ibn Kathir',                  NULL, 'Darussalam',  2000, 'https://archive.org/services/img/TafsirIbnKathirPart1',                                 'https://archive.org/embed/TafsirIbnKathirPart1',                                  'https://archive.org/download/TafsirIbnKathirPart1/Tafsir_Ibn_Kathir_Part_1.pdf',                                     NULL, 'public_domain', 'live'),

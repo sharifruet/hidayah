@@ -10,6 +10,7 @@ import OfflineBanner from './components/common/OfflineBanner.jsx';
 import ProtectedRoute from './components/admin/ProtectedRoute.jsx';
 import Home from './pages/Home.jsx';
 import PrayerTimes from './pages/PrayerTimes.jsx';
+import CalculationMethods from './pages/CalculationMethods.jsx';
 import Calendar from './pages/Calendar.jsx';
 import Settings from './pages/Settings.jsx';
 import Quran from './pages/Quran.jsx';
@@ -25,6 +26,7 @@ import BookReader from './pages/BookReader.jsx';
 import AdminLogin from './pages/admin/AdminLogin.jsx';
 import AdminDashboard from './pages/admin/AdminDashboard.jsx';
 import AdminBooks from './pages/admin/AdminBooks.jsx';
+import AdminBookChapters from './pages/admin/AdminBookChapters.jsx';
 import AdminDuas from './pages/admin/AdminDuas.jsx';
 
 const queryClient = new QueryClient({
@@ -48,6 +50,7 @@ function AppShell() {
           <Routes>
             <Route path="/"                            element={<Home />} />
             <Route path="/prayer-times"                element={<PrayerTimes />} />
+            <Route path="/methods"                     element={<CalculationMethods />} />
             <Route path="/calendar"                    element={<Calendar />} />
             <Route path="/settings"                    element={<Settings />} />
             <Route path="/quran"                       element={<Quran />} />
@@ -81,6 +84,7 @@ function App() {
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
               <Route path="/admin/books" element={<ProtectedRoute><AdminBooks /></ProtectedRoute>} />
+              <Route path="/admin/books/:id/chapters" element={<ProtectedRoute><AdminBookChapters /></ProtectedRoute>} />
               <Route path="/admin/duas" element={<ProtectedRoute><AdminDuas /></ProtectedRoute>} />
               {/* Public app */}
               <Route path="/*" element={<AppShell />} />

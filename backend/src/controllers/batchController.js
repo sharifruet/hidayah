@@ -109,26 +109,6 @@ export async function batchPrayerTimes(req, res, next) {
         });
       }
       
-      // Validate Bangladesh bounds
-      if (coord.latitude < 20.738 || coord.latitude > 26.638 || 
-          coord.longitude < 88.084 || coord.longitude > 92.673) {
-        return res.status(400).json({
-          error: {
-            code: 'COORDINATES_OUT_OF_BOUNDS',
-            message: `Coordinate at index ${i} is outside Bangladesh bounds`,
-            details: {
-              index: i,
-              latitude: coord.latitude,
-              longitude: coord.longitude,
-              valid_range: {
-                latitude: [20.738, 26.638],
-                longitude: [88.084, 92.673]
-              }
-            },
-            request_id: req.id
-          }
-        });
-      }
     }
     
     // Extract optional parameters (same as prayer-times)

@@ -84,7 +84,15 @@ export const CALCULATION_METHODS = {
     isha_calculation_type: 'angle',
     asr_method: 'standard',
     dhuhr_adjustment: 1,
-    maghrib_adjustment: 1
+    maghrib_adjustment: 1,
+    // Diyanet publishes times with these additional fixed minute corrections
+    // on top of the plain angle-based calculation (confirmed against
+    // Aladhan API's meta.offset for method=13, which applies the same
+    // values) — without them Sunrise/Dhuhr/Asr/Maghrib are off by 4-9 min.
+    sunrise_offset: -7,
+    dhuhr_offset: 5,
+    asr_offset: 4,
+    maghrib_offset: 7
   },
   jakim: {
     code: 'jakim',
@@ -250,7 +258,11 @@ export function getMethodParameters(methodCode, customParams = {}) {
     isha_calculation_type: method.isha_calculation_type || 'angle',
     asr_method: customParams.asr_method ?? method.asr_method,
     dhuhr_adjustment: customParams.dhuhr_adjustment ?? method.dhuhr_adjustment ?? 1,
-    maghrib_adjustment: customParams.maghrib_adjustment ?? method.maghrib_adjustment ?? 1
+    maghrib_adjustment: customParams.maghrib_adjustment ?? method.maghrib_adjustment ?? 1,
+    sunrise_offset: method.sunrise_offset ?? 0,
+    dhuhr_offset: method.dhuhr_offset ?? 0,
+    asr_offset: method.asr_offset ?? 0,
+    maghrib_offset: method.maghrib_offset ?? 0
   };
 }
 

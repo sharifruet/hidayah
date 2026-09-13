@@ -1,14 +1,58 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
+import multer from 'multer';
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+import { fileURLToPath } from 'url';
 import pool from '../config/database.js';
 import { requireAdmin, signToken } from '../middleware/adminAuth.js';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const router = Router();
+
+// Without this, a rejected promise in any handler below is an unhandled
+// rejection that crashes the whole process instead of returning a 500.
+const ah = (fn) => (req, res, next) => fn(req, res, next).catch(next);
+
+// ─── Uploads ─────────────────────────────────────────────────────────────────
+
+const COVERS_DIR = path.join(__dirname, '..', '..', 'public', 'uploads', 'covers');
+fs.mkdirSync(COVERS_DIR, { recursive: true });
+
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: COVERS_DIR,
+    filename: (req, file, cb) => {
+      cb(null, `${crypto.randomUUID()}${path.extname(file.originalname).toLowerCase()}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!ALLOWED_IMAGE_TYPES.includes(file.mimetype)) {
+      return cb(new Error('Only JPEG, PNG, WEBP, or GIF images are allowed'));
+    }
+    cb(null, true);
+  },
+});
+
+router.post('/uploads/cover', requireAdmin, (req, res, next) => {
+  upload.single('cover')(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.message || 'Upload failed' });
+    next();
+  });
+}, ah(async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  const url = `${req.protocol}://${req.get('host')}/uploads/covers/${req.file.filename}`;
+  res.status(201).json({ url });
+}));
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
 // POST /admin/login
-router.post('/login', async (req, res) => {
+router.post('/login', ah(async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password)
     return res.status(400).json({ error: 'Username and password required' });
@@ -27,52 +71,58 @@ router.post('/login', async (req, res) => {
 
   const token = signToken({ id: user.id, username: user.username });
   res.json({ token, username: user.username });
-});
+}));
 
 // GET /admin/me
-router.get('/me', requireAdmin, async (req, res) => {
+router.get('/me', requireAdmin, ah(async (req, res) => {
   res.json({ id: req.admin.id, username: req.admin.username });
-});
+}));
 
 // ─── Books ───────────────────────────────────────────────────────────────────
 
-router.get('/books', requireAdmin, async (req, res) => {
+router.get('/books', requireAdmin, ah(async (req, res) => {
   const [rows] = await pool.query(
     'SELECT * FROM books ORDER BY created_at DESC'
   );
   res.json(rows.map(formatBook));
-});
+}));
 
-router.post('/books', requireAdmin, async (req, res) => {
+router.get('/books/:id', requireAdmin, ah(async (req, res) => {
+  const [rows] = await pool.query('SELECT * FROM books WHERE id = ?', [req.params.id]);
+  if (!rows[0]) return res.status(404).json({ error: 'Not found' });
+  res.json(formatBook(rows[0]));
+}));
+
+router.post('/books', requireAdmin, ah(async (req, res) => {
   const b = req.body;
   const [result] = await pool.query(
     `INSERT INTO books
       (slug, title, title_ar, subtitle, description, language, primary_text_language,
        islamic_topics, author, translator, publisher, published_year,
-       cover_url, embed_url, pdf_url, page_count, license_class, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       cover_url, embed_url, pdf_url, content_type, page_count, license_class, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       b.slug, b.title, b.title_ar || null, b.subtitle || null, b.description || null,
       b.language || 'en', b.primary_text_language || 'en',
       JSON.stringify(b.islamic_topics || []),
       b.author || null, b.translator || null, b.publisher || null,
       b.published_year || null, b.cover_url || null, b.embed_url || null,
-      b.pdf_url || null, b.page_count || null,
+      b.pdf_url || null, b.content_type || 'pdf', b.page_count || null,
       b.license_class || 'public_domain', b.status || 'draft',
     ]
   );
   const [rows] = await pool.query('SELECT * FROM books WHERE id = ?', [result.insertId]);
   res.status(201).json(formatBook(rows[0]));
-});
+}));
 
-router.put('/books/:id', requireAdmin, async (req, res) => {
+router.put('/books/:id', requireAdmin, ah(async (req, res) => {
   const b = req.body;
   await pool.query(
     `UPDATE books SET
       slug=?, title=?, title_ar=?, subtitle=?, description=?, language=?,
       primary_text_language=?, islamic_topics=?, author=?, translator=?,
       publisher=?, published_year=?, cover_url=?, embed_url=?, pdf_url=?,
-      page_count=?, license_class=?, status=?
+      content_type=?, page_count=?, license_class=?, status=?
      WHERE id=?`,
     [
       b.slug, b.title, b.title_ar || null, b.subtitle || null, b.description || null,
@@ -80,7 +130,7 @@ router.put('/books/:id', requireAdmin, async (req, res) => {
       JSON.stringify(b.islamic_topics || []),
       b.author || null, b.translator || null, b.publisher || null,
       b.published_year || null, b.cover_url || null, b.embed_url || null,
-      b.pdf_url || null, b.page_count || null,
+      b.pdf_url || null, b.content_type || 'pdf', b.page_count || null,
       b.license_class || 'public_domain', b.status || 'draft',
       req.params.id,
     ]
@@ -88,21 +138,60 @@ router.put('/books/:id', requireAdmin, async (req, res) => {
   const [rows] = await pool.query('SELECT * FROM books WHERE id = ?', [req.params.id]);
   if (!rows[0]) return res.status(404).json({ error: 'Not found' });
   res.json(formatBook(rows[0]));
-});
+}));
 
-router.delete('/books/:id', requireAdmin, async (req, res) => {
+router.delete('/books/:id', requireAdmin, ah(async (req, res) => {
   await pool.query('DELETE FROM books WHERE id = ?', [req.params.id]);
   res.json({ ok: true });
-});
+}));
+
+// ─── Book Chapters ──────────────────────────────────────────────────────────
+
+router.get('/books/:bookId/chapters', requireAdmin, ah(async (req, res) => {
+  const [rows] = await pool.query(
+    'SELECT * FROM book_chapters WHERE book_id = ? ORDER BY parent_id IS NULL DESC, parent_id, position',
+    [req.params.bookId]
+  );
+  res.json(rows);
+}));
+
+router.post('/books/:bookId/chapters', requireAdmin, ah(async (req, res) => {
+  const c = req.body;
+  const [result] = await pool.query(
+    `INSERT INTO book_chapters (book_id, parent_id, type, position, title, content) VALUES (?, ?, ?, ?, ?, ?)`,
+    [req.params.bookId, c.parent_id || null, c.type || 'chapter', c.position, c.title || null, c.content || null]
+  );
+  const [rows] = await pool.query('SELECT * FROM book_chapters WHERE id = ?', [result.insertId]);
+  res.status(201).json(rows[0]);
+}));
+
+router.put('/chapters/:id', requireAdmin, ah(async (req, res) => {
+  const c = req.body;
+  if (c.parent_id && Number(c.parent_id) === Number(req.params.id)) {
+    return res.status(400).json({ error: 'A node cannot be its own parent' });
+  }
+  await pool.query(
+    `UPDATE book_chapters SET parent_id=?, type=?, position=?, title=?, content=? WHERE id=?`,
+    [c.parent_id || null, c.type || 'chapter', c.position, c.title || null, c.content || null, req.params.id]
+  );
+  const [rows] = await pool.query('SELECT * FROM book_chapters WHERE id = ?', [req.params.id]);
+  if (!rows[0]) return res.status(404).json({ error: 'Not found' });
+  res.json(rows[0]);
+}));
+
+router.delete('/chapters/:id', requireAdmin, ah(async (req, res) => {
+  await pool.query('DELETE FROM book_chapters WHERE id = ?', [req.params.id]);
+  res.json({ ok: true });
+}));
 
 // ─── Duas ────────────────────────────────────────────────────────────────────
 
-router.get('/duas', requireAdmin, async (req, res) => {
+router.get('/duas', requireAdmin, ah(async (req, res) => {
   const [rows] = await pool.query('SELECT * FROM duas ORDER BY category, sort_order, id');
   res.json(rows);
-});
+}));
 
-router.post('/duas', requireAdmin, async (req, res) => {
+router.post('/duas', requireAdmin, ah(async (req, res) => {
   const d = req.body;
   const [result] = await pool.query(
     `INSERT INTO duas
@@ -118,9 +207,9 @@ router.post('/duas', requireAdmin, async (req, res) => {
   );
   const [rows] = await pool.query('SELECT * FROM duas WHERE id = ?', [result.insertId]);
   res.status(201).json(rows[0]);
-});
+}));
 
-router.put('/duas/:id', requireAdmin, async (req, res) => {
+router.put('/duas/:id', requireAdmin, ah(async (req, res) => {
   const d = req.body;
   await pool.query(
     `UPDATE duas SET
@@ -138,12 +227,12 @@ router.put('/duas/:id', requireAdmin, async (req, res) => {
   const [rows] = await pool.query('SELECT * FROM duas WHERE id = ?', [req.params.id]);
   if (!rows[0]) return res.status(404).json({ error: 'Not found' });
   res.json(rows[0]);
-});
+}));
 
-router.delete('/duas/:id', requireAdmin, async (req, res) => {
+router.delete('/duas/:id', requireAdmin, ah(async (req, res) => {
   await pool.query('DELETE FROM duas WHERE id = ?', [req.params.id]);
   res.json({ ok: true });
-});
+}));
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

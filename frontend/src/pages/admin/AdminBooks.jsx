@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { useAdmin } from '../../context/AdminContext.jsx';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 
@@ -7,7 +8,7 @@ const EMPTY = {
   author: '', translator: '', publisher: '', published_year: '',
   language: 'en', primary_text_language: 'en',
   islamic_topics: [], cover_url: '', embed_url: '', pdf_url: '',
-  page_count: '', license_class: 'public_domain', status: 'draft',
+  content_type: 'pdf', page_count: '', license_class: 'public_domain', status: 'draft',
 };
 
 const TOPICS = ['hadith','seerah','fiqh','aqeedah','tafsir','spirituality','history','dawah','children'];
@@ -20,6 +21,7 @@ export default function AdminBooks() {
   const [form, setForm]       = useState(EMPTY);
   const [saving, setSaving]   = useState(false);
   const [error, setError]     = useState('');
+  const [uploadingCover, setUploadingCover] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -77,6 +79,23 @@ export default function AdminBooks() {
     }
   }
 
+  async function handleCoverUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingCover(true); setError('');
+    try {
+      const fd = new FormData();
+      fd.append('cover', file);
+      const { url } = await authFetch('/uploads/cover', { method: 'POST', body: fd });
+      setForm(f => ({ ...f, cover_url: url }));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploadingCover(false);
+      e.target.value = '';
+    }
+  }
+
   async function handleDelete(book) {
     if (!confirm(`Delete "${book.title}"?`)) return;
     await authFetch(`/books/${book.id}`, { method: 'DELETE' });
@@ -122,6 +141,9 @@ export default function AdminBooks() {
                     </td>
                     <td className="px-4 py-3 flex gap-2">
                       <button onClick={() => openEdit(book)} className="text-blue-600 dark:text-blue-400 hover:underline text-xs">Edit</button>
+                      {book.content_type === 'text' && (
+                        <Link to={`/admin/books/${book.id}/chapters`} className="text-green-600 dark:text-green-400 hover:underline text-xs">Chapters</Link>
+                      )}
                       <button onClick={() => handleDelete(book)} className="text-red-500 dark:text-red-400 hover:underline text-xs">Delete</button>
                     </td>
                   </tr>
@@ -164,17 +186,56 @@ export default function AdminBooks() {
                     <option value="removed">Removed</option>
                   </select>
                 </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Content Type</label>
+                  <select name="content_type" value={form.content_type} onChange={handleField} className={selectCls}>
+                    <option value="pdf">PDF / Embed</option>
+                    <option value="text">Text (chapters)</option>
+                  </select>
+                </div>
               </div>
 
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Description</label>
-                <textarea name="description" value={form.description} onChange={handleField} rows={3}
+                <textarea name="description" value={form.description ?? ''} onChange={handleField} rows={3}
                   className={inputCls + ' resize-none'} />
               </div>
 
-              <Field label="Cover URL" name="cover_url" value={form.cover_url} onChange={handleField} />
-              <Field label="Embed URL" name="embed_url" value={form.embed_url} onChange={handleField} />
-              <Field label="PDF URL" name="pdf_url" value={form.pdf_url} onChange={handleField} />
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Cover Image</label>
+                <div className="flex items-center gap-3">
+                  {form.cover_url && (
+                    <img src={form.cover_url} alt="" className="w-12 h-16 object-cover rounded border border-gray-200 dark:border-gray-700 shrink-0" />
+                  )}
+                  <input type="text" name="cover_url" value={form.cover_url ?? ''} onChange={handleField}
+                    placeholder="https://… or upload below" className={inputCls} />
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <label className={`px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 ${uploadingCover ? 'opacity-60' : 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+                    {uploadingCover ? 'Uploading…' : 'Upload image'}
+                    <input type="file" accept="image/jpeg,image/png,image/webp,image/gif"
+                      onChange={handleCoverUpload} disabled={uploadingCover} className="hidden" />
+                  </label>
+                  <span className="text-xs text-gray-400">JPEG, PNG, WEBP or GIF, up to 5MB</span>
+                </div>
+              </div>
+              {form.content_type === 'text' ? (
+                <div className="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-3 text-sm text-gray-500 dark:text-gray-400">
+                  Text books store their content as chapters.{' '}
+                  {modal !== 'add' ? (
+                    <Link to={`/admin/books/${modal.id}/chapters`} className="text-green-600 dark:text-green-400 hover:underline font-medium">
+                      Manage chapters →
+                    </Link>
+                  ) : (
+                    'Save the book first, then manage its chapters.'
+                  )}
+                </div>
+              ) : (
+                <>
+                  <Field label="Embed URL" name="embed_url" value={form.embed_url} onChange={handleField} />
+                  <Field label="PDF URL" name="pdf_url" value={form.pdf_url} onChange={handleField} />
+                </>
+              )}
 
               <div>
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Topics</label>

@@ -135,6 +135,14 @@ export default function BookDetail() {
 
           {/* Format indicators */}
           <div className="flex flex-wrap gap-2 mt-4 text-xs text-gray-500 dark:text-gray-400">
+            {book.content_type === 'text' && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded border border-gray-200 dark:border-gray-700">
+                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm3 1h6v1H7V5zm0 3h6v1H7V8zm0 3h4v1H7v-1z" clipRule="evenodd" />
+                </svg>
+                Text
+              </span>
+            )}
             {book.pdf_url && (
               <span className="inline-flex items-center gap-1 px-2 py-1 rounded border border-gray-200 dark:border-gray-700">
                 <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -154,7 +162,7 @@ export default function BookDetail() {
           </div>
 
           {/* Read button */}
-          {book.embed_url && (
+          {(book.content_type === 'text' || book.embed_url) && (
             <Link
               to={`/books/${book.slug}/read`}
               className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium text-sm transition-colors"

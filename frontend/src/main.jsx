@@ -9,8 +9,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>,
 )
 
-// Register service worker for PWA / offline support
-if ('serviceWorker' in navigator) {
+// Register service worker for PWA / offline support.
+// Production only — in dev it cache-firsts JS and silently serves stale code.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register('/sw.js', { scope: '/' })

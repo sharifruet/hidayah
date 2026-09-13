@@ -33,6 +33,7 @@ function formatBook(row) {
     pdf_url: row.pdf_url || null,
     epub_url: row.epub_url || null,
     embed_url: row.embed_url || null,
+    content_type: row.content_type || 'pdf',
     page_count: row.page_count || null,
     license_class: row.license_class,
     status: row.status,
@@ -98,4 +99,79 @@ export async function getBookService(slug) {
 
 export function listTopicsService() {
   return TOPICS;
+}
+
+async function getLiveBookId(slug) {
+  const [rows] = await pool.query(
+    'SELECT id FROM books WHERE slug = ? AND status = "live"',
+    [slug]
+  );
+  return rows[0]?.id || null;
+}
+
+function buildChapterTree(rows) {
+  const byId = new Map(rows.map(r => [r.id, {
+    id: r.id,
+    parent_id: r.parent_id,
+    type: r.type,
+    position: r.position,
+    title: r.title,
+    has_content: !!r.has_content,
+    children: [],
+  }]));
+
+  const roots = [];
+  for (const node of byId.values()) {
+    if (node.parent_id && byId.has(node.parent_id)) {
+      byId.get(node.parent_id).children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+
+  const sortTree = (nodes) => {
+    nodes.sort((a, b) => a.position - b.position);
+    nodes.forEach(n => sortTree(n.children));
+  };
+  sortTree(roots);
+  return roots;
+}
+
+export async function listChaptersService(slug) {
+  const bookId = await getLiveBookId(slug);
+  if (!bookId) return null;
+
+  const [rows] = await pool.query(
+    `SELECT id, parent_id, type, position, title,
+            (content IS NOT NULL AND content != '') AS has_content
+     FROM book_chapters WHERE book_id = ?`,
+    [bookId]
+  );
+  return buildChapterTree(rows);
+}
+
+export async function getChapterService(slug, id) {
+  const bookId = await getLiveBookId(slug);
+  if (!bookId) return null;
+
+  const [rows] = await pool.query(
+    'SELECT id, parent_id, type, position, title, content FROM book_chapters WHERE book_id = ? AND id = ?',
+    [bookId, id]
+  );
+  const node = rows[0];
+  if (!node) return null;
+
+  const breadcrumb = [];
+  let parentId = node.parent_id;
+  while (parentId) {
+    const [prows] = await pool.query(
+      'SELECT id, parent_id, title FROM book_chapters WHERE id = ?',
+      [parentId]
+    );
+    if (!prows[0]) break;
+    breadcrumb.unshift(prows[0].title);
+    parentId = prows[0].parent_id;
+  }
+
+  return { ...node, breadcrumb };
 }

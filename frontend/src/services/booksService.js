@@ -23,4 +23,6 @@ export const booksService = {
   },
   getBook: (slug) => get(`/${slug}`),
   listTopics: () => get('/topics'),
+  listChapters: (slug) => get(`/${slug}/chapters`),
+  getChapter: (slug, id) => get(`/${slug}/chapters/${id}`),
 };

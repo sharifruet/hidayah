@@ -91,8 +91,8 @@ CREATE TABLE IF NOT EXISTS prayer_times_cache (
     longitude,
     date,
     method,
-    COALESCE(fajr_angle, 0),
-    COALESCE(isha_angle, 0),
+    (COALESCE(fajr_angle, 0)),
+    (COALESCE(isha_angle, 0)),
     asr_method,
     dhuhr_adjustment,
     maghrib_adjustment
@@ -104,10 +104,6 @@ CREATE TABLE IF NOT EXISTS prayer_times_cache (
   INDEX idx_calculated_at (calculated_at),
   CONSTRAINT check_latitude_range_cache CHECK (latitude >= -90 AND latitude <= 90),
   CONSTRAINT check_longitude_range_cache CHECK (longitude >= -180 AND longitude <= 180),
-  CONSTRAINT check_bangladesh_bounds_cache CHECK (
-    latitude >= 20.738 AND latitude <= 26.638 AND
-    longitude >= 88.084 AND longitude <= 92.673
-  ),
   CONSTRAINT check_dhuhr_adjustment CHECK (dhuhr_adjustment >= 1 AND dhuhr_adjustment <= 60),
   CONSTRAINT check_maghrib_adjustment CHECK (maghrib_adjustment >= 1 AND maghrib_adjustment <= 15)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -144,8 +140,8 @@ CREATE TABLE IF NOT EXISTS fasting_times_cache (
     date,
     method,
     sehri_margin,
-    COALESCE(fajr_angle, 0),
-    COALESCE(isha_angle, 0),
+    (COALESCE(fajr_angle, 0)),
+    (COALESCE(isha_angle, 0)),
     asr_method,
     dhuhr_adjustment,
     maghrib_adjustment
@@ -161,11 +157,7 @@ CREATE TABLE IF NOT EXISTS fasting_times_cache (
     day_length_minutes <= 1440
   ),
   CONSTRAINT check_fasting_latitude_range CHECK (latitude >= -90 AND latitude <= 90),
-  CONSTRAINT check_fasting_longitude_range CHECK (longitude >= -180 AND longitude <= 180),
-  CONSTRAINT check_fasting_bangladesh_bounds CHECK (
-    latitude >= 20.738 AND latitude <= 26.638 AND
-    longitude >= 88.084 AND longitude <= 92.673
-  )
+  CONSTRAINT check_fasting_longitude_range CHECK (longitude >= -180 AND longitude <= 180)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- API Requests Log Table
@@ -246,3 +238,61 @@ CREATE TABLE IF NOT EXISTS quran_translations (
   FOREIGN KEY (edition) REFERENCES quran_editions(identifier),
   FOREIGN KEY (surah_number, ayah_number) REFERENCES quran_ayahs(surah_number, ayah_number)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS books (
+  id                    INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  slug                  VARCHAR(120) UNIQUE NOT NULL,
+  title                 VARCHAR(300) NOT NULL,
+  title_ar              VARCHAR(300),
+  subtitle              VARCHAR(300),
+  description           TEXT,
+  language              VARCHAR(10) NOT NULL DEFAULT 'en',
+  primary_text_language VARCHAR(10) NOT NULL DEFAULT 'en',
+  islamic_topics        JSON,
+  author                VARCHAR(200),
+  translator            VARCHAR(200),
+  publisher             VARCHAR(200),
+  published_year        SMALLINT UNSIGNED,
+  cover_url             VARCHAR(500),
+  embed_url             VARCHAR(500),
+  pdf_url               VARCHAR(500),
+  content_type          ENUM('pdf','text') NOT NULL DEFAULT 'pdf',
+  page_count            SMALLINT UNSIGNED,
+  license_class         ENUM('public_domain','cc_by','cc_by_sa','cc_by_nc','permission') DEFAULT 'public_domain',
+  status                ENUM('live','draft','removed') NOT NULL DEFAULT 'draft',
+  created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_books_language (language),
+  INDEX idx_books_status (status),
+  FULLTEXT INDEX idx_books_search (title, subtitle, description, author)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS book_chapters (
+  id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  book_id         INT UNSIGNED NOT NULL,
+  parent_id       INT UNSIGNED,
+  type            ENUM('section','chapter','scene','paragraph') NOT NULL DEFAULT 'chapter',
+  position        SMALLINT UNSIGNED NOT NULL,
+  title           VARCHAR(300),
+  content         LONGTEXT,
+  created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_chapters_parent (parent_id),
+  INDEX idx_chapters_book_parent_position (book_id, parent_id, position),
+  FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+  FOREIGN KEY (parent_id) REFERENCES book_chapters(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO books
+  (slug, title, title_ar, subtitle, description, language, primary_text_language, islamic_topics, author, translator, publisher, published_year, cover_url, embed_url, pdf_url, page_count, license_class, status)
+VALUES
+  ('riyad-as-salihin',         'Riyad as-Salihin',          'رياض الصالحين',   'Gardens of the Righteous',             'A comprehensive collection of authentic hadiths compiled by Imam al-Nawawi, covering every aspect of Islamic life and spirituality.',                                                                                                     'en','en','["hadith","spirituality"]',    'Imam al-Nawawi',              NULL, NULL,          NULL, 'https://archive.org/services/img/riyad-us-saliheen',                                     'https://archive.org/embed/riyad-us-saliheen',                                     'https://archive.org/download/riyad-us-saliheen/riyad-us-saliheen.pdf',                                               NULL, 'public_domain', 'live'),
+  ('sealed-nectar',             'The Sealed Nectar',          'الرحيق المختوم',  'Biography of the Noble Prophet',       'An award-winning biography of Prophet Muhammad by Saif ur-Rahman Mubarakpuri. Winner of the First Prize by the Muslim World League at a worldwide competition on the Prophet''s biography.',                                         'en','en','["seerah"]',                  'Saif ur-Rahman Mubarakpuri',  NULL, 'Darussalam',  1996, 'https://archive.org/services/img/TheSealedNectarBiographyOfTheProphetMuhammadPBUH',    'https://archive.org/embed/TheSealedNectarBiographyOfTheProphetMuhammadPBUH',      'https://archive.org/download/TheSealedNectarBiographyOfTheProphetMuhammadPBUH/TheSealedNectar.pdf',                  580,  'public_domain', 'live'),
+  ('fiqh-us-sunnah',            'Fiqh us-Sunnah',             'فقه السنة',       'Vol. 1 — Purification and Prayer',     'A clear and authoritative guide to Islamic jurisprudence based on the Quran and Sunnah. Covers the fundamentals of Islamic law with clear evidence from primary sources.',                                                               'en','en','["fiqh"]',                    'Sayyid Sabiq',                NULL, NULL,          NULL, 'https://archive.org/services/img/FiqhUsSunnahVolume1SayyidSabiq',                       'https://archive.org/embed/FiqhUsSunnahVolume1SayyidSabiq',                        'https://archive.org/download/FiqhUsSunnahVolume1SayyidSabiq/Fiqh-Us-Sunnah-Volume-1.pdf',                            NULL, 'public_domain', 'live'),
+  ('tafsir-ibn-kathir-1',       'Tafsir Ibn Kathir',          'تفسير ابن كثير',  'Vol. 1 — Abridged',                    'The abridged version of the renowned Tafsir by Ibn Kathir, one of the most comprehensive and authentic explanations of the Quran. An essential reference for students of Islamic knowledge.',                                          'en','en','["tafsir"]',                  'Ibn Kathir',                  NULL, 'Darussalam',  2000, 'https://archive.org/services/img/TafsirIbnKathirPart1',                                 'https://archive.org/embed/TafsirIbnKathirPart1',                                  'https://archive.org/download/TafsirIbnKathirPart1/Tafsir_Ibn_Kathir_Part_1.pdf',                                     NULL, 'public_domain', 'live'),
+  ('forty-hadith-nawawi',       'Forty Hadith',               'الأربعون النووية','An-Nawawi''s Forty Hadith',            'Imam al-Nawawi''s famous collection of forty-two hadith encompassing the most fundamental principles of Islam. Essential reading for every Muslim.',                                                                                    'en','en','["hadith"]',                  'Imam al-Nawawi',              NULL, NULL,          NULL, 'https://archive.org/services/img/FortyHadithNawawi',                                    'https://archive.org/embed/FortyHadithNawawi',                                     'https://archive.org/download/FortyHadithNawawi/Forty_Hadith_Nawawi.pdf',                                              NULL, 'public_domain', 'live'),
+  ('three-fundamental-principles','The Three Fundamental Principles','ثلاثة الأصول','Usool ath-Thalathah',              'A foundational text of Islamic creed by Shaykh Muhammad ibn Abd al-Wahhab, covering three essential questions every Muslim must know: Who is your Lord? What is your religion? Who is your Prophet?',                                    'en','en','["aqeedah"]',                 'Muhammad ibn Abd al-Wahhab', NULL, NULL,          NULL, 'https://archive.org/services/img/ThreeFundamentalPrinciples',                           'https://archive.org/embed/ThreeFundamentalPrinciples',                            'https://archive.org/download/ThreeFundamentalPrinciples/Three_Fundamental_Principles.pdf',                            NULL, 'public_domain', 'live'),
+  ('dont-be-sad',               'Don''t Be Sad',              'لا تحزن',         NULL,                                   'A global bestseller offering comfort, reassurance, and practical advice drawn from the Quran and Sunnah for dealing with grief, anxiety, and the trials of life.',                                                                       'en','en','["spirituality"]',            'Aaidh al-Qarni',              NULL, NULL,          NULL, 'https://archive.org/services/img/DontBeSadAaidhalQarni',                                'https://archive.org/embed/DontBeSadAaidhalQarni',                                 'https://archive.org/download/DontBeSadAaidhalQarni/DontBeSad.pdf',                                                   NULL, 'public_domain', 'live'),
+  ('stories-of-the-prophets',   'Stories of the Prophets',   'قصص الأنبياء',    NULL,                                   'Ibn Kathir''s comprehensive retelling of the stories of the prophets from Adam to Jesus, drawn from the Quran, authentic hadiths, and historical records.',                                                   'en','en','["seerah","history"]',        'Ibn Kathir',                  NULL, NULL,          NULL, 'https://archive.org/services/img/StoriesOfTheProphetsIbnKathir',                        'https://archive.org/embed/StoriesOfTheProphetsIbnKathir',                         'https://archive.org/download/StoriesOfTheProphetsIbnKathir/StoriesOfTheProphets.pdf',                                 NULL, 'public_domain', 'live')
+ON DUPLICATE KEY UPDATE
+  title=VALUES(title), description=VALUES(description), embed_url=VALUES(embed_url), cover_url=VALUES(cover_url), status=VALUES(status);

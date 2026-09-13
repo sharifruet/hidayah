@@ -32,10 +32,12 @@ export function AdminProvider({ children }) {
   }, []);
 
   const authFetch = useCallback(async (path, options = {}) => {
+    // FormData sets its own multipart boundary — a manual Content-Type breaks it.
+    const isFormData = options.body instanceof FormData;
     const res = await fetch(`${API}${path}`, {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         Authorization: `Bearer ${token}`,
         ...(options.headers || {}),
       },

@@ -8,6 +8,15 @@ const AppContext = createContext(null);
 const SUPPORTED_LANGUAGES = ['en', 'bn', 'ur', 'tr', 'id'];
 
 const LOCATION_KEY = 'app_location';
+const METHOD_KEY = 'app_method';
+
+function loadPersistedMethod() {
+  try {
+    const stored = localStorage.getItem(METHOD_KEY);
+    if (stored) return stored;
+  } catch {}
+  return DEFAULT_METHOD;
+}
 
 function loadPersistedLanguage() {
   try {
@@ -46,7 +55,7 @@ export function AppProvider({ children }) {
     };
   });
 
-  const [method, setMethod]          = useState(DEFAULT_METHOD);
+  const [method, setMethod]          = useState(loadPersistedMethod);
   const [language, setLanguageState] = useState(loadPersistedLanguage);
   const [darkMode, setDarkModeState]  = useState(loadPersistedDarkMode);
 
@@ -104,6 +113,7 @@ export function AppProvider({ children }) {
 
   const updateMethod = useCallback((newMethod) => {
     setMethod(newMethod);
+    try { localStorage.setItem(METHOD_KEY, newMethod); } catch {}
   }, []);
 
   /** Set UI language and persist the choice. */
