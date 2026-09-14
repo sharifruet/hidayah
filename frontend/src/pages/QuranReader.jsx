@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useApp } from '../context/AppContext.jsx';
@@ -11,6 +11,7 @@ import {
   loadReaderSettings,
   saveReaderSettings,
   saveLastRead,
+  splitBasmalah,
 } from '../services/quranService.js';
 import { markSurahRead, recordReadingToday } from '../services/progressService.js';
 import AyahRow from '../components/quran/AyahRow.jsx';
@@ -149,7 +150,18 @@ export default function QuranReader() {
   });
 
   const surah = data?.data?.surah;
-  const ayahs = data?.data?.ayahs || [];
+  const rawAyahs = data?.data?.ayahs || [];
+  // Ayah 1's text_ar comes prefixed with the Basmalah for every surah except Al-Faatiha/
+  // At-Tawbah — strip it here so it isn't shown twice alongside the page-level Bismillah
+  // header above, and so every downstream consumer (AyahRow, image card, copy, share,
+  // bookmarks, word-by-word) gets the already-correct ayah text.
+  const ayahs = useMemo(
+    () =>
+      rawAyahs.map((a) =>
+        a.number === 1 ? { ...a, text_ar: splitBasmalah(surahNum, a.number, a.text_ar).text } : a
+      ),
+    [rawAyahs, surahNum]
+  );
   const wordsMap = wordsData?.data || {};
 
   // Scroll to target ayah once

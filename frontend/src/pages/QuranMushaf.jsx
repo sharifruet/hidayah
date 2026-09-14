@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useApp } from '../context/AppContext.jsx';
-import { fetchMushafPage } from '../services/quranService.js';
+import { fetchMushafPage, splitBasmalah } from '../services/quranService.js';
 import Loading from '../components/common/Loading.jsx';
 import ErrorMessage from '../components/common/ErrorMessage.jsx';
 
@@ -209,7 +209,7 @@ export default function QuranMushaf() {
                 >
                   {surah.ayahs.map((ayah) => (
                     <span key={ayah.number}>
-                      {ayah.text_ar}
+                      {splitBasmalah(surah.number, ayah.number, ayah.text_ar).text}
                       {/* Inline ayah number marker */}
                       <span
                         className="inline-flex items-center justify-center mx-1 align-middle"
