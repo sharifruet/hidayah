@@ -9,7 +9,11 @@ function resolveApiBase(): string {
 }
 
 export const API_BASE_URL = resolveApiBase();
-export const API_VERSION = process.env.EXPO_PUBLIC_API_VERSION ?? 'v1';
+// "none" means the deployed API isn't mounted under a version prefix (e.g. a reverse proxy
+// that already rewrites /api/* -> the backend's root) — EAS's env-var schema rejects empty
+// string values, so this sentinel is how build profiles express "no version segment".
+const rawApiVersion = process.env.EXPO_PUBLIC_API_VERSION ?? 'v1';
+export const API_VERSION = rawApiVersion === 'none' ? '' : rawApiVersion;
 
 export const DEFAULT_LOCATION = {
   lat: 23.8103,
