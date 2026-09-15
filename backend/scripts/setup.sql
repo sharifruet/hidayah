@@ -353,6 +353,76 @@ CREATE TABLE IF NOT EXISTS `quran_translations` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
+-- hadith_collections
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `hadith_collections` (
+  `slug`          VARCHAR(30) PRIMARY KEY,
+  `name`          VARCHAR(150) NOT NULL,
+  `total_hadiths` SMALLINT UNSIGNED NOT NULL,
+  `total_books`   SMALLINT UNSIGNED NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- hadith_books
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `hadith_books` (
+  `id`                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `collection_slug`     VARCHAR(30) NOT NULL,
+  `book_number`         SMALLINT UNSIGNED NOT NULL,
+  `name`                VARCHAR(255) NOT NULL,
+  `hadithnumber_first`  SMALLINT UNSIGNED NOT NULL,
+  `hadithnumber_last`   SMALLINT UNSIGNED NOT NULL,
+  UNIQUE KEY uq_hb_collection_book (collection_slug, book_number),
+  FOREIGN KEY (collection_slug) REFERENCES hadith_collections(slug)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- hadiths
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `hadiths` (
+  `id`              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `collection_slug` VARCHAR(30) NOT NULL,
+  `book_number`     SMALLINT UNSIGNED NOT NULL,
+  `hadithnumber`    SMALLINT UNSIGNED NOT NULL,
+  `in_book_number`  SMALLINT UNSIGNED NOT NULL,
+  `arabic_number`   SMALLINT UNSIGNED NULL,
+  `text_ar`         MEDIUMTEXT NOT NULL,
+  `grades`          JSON NULL,
+  UNIQUE KEY uq_h_collection_number (collection_slug, hadithnumber),
+  INDEX idx_h_book (collection_slug, book_number),
+  FOREIGN KEY (collection_slug) REFERENCES hadith_collections(slug)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- hadith_editions
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `hadith_editions` (
+  `identifier`      VARCHAR(50) PRIMARY KEY,
+  `collection_slug` VARCHAR(30) NOT NULL,
+  `language`        VARCHAR(10) NOT NULL,
+  `name`            VARCHAR(200) NOT NULL,
+  `author`          VARCHAR(200) NOT NULL DEFAULT '',
+  `direction`       ENUM('ltr','rtl') NOT NULL DEFAULT 'ltr',
+  FOREIGN KEY (collection_slug) REFERENCES hadith_collections(slug)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- hadith_translations
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `hadith_translations` (
+  `id`              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `edition`         VARCHAR(50) NOT NULL,
+  `collection_slug` VARCHAR(30) NOT NULL,
+  `hadithnumber`    SMALLINT UNSIGNED NOT NULL,
+  `text`            MEDIUMTEXT NOT NULL,
+  UNIQUE KEY uq_ht_edition_hadith (edition, hadithnumber),
+  INDEX idx_ht_collection (collection_slug, hadithnumber),
+  FULLTEXT INDEX idx_ht_fulltext (text),
+  FOREIGN KEY (edition) REFERENCES hadith_editions(identifier),
+  FOREIGN KEY (collection_slug, hadithnumber) REFERENCES hadiths(collection_slug, hadithnumber)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
 -- books
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `books` (

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Text, TouchableOpacity, View, type ViewToken } from 'react-native';
-import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +11,7 @@ import { fetchReciters, fetchSurahAyahs, findTranslation, splitBasmalah, type Ay
 import { loadReaderSettings, markSurahRead, saveLastRead, saveReaderSettings } from '../../lib/progress';
 import { useSurahPlayback } from '../../hooks/useSurahPlayback';
 import { cacheSurahAudio } from '../../lib/offlineAudio';
+import { backOr } from '../../lib/navigation';
 import { useApp } from '../../context/AppContext';
 import { tr } from '../../data/translations';
 
@@ -117,7 +117,7 @@ export function ReaderScreen({ surahNumber, initialAyah }: { surahNumber: number
     <View className="flex-1 bg-ink-50 dark:bg-ink-950">
       <View className="flex-row items-center justify-between px-4 pb-3" style={{ paddingTop: insets.top + 16 }}>
         <View className="flex-row items-center flex-1">
-          <TouchableOpacity onPress={() => router.back()} className="mr-2 p-1">
+          <TouchableOpacity onPress={() => backOr('/quran')} className="mr-2 p-1">
             <Ionicons name="chevron-back" size={22} color="#5b6579" />
           </TouchableOpacity>
           <View>

@@ -18,6 +18,10 @@ import QuranReader from './pages/QuranReader.jsx';
 import QuranSearch from './pages/QuranSearch.jsx';
 import QuranMushaf from './pages/QuranMushaf.jsx';
 import QuranJuz from './pages/QuranJuz.jsx';
+import Hadith from './pages/Hadith.jsx';
+import HadithBooks from './pages/HadithBooks.jsx';
+import HadithReader from './pages/HadithReader.jsx';
+import HadithSearch from './pages/HadithSearch.jsx';
 import Bookmarks from './pages/Bookmarks.jsx';
 import Duas from './pages/Duas.jsx';
 import Books from './pages/Books.jsx';
@@ -59,6 +63,10 @@ function AppShell() {
             <Route path="/quran/page/:pageNumber"      element={<QuranMushaf />} />
             <Route path="/quran/:surahNumber"          element={<QuranReader />} />
             <Route path="/quran/:surahNumber/:ayahRef" element={<QuranReader />} />
+            <Route path="/hadith"                                element={<Hadith />} />
+            <Route path="/hadith/search"                         element={<HadithSearch />} />
+            <Route path="/hadith/:collectionSlug"                element={<HadithBooks />} />
+            <Route path="/hadith/:collectionSlug/:bookNumber"    element={<HadithReader />} />
             <Route path="/bookmarks"                   element={<Bookmarks />} />
             <Route path="/duas"                        element={<Duas />} />
             <Route path="/books"                       element={<Books />} />

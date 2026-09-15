@@ -13,6 +13,8 @@
     "seed": "node src/database/seed.js",
     "seed:quran": "node src/database/quranSeeder.js",
     "seed:quran:force": "node src/database/quranSeeder.js --force",
+    "seed:hadith": "node src/database/hadithSeeder.js",
+    "seed:hadith:force": "node src/database/hadithSeeder.js --force",
     "download:audio": "node scripts/downloadAudio.js",
     "generate:sql": "node scripts/generateSqlDump.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",

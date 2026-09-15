@@ -15,7 +15,11 @@ interface MenuItem {
 }
 
 const ITEMS: MenuItem[] = [
+  { labelKey: 'tracker_title', subKey: 'tracker_menu_sub', icon: 'checkmark-circle-outline', href: '/more/prayer-tracker' as Href },
+  { labelKey: 'qada_title', subKey: 'qada_menu_sub', icon: 'time-outline', href: '/more/qada' as Href },
+  { labelKey: 'tasbih_title', subKey: 'tasbih_menu_sub', icon: 'radio-button-on-outline', href: '/more/tasbih' as Href },
   { labelKey: 'more_books', subKey: 'more_books_sub', icon: 'library-outline', href: '/more/books' as Href },
+  { labelKey: 'more_hadith', subKey: 'more_hadith_sub', icon: 'chatbox-ellipses-outline', href: '/more/hadith' as Href },
   { labelKey: 'more_bookmarks', subKey: 'more_bookmarks_sub', icon: 'bookmark-outline', href: '/quran/bookmarks' as Href },
   { labelKey: 'more_qibla', subKey: 'more_qibla_sub', icon: 'compass-outline', href: '/more/qibla' as Href },
   { labelKey: 'nav_calendar', subKey: 'more_calendar_sub', icon: 'calendar-outline', href: '/prayer/calendar' as Href },

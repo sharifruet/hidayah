@@ -7,9 +7,9 @@ const QUERY_CACHE_KEY = 'hidayah-query-cache';
 export const QUERY_PERSIST_MAX_AGE = 1000 * 60 * 60 * 24 * 30; // 30 days
 
 /** Query keys worth keeping on-device for offline reading: Qur'an text/translations,
- * tafsir, reciters list, books, and calculation methods. Prayer times/calendar are
- * intentionally excluded — they're location- and date-specific and showing a stale
- * cached value offline would be misleading. */
+ * tafsir, reciters list, books, hadith collections/books/text, and calculation
+ * methods. Prayer times/calendar are intentionally excluded — they're location- and
+ * date-specific and showing a stale cached value offline would be misleading. */
 const OFFLINE_QUERY_PREFIXES = [
   'surah-ayahs',
   'quran-surahs',
@@ -20,6 +20,10 @@ const OFFLINE_QUERY_PREFIXES = [
   'book-chapters',
   'book-chapter',
   'methods',
+  'hadith-collections',
+  'hadith-collection',
+  'hadith-books',
+  'hadith-book',
 ];
 
 export function shouldPersistQuery(query: Query): boolean {

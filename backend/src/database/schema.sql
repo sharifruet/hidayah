@@ -239,6 +239,63 @@ CREATE TABLE IF NOT EXISTS quran_translations (
   FOREIGN KEY (surah_number, ayah_number) REFERENCES quran_ayahs(surah_number, ayah_number)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ─── Hadith ─────────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS hadith_collections (
+  slug          VARCHAR(30) PRIMARY KEY,       -- 'bukhari', 'muslim', ...
+  name          VARCHAR(150) NOT NULL,
+  total_hadiths SMALLINT UNSIGNED NOT NULL,
+  total_books   SMALLINT UNSIGNED NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS hadith_books (
+  id                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  collection_slug     VARCHAR(30) NOT NULL,
+  book_number         SMALLINT UNSIGNED NOT NULL,
+  name                VARCHAR(255) NOT NULL,
+  hadithnumber_first  SMALLINT UNSIGNED NOT NULL,
+  hadithnumber_last   SMALLINT UNSIGNED NOT NULL,
+  UNIQUE KEY uq_hb_collection_book (collection_slug, book_number),
+  FOREIGN KEY (collection_slug) REFERENCES hadith_collections(slug)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS hadiths (
+  id                INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  collection_slug   VARCHAR(30) NOT NULL,
+  book_number       SMALLINT UNSIGNED NOT NULL,
+  hadithnumber      SMALLINT UNSIGNED NOT NULL,   -- global sequence within collection
+  in_book_number    SMALLINT UNSIGNED NOT NULL,   -- number within the book
+  arabic_number     SMALLINT UNSIGNED NULL,
+  text_ar           MEDIUMTEXT NOT NULL,
+  grades            JSON NULL,
+  UNIQUE KEY uq_h_collection_number (collection_slug, hadithnumber),
+  INDEX idx_h_book (collection_slug, book_number),
+  FOREIGN KEY (collection_slug) REFERENCES hadith_collections(slug)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS hadith_editions (
+  identifier      VARCHAR(50) PRIMARY KEY,   -- e.g. 'ben-bukhari', 'eng-bukhari'
+  collection_slug VARCHAR(30) NOT NULL,
+  language        VARCHAR(10) NOT NULL,      -- 'bn', 'en'
+  name            VARCHAR(200) NOT NULL,
+  author          VARCHAR(200) NOT NULL DEFAULT '',
+  direction       ENUM('ltr','rtl') NOT NULL DEFAULT 'ltr',
+  FOREIGN KEY (collection_slug) REFERENCES hadith_collections(slug)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS hadith_translations (
+  id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  edition         VARCHAR(50) NOT NULL,
+  collection_slug VARCHAR(30) NOT NULL,
+  hadithnumber    SMALLINT UNSIGNED NOT NULL,
+  text            MEDIUMTEXT NOT NULL,
+  UNIQUE KEY uq_ht_edition_hadith (edition, hadithnumber),
+  INDEX idx_ht_collection (collection_slug, hadithnumber),
+  FULLTEXT INDEX idx_ht_fulltext (text),
+  FOREIGN KEY (edition) REFERENCES hadith_editions(identifier),
+  FOREIGN KEY (collection_slug, hadithnumber) REFERENCES hadiths(collection_slug, hadithnumber)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS books (
   id                    INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   slug                  VARCHAR(120) UNIQUE NOT NULL,
@@ -292,7 +349,7 @@ VALUES
   ('tafsir-ibn-kathir-1',       'Tafsir Ibn Kathir',          'تفسير ابن كثير',  'Vol. 1 — Abridged',                    'The abridged version of the renowned Tafsir by Ibn Kathir, one of the most comprehensive and authentic explanations of the Quran. An essential reference for students of Islamic knowledge.',                                          'en','en','["tafsir"]',                  'Ibn Kathir',                  NULL, 'Darussalam',  2000, 'https://archive.org/services/img/TafsirIbnKathirPart1',                                 'https://archive.org/embed/TafsirIbnKathirPart1',                                  'https://archive.org/download/TafsirIbnKathirPart1/Tafsir_Ibn_Kathir_Part_1.pdf',                                     NULL, 'public_domain', 'live'),
   ('forty-hadith-nawawi',       'Forty Hadith',               'الأربعون النووية','An-Nawawi''s Forty Hadith',            'Imam al-Nawawi''s famous collection of forty-two hadith encompassing the most fundamental principles of Islam. Essential reading for every Muslim.',                                                                                    'en','en','["hadith"]',                  'Imam al-Nawawi',              NULL, NULL,          NULL, 'https://archive.org/services/img/FortyHadithNawawi',                                    'https://archive.org/embed/FortyHadithNawawi',                                     'https://archive.org/download/FortyHadithNawawi/Forty_Hadith_Nawawi.pdf',                                              NULL, 'public_domain', 'live'),
   ('three-fundamental-principles','The Three Fundamental Principles','ثلاثة الأصول','Usool ath-Thalathah',              'A foundational text of Islamic creed by Shaykh Muhammad ibn Abd al-Wahhab, covering three essential questions every Muslim must know: Who is your Lord? What is your religion? Who is your Prophet?',                                    'en','en','["aqeedah"]',                 'Muhammad ibn Abd al-Wahhab', NULL, NULL,          NULL, 'https://archive.org/services/img/ThreeFundamentalPrinciples',                           'https://archive.org/embed/ThreeFundamentalPrinciples',                            'https://archive.org/download/ThreeFundamentalPrinciples/Three_Fundamental_Principles.pdf',                            NULL, 'public_domain', 'live'),
-  ('dont-be-sad',               'Don''t Be Sad',              'لا تحزن',         NULL,                                   'A global bestseller offering comfort, reassurance, and practical advice drawn from the Quran and Sunnah for dealing with grief, anxiety, and the trials of life.',                                                                       'en','en','["spirituality"]',            'Aaidh al-Qarni',              NULL, NULL,          NULL, 'https://archive.org/services/img/DontBeSadAaidhalQarni',                                'https://archive.org/embed/DontBeSadAaidhalQarni',                                 'https://archive.org/download/DontBeSadAaidhalQarni/DontBeSad.pdf',                                                   NULL, 'public_domain', 'live'),
+  ('dont-be-sad',               'Don''t Be Sad',              'لا تحزن',         NULL,                                   'A global bestseller offering comfort, reassurance, and practical advice drawn from the Quran and Sunnah for dealing with grief, anxiety, and the trials of life.',                                                                       'en','en','["spirituality"]',            'Aaidh al-Qarni',              NULL, NULL,          NULL, 'https://archive.org/services/img/DontBeSadAaidhalQarni',                                'https://archive.org/embed/don-t-be-sad-aaidh-ibn-abdullah-al-qarni',                                 'https://archive.org/download/don-t-be-sad-aaidh-ibn-abdullah-al-qarni/Don_t_be_Sad_Aaidh_ibn_Abdullah_al_Qarni.pdf',                                                   NULL, 'public_domain', 'live'),
   ('stories-of-the-prophets',   'Stories of the Prophets',   'قصص الأنبياء',    NULL,                                   'Ibn Kathir''s comprehensive retelling of the stories of the prophets from Adam to Jesus, drawn from the Quran, authentic hadiths, and historical records.',                                                   'en','en','["seerah","history"]',        'Ibn Kathir',                  NULL, NULL,          NULL, 'https://archive.org/services/img/StoriesOfTheProphetsIbnKathir',                        'https://archive.org/embed/StoriesOfTheProphetsIbnKathir',                         'https://archive.org/download/StoriesOfTheProphetsIbnKathir/StoriesOfTheProphets.pdf',                                 NULL, 'public_domain', 'live')
 ON DUPLICATE KEY UPDATE
   title=VALUES(title), description=VALUES(description), embed_url=VALUES(embed_url), cover_url=VALUES(cover_url), status=VALUES(status);

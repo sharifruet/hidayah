@@ -8,15 +8,22 @@ import { Screen } from '../../components/ui/Screen';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { NextPrayerHero } from '../../components/home/NextPrayerHero';
 import { PrayerStrip } from '../../components/home/PrayerStrip';
+import { PrayerTrackerRow } from '../../components/home/PrayerTrackerRow';
 import { DailyAyahCard } from '../../components/home/DailyAyahCard';
 import { QuickActions } from '../../components/home/QuickActions';
 import { RamadanBanner } from '../../components/home/RamadanBanner';
 import { useApp } from '../../context/AppContext';
 import { usePrayerTimes } from '../../hooks/usePrayerTimes';
 import { gregorianToHijri } from '../../lib/hijri';
-import { scheduleUpcomingPrayerNotifications } from '../../lib/notifications';
+import {
+  scheduleUpcomingPrayerNotifications,
+  scheduleUpcomingPrayerCheckIns,
+  scheduleRamadanReminders,
+} from '../../lib/notifications';
 import { tr } from '../../data/translations';
 import type { LanguageCode } from '../../lib/constants';
+
+const RAMADAN_MONTH = 9;
 
 function greetingKey(hour: number): string {
   if (hour < 12) return 'home_greeting_morning';
@@ -33,17 +40,30 @@ const tomorrowISO = (() => {
 })();
 
 export default function HomeScreen() {
-  const { location, language, notificationsEnabled } = useApp();
+  const { location, language, notificationsEnabled, prayerCheckInEnabled, ramadanRemindersEnabled } = useApp();
   const { data } = usePrayerTimes();
   const { data: tomorrowData } = usePrayerTimes(tomorrowISO);
   const today = new Date();
   const hijri = gregorianToHijri(today);
+  const isRamadan = hijri.month === RAMADAN_MONTH;
 
   useEffect(() => {
     if (notificationsEnabled && data?.times) {
       scheduleUpcomingPrayerNotifications(data.times, tomorrowData?.times).catch(() => {});
     }
   }, [notificationsEnabled, data?.times, tomorrowData?.times]);
+
+  useEffect(() => {
+    if (prayerCheckInEnabled && data?.times) {
+      scheduleUpcomingPrayerCheckIns(data.times, tomorrowData?.times).catch(() => {});
+    }
+  }, [prayerCheckInEnabled, data?.times, tomorrowData?.times]);
+
+  useEffect(() => {
+    if (ramadanRemindersEnabled && isRamadan && data?.times) {
+      scheduleRamadanReminders(data.times, tomorrowData?.times).catch(() => {});
+    }
+  }, [ramadanRemindersEnabled, isRamadan, data?.times, tomorrowData?.times]);
 
   return (
     <Screen>
@@ -66,15 +86,19 @@ export default function HomeScreen() {
       </View>
 
       <View className="mb-4">
-        <RamadanBanner />
+        <RamadanBanner times={data?.times} />
       </View>
 
       <View className="mb-4">
         <NextPrayerHero times={data?.times} locationName={location.name} />
       </View>
 
-      <View className="mb-6">
+      <View className="mb-4">
         <PrayerStrip times={data?.times} />
+      </View>
+
+      <View className="mb-6">
+        <PrayerTrackerRow />
       </View>
 
       <SectionHeader title={tr('home_daily_ayah', language)} />

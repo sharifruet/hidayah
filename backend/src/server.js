@@ -18,6 +18,7 @@ import batchRoutes from './routes/batch.js';
 import locationsRoutes from './routes/locations.js';
 import methodsRoutes from './routes/methods.js';
 import quranRoutes from './routes/quran.js';
+import hadithRoutes from './routes/hadith.js';
 import booksRoutes from './routes/books.js';
 import adminRoutes from './routes/admin.js';
 
@@ -120,6 +121,7 @@ app.use(`/${API_VERSION}/batch`, batchRoutes);
 app.use(`/${API_VERSION}/locations`, locationsRoutes);
 app.use(`/${API_VERSION}/methods`, methodsRoutes);
 app.use(`/${API_VERSION}/quran`, quranRoutes);
+app.use(`/${API_VERSION}/hadith`, hadithRoutes);
 app.use(`/${API_VERSION}/books`, booksRoutes);
 app.use(`/${API_VERSION}/admin`, adminRoutes);
 

@@ -9,13 +9,19 @@ import { Card } from '../../../components/ui/Card';
 import { LocationPickerModal } from '../../../components/prayer/LocationPickerModal';
 import { useApp } from '../../../context/AppContext';
 import { LANGUAGE_LABELS, RTL_LANGUAGES, tr } from '../../../data/translations';
-import { requestNotificationPermissions, cancelAllPrayerNotifications } from '../../../lib/notifications';
+import {
+  requestNotificationPermissions,
+  cancelAllPrayerNotifications,
+  cancelAllCheckInNotifications,
+  cancelRamadanReminders,
+} from '../../../lib/notifications';
 import type { LanguageCode } from '../../../lib/constants';
 
 export default function SettingsScreen() {
   const {
-    location, method, language, darkMode, notificationsEnabled,
-    setLanguage, toggleDarkMode, setNotificationsEnabled, supportedLanguages,
+    location, method, language, darkMode, notificationsEnabled, prayerCheckInEnabled, ramadanRemindersEnabled,
+    setLanguage, toggleDarkMode, setNotificationsEnabled, setPrayerCheckInEnabled, setRamadanRemindersEnabled,
+    supportedLanguages,
   } = useApp();
   const [pickerVisible, setPickerVisible] = useState(false);
 
@@ -30,6 +36,34 @@ export default function SettingsScreen() {
     } else {
       await cancelAllPrayerNotifications();
       setNotificationsEnabled(false);
+    }
+  }
+
+  async function onToggleCheckIn(value: boolean) {
+    if (value) {
+      const granted = await requestNotificationPermissions();
+      if (!granted) {
+        Alert.alert(tr('settings_permission_needed', language), tr('settings_permission_note', language));
+        return;
+      }
+      setPrayerCheckInEnabled(true);
+    } else {
+      await cancelAllCheckInNotifications();
+      setPrayerCheckInEnabled(false);
+    }
+  }
+
+  async function onToggleRamadanReminders(value: boolean) {
+    if (value) {
+      const granted = await requestNotificationPermissions();
+      if (!granted) {
+        Alert.alert(tr('settings_permission_needed', language), tr('settings_permission_note', language));
+        return;
+      }
+      setRamadanRemindersEnabled(true);
+    } else {
+      await cancelRamadanReminders();
+      setRamadanRemindersEnabled(false);
     }
   }
 
@@ -68,6 +102,26 @@ export default function SettingsScreen() {
             <Text className="font-body text-xs text-ink-400 mt-0.5">{tr('settings_notifications_note', language)}</Text>
           </View>
           <Switch value={notificationsEnabled} onValueChange={onToggleNotifications} trackColor={{ true: '#15805a' }} />
+        </View>
+
+        <View className="h-px bg-ink-100 dark:bg-ink-800 my-4" />
+
+        <View className="flex-row items-center justify-between">
+          <View className="flex-1 pr-3">
+            <Text className="font-body-medium text-sm text-ink-900 dark:text-white">{tr('settings_checkin', language)}</Text>
+            <Text className="font-body text-xs text-ink-400 mt-0.5">{tr('settings_checkin_note', language)}</Text>
+          </View>
+          <Switch value={prayerCheckInEnabled} onValueChange={onToggleCheckIn} trackColor={{ true: '#15805a' }} />
+        </View>
+
+        <View className="h-px bg-ink-100 dark:bg-ink-800 my-4" />
+
+        <View className="flex-row items-center justify-between">
+          <View className="flex-1 pr-3">
+            <Text className="font-body-medium text-sm text-ink-900 dark:text-white">{tr('settings_ramadan_reminders', language)}</Text>
+            <Text className="font-body text-xs text-ink-400 mt-0.5">{tr('settings_ramadan_reminders_note', language)}</Text>
+          </View>
+          <Switch value={ramadanRemindersEnabled} onValueChange={onToggleRamadanReminders} trackColor={{ true: '#15805a' }} />
         </View>
       </Card>
 

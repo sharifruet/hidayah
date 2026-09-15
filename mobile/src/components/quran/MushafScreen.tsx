@@ -6,6 +6,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { fetchMushafPage, splitBasmalah } from '../../lib/services/quran';
+import { backOr } from '../../lib/navigation';
 import { useApp } from '../../context/AppContext';
 import { tr } from '../../data/translations';
 
@@ -58,7 +59,7 @@ export function MushafScreen({ pageNumber }: { pageNumber: number }) {
     return (
       <View className="flex-1 items-center justify-center bg-[#faf6ef] dark:bg-ink-950 px-8" style={{ paddingTop: insets.top }}>
         <Text className="font-body text-sm text-ink-400 text-center mb-4">{tr('quran_mushaf_invalid', language)}</Text>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => backOr('/quran')}>
           <Text className="font-body-medium text-sm text-primary-600">{tr('nav_quran', language)}</Text>
         </TouchableOpacity>
       </View>
@@ -68,7 +69,7 @@ export function MushafScreen({ pageNumber }: { pageNumber: number }) {
   return (
     <View className="flex-1 bg-[#faf6ef] dark:bg-ink-950" style={{ paddingTop: insets.top }}>
       <View className="flex-row items-center px-3 py-2.5 border-b border-amber-200/60 dark:border-ink-800 gap-2">
-        <TouchableOpacity onPress={() => router.back()} className="p-1">
+        <TouchableOpacity onPress={() => backOr('/quran')} className="p-1">
           <Ionicons name="chevron-back" size={20} color="#166534" />
         </TouchableOpacity>
 

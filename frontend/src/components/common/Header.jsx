@@ -14,6 +14,7 @@ export default function Header() {
     { path: '/',               key: 'nav_home' },
     { path: '/prayer-times',   key: 'nav_prayer' },
     { path: '/quran',          key: 'nav_quran',    prefix: true },
+    { path: '/hadith',         key: 'nav_hadith',   prefix: true },
     { path: '/books',          key: 'nav_books',    prefix: true },
     { path: '/duas',           key: 'nav_duas' },
     { path: '/settings',       key: 'nav_settings' },

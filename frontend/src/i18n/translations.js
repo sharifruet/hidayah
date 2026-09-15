@@ -60,6 +60,13 @@ const t = {
     tr: 'Kitaplar',
     id: 'Buku',
   },
+  nav_hadith: {
+    en: 'Hadith',
+    bn: 'হাদিস',
+    ur: 'حدیث',
+    tr: 'Hadis',
+    id: 'Hadis',
+  },
   nav_duas: {
     en: "Du'a",
     bn: 'দু\'আ',

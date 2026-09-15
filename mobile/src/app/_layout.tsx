@@ -2,8 +2,9 @@ import '../global.css';
 
 import { useEffect, useState } from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Notifications from 'expo-notifications';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient } from '@tanstack/react-query';
@@ -36,6 +37,14 @@ function RootNavigation() {
   useEffect(() => {
     setReady(true);
     SplashScreen.hideAsync();
+  }, []);
+
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const screen = response.notification.request.content.data?.screen;
+      if (screen === 'prayer-tracker') router.push('/more/prayer-tracker' as never);
+    });
+    return () => sub.remove();
   }, []);
 
   if (!ready) return null;

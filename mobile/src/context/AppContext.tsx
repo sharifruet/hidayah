@@ -23,11 +23,15 @@ interface AppContextValue {
   isRTL: boolean;
   darkMode: boolean;
   notificationsEnabled: boolean;
+  prayerCheckInEnabled: boolean;
+  ramadanRemindersEnabled: boolean;
   updateLocation: (next: Partial<AppLocation>) => void;
   updateMethod: (method: string) => void;
   setLanguage: (lang: LanguageCode) => void;
   toggleDarkMode: () => void;
   setNotificationsEnabled: (enabled: boolean) => void;
+  setPrayerCheckInEnabled: (enabled: boolean) => void;
+  setRamadanRemindersEnabled: (enabled: boolean) => void;
   supportedLanguages: readonly LanguageCode[];
 }
 
@@ -38,6 +42,8 @@ const METHOD_KEY = 'app_method';
 const LANGUAGE_KEY = 'app_language';
 const DARK_MODE_KEY = 'app_dark_mode';
 const NOTIFICATIONS_KEY = 'app_notifications_enabled';
+const CHECKIN_KEY = 'app_prayer_checkin_enabled';
+const RAMADAN_REMINDERS_KEY = 'app_ramadan_reminders_enabled';
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const { colorScheme, setColorScheme } = useNwColorScheme();
@@ -63,6 +69,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   });
   const [notificationsEnabled, setNotificationsEnabledState] = useState<boolean>(
     () => storage.getString(NOTIFICATIONS_KEY) === 'true'
+  );
+  const [prayerCheckInEnabled, setPrayerCheckInEnabledState] = useState<boolean>(
+    () => storage.getString(CHECKIN_KEY) === 'true'
+  );
+  const [ramadanRemindersEnabled, setRamadanRemindersEnabledState] = useState<boolean>(
+    () => storage.getString(RAMADAN_REMINDERS_KEY) === 'true'
   );
 
   const isRTL = RTL_LANGUAGES.has(language);
@@ -133,6 +145,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     storage.set(NOTIFICATIONS_KEY, String(enabled));
   }, []);
 
+  const setPrayerCheckInEnabled = useCallback((enabled: boolean) => {
+    setPrayerCheckInEnabledState(enabled);
+    storage.set(CHECKIN_KEY, String(enabled));
+  }, []);
+
+  const setRamadanRemindersEnabled = useCallback((enabled: boolean) => {
+    setRamadanRemindersEnabledState(enabled);
+    storage.set(RAMADAN_REMINDERS_KEY, String(enabled));
+  }, []);
+
   const value: AppContextValue = {
     location,
     method,
@@ -140,11 +162,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     isRTL,
     darkMode,
     notificationsEnabled,
+    prayerCheckInEnabled,
+    ramadanRemindersEnabled,
     updateLocation,
     updateMethod,
     setLanguage,
     toggleDarkMode,
     setNotificationsEnabled,
+    setPrayerCheckInEnabled,
+    setRamadanRemindersEnabled,
     supportedLanguages: SUPPORTED_LANGUAGES,
   };
 

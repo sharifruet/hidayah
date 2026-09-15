@@ -75,6 +75,22 @@ const t: Record<string, Entry> = {
     tr: 'Her namaz vakti girdiğinde hatırlatma alın',
     id: 'Dapatkan pengingat saat setiap waktu shalat tiba',
   },
+  settings_checkin: { en: 'Salah Check-in Reminder', bn: 'নামাজ চেক-ইন রিমাইন্ডার', ur: 'نماز چیک ان یاد دہانی', tr: 'Namaz Kontrol Hatırlatıcısı', id: 'Pengingat Check-in Shalat' },
+  settings_checkin_note: {
+    en: "Ask after each prayer whether you've offered it",
+    bn: 'প্রতিটি নামাজের পর জিজ্ঞাসা করুন আপনি আদায় করেছেন কিনা',
+    ur: 'ہر نماز کے بعد پوچھیں کہ آپ نے ادا کی ہے یا نہیں',
+    tr: 'Her namazdan sonra kıldınız mı diye sorar',
+    id: 'Tanyakan setelah setiap shalat apakah Anda sudah menunaikannya',
+  },
+  settings_ramadan_reminders: { en: 'Ramadan Reminders', bn: 'রমজান রিমাইন্ডার', ur: 'رمضان یاد دہانیاں', tr: 'Ramazan Hatırlatıcıları', id: 'Pengingat Ramadan' },
+  settings_ramadan_reminders_note: {
+    en: 'Suhoor ending & Iftar time alerts during Ramadan',
+    bn: 'রমজানে সেহরি শেষ ও ইফতারের সময়ের সতর্কতা',
+    ur: 'رمضان میں سحری ختم ہونے اور افطار کے وقت کی الرٹس',
+    tr: "Ramazan'da sahur bitişi ve iftar vakti bildirimleri",
+    id: 'Peringatan akhir Sahur & waktu Iftar selama Ramadan',
+  },
   settings_dark_mode: { en: 'Dark Mode', bn: 'ডার্ক মোড', ur: 'ڈارک موڈ', tr: 'Karanlık Mod', id: 'Mode Gelap' },
   settings_dark_mode_note: {
     en: 'Easy on the eyes at night',
@@ -132,6 +148,9 @@ const t: Record<string, Entry> = {
   home_eid_in: { en: 'Eid in ~', bn: 'ঈদ আনুমানিক', ur: 'عید تقریباً', tr: 'Bayrama yaklaşık', id: 'Idul Fitri sekitar' },
   home_days: { en: 'days', bn: 'দিন', ur: 'دن', tr: 'gün', id: 'hari' },
   home_until_ramadan: { en: 'days until Ramadan', bn: 'রমজান শুরু হতে দিন বাকি', ur: 'رمضان تک دن', tr: 'Ramazan\'a kalan gün', id: 'hari menuju Ramadhan' },
+  home_iftar_in: { en: 'Iftar in', bn: 'ইফতারে বাকি', ur: 'افطار میں', tr: 'İftara kalan', id: 'Iftar dalam' },
+  home_suhoor_ends_in: { en: 'Suhoor ends in', bn: 'সেহরি শেষ হবে', ur: 'سحری ختم ہو گی', tr: 'Sahur bitiyor', id: 'Sahur berakhir dalam' },
+  tracker_home_title: { en: "Today's Salah", bn: 'আজকের নামাজ', ur: 'آج کی نماز', tr: 'Bugünkü Namaz', id: 'Shalat Hari Ini' },
   home_read: { en: 'Read', bn: 'পড়ুন', ur: 'پڑھیں', tr: 'Oku', id: 'Baca' },
 
   // ── Prayer ───────────────────────────────────────────────────────────────────
@@ -217,6 +236,35 @@ const t: Record<string, Entry> = {
   quran_mushaf_prev: { en: 'Previous', bn: 'আগের', ur: 'پچھلا', tr: 'Önceki', id: 'Sebelumnya' },
   quran_mushaf_next: { en: 'Next', bn: 'পরের', ur: 'اگلا', tr: 'Sonraki', id: 'Berikutnya' },
 
+  // ── Salah Tracker ────────────────────────────────────────────────────────────
+  tracker_title: { en: 'Salah Tracker', bn: 'সালাত ট্র্যাকার', ur: 'نماز ٹریکر', tr: 'Namaz Takipçisi', id: 'Pelacak Shalat' },
+  tracker_menu_sub: { en: 'Track your daily prayers', bn: 'আপনার দৈনিক নামাজ ট্র্যাক করুন', ur: 'اپنی روزانہ نماز ٹریک کریں', tr: 'Günlük namazlarınızı takip edin', id: 'Lacak shalat harian Anda' },
+  tracker_today_progress: { en: "Today's progress:", bn: 'আজকের অগ্রগতি:', ur: 'آج کی پیشرفت:', tr: 'Bugünkü ilerleme:', id: 'Kemajuan hari ini:' },
+  tracker_this_week: { en: 'This week', bn: 'এই সপ্তাহ', ur: 'اس ہفتے', tr: 'Bu hafta', id: 'Minggu ini' },
+
+  // ── Qada Tracker ─────────────────────────────────────────────────────────────
+  qada_title: { en: 'Qada Tracker', bn: 'কাজা ট্র্যাকার', ur: 'قضا ٹریکر', tr: 'Kaza Takipçisi', id: 'Pelacak Qada' },
+  qada_menu_sub: { en: 'Log missed prayers', bn: 'মিস হওয়া নামাজ লগ করুন', ur: 'چھوٹی ہوئی نمازیں لاگ کریں', tr: 'Kaçırılan namazları kaydedin', id: 'Catat shalat yang terlewat' },
+  qada_subtitle: {
+    en: 'Keep count of missed prayers you still need to make up',
+    bn: 'মিস হওয়া নামাজের হিসাব রাখুন যা এখনও কাজা করতে হবে',
+    ur: 'چھوٹی ہوئی نمازوں کا حساب رکھیں جو ابھی قضا کرنی ہیں',
+    tr: 'Hâlâ kaza etmeniz gereken namazların sayısını tutun',
+    id: 'Catat shalat yang terlewat dan masih perlu diqada',
+  },
+  qada_total_owed: { en: 'Total owed:', bn: 'মোট বাকি:', ur: 'کل باقی:', tr: 'Toplam borç:', id: 'Total tertunggak:' },
+
+  // ── Tasbih ───────────────────────────────────────────────────────────────────
+  tasbih_title: { en: 'Tasbih', bn: 'তাসবীহ', ur: 'تسبیح', tr: 'Tesbih', id: 'Tasbih' },
+  tasbih_menu_sub: { en: 'Digital dhikr counter', bn: 'ডিজিটাল যিকির কাউন্টার', ur: 'ڈیجیٹل ذکر شمار کنندہ', tr: 'Dijital zikir sayacı', id: 'Penghitung dzikir digital' },
+  tasbih_subhanallah: { en: 'SubhanAllah', bn: 'সুবহানাল্লাহ', ur: 'سبحان اللہ', tr: 'Subhanallah', id: 'Subhanallah' },
+  tasbih_alhamdulillah: { en: 'Alhamdulillah', bn: 'আলহামদুলিল্লাহ', ur: 'الحمد للہ', tr: 'Elhamdülillah', id: 'Alhamdulillah' },
+  tasbih_allahuakbar: { en: 'Allahu Akbar', bn: 'আল্লাহু আকবার', ur: 'اللہ اکبر', tr: 'Allahu Ekber', id: 'Allahu Akbar' },
+  tasbih_astaghfirullah: { en: 'Astaghfirullah', bn: 'আস্তাগফিরুল্লাহ', ur: 'استغفر اللہ', tr: 'Estağfirullah', id: 'Astaghfirullah' },
+  tasbih_open_count: { en: 'Open count', bn: 'উন্মুক্ত গণনা', ur: 'کھلی گنتی', tr: 'Serbest sayım', id: 'Hitungan bebas' },
+  tasbih_total: { en: 'Total:', bn: 'মোট:', ur: 'کل:', tr: 'Toplam:', id: 'Total:' },
+  tasbih_tap_hint: { en: 'Tap the circle to count', bn: 'গণনা করতে বৃত্তে ট্যাপ করুন', ur: 'شمار کرنے کے لیے دائرے پر ٹیپ کریں', tr: 'Saymak için daireye dokunun', id: 'Ketuk lingkaran untuk menghitung' },
+
   // ── Du'as ────────────────────────────────────────────────────────────────────
   duas_title: { en: "Du'a & Adhkar", bn: "দু'আ ও আযকার", ur: 'دعا و اذکار', tr: "Dua ve Zikirler", id: 'Doa & Dzikir' },
   duas_subtitle: {
@@ -231,6 +279,8 @@ const t: Record<string, Entry> = {
   more_title: { en: 'More', bn: 'আরও', ur: 'مزید', tr: 'Diğer', id: 'Lainnya' },
   more_books: { en: 'Books', bn: 'বই', ur: 'کتب', tr: 'Kitaplar', id: 'Buku' },
   more_books_sub: { en: 'Islamic library', bn: 'ইসলামিক লাইব্রেরি', ur: 'اسلامی لائبریری', tr: 'İslami kütüphane', id: 'Perpustakaan Islam' },
+  more_hadith: { en: 'Hadith', bn: 'হাদিস', ur: 'حدیث', tr: 'Hadis', id: 'Hadis' },
+  more_hadith_sub: { en: 'Bukhari, Muslim & more', bn: 'বুখারী, মুসলিম ও অন্যান্য', ur: 'بخاری، مسلم اور دیگر', tr: 'Buhari, Müslim ve diğerleri', id: 'Bukhari, Muslim & lainnya' },
   more_bookmarks: { en: 'Bookmarks', bn: 'বুকমার্ক', ur: 'بک مارکس', tr: 'Yer İşaretleri', id: 'Markah' },
   more_bookmarks_sub: { en: 'Saved ayahs', bn: 'সংরক্ষিত আয়াত', ur: 'محفوظ شدہ آیات', tr: 'Kaydedilen ayetler', id: 'Ayat tersimpan' },
   more_qibla: { en: 'Qibla', bn: 'কিবলা', ur: 'قبلہ', tr: 'Kıble', id: 'Kiblat' },
@@ -259,6 +309,18 @@ const t: Record<string, Entry> = {
     tr: 'Bu kitabın dosyası yüklenemedi. Kaynağından taşınmış veya kaldırılmış olabilir.',
     id: 'File buku ini tidak dapat dimuat. Mungkin telah dipindahkan atau dihapus dari sumbernya.',
   },
+
+  // ── Hadith ───────────────────────────────────────────────────────────────────
+  hadith_title: { en: 'Hadith', bn: 'হাদিস', ur: 'حدیث', tr: 'Hadis', id: 'Hadis' },
+  hadith_subtitle: { en: 'In Arabic, Bangla, and English', bn: 'আরবি, বাংলা ও ইংরেজি সহ', ur: 'عربی، بنگالی اور انگریزی میں', tr: 'Arapça, Bengalce ve İngilizce', id: 'Dalam bahasa Arab, Bengali, dan Inggris' },
+  hadith_load_error: { en: "Couldn't load hadith collections.", bn: 'হাদিস সংকলন লোড করা যায়নি।', ur: 'حدیث کے مجموعے لوڈ نہیں ہو سکے۔', tr: 'Hadis koleksiyonları yüklenemedi.', id: 'Koleksi hadis tidak dapat dimuat.' },
+  hadith_books_count: { en: 'books', bn: 'অধ্যায়', ur: 'کتب', tr: 'kitap', id: 'buku' },
+  hadith_hadiths_count: { en: 'hadiths', bn: 'হাদিস', ur: 'احادیث', tr: 'hadis', id: 'hadis' },
+  hadith_search: { en: 'Search Hadith', bn: 'হাদিস অনুসন্ধান', ur: 'حدیث تلاش کریں', tr: 'Hadis Ara', id: 'Cari Hadis' },
+  hadith_search_placeholder: { en: 'Enter a word or phrase…', bn: 'শব্দ বা বাক্যাংশ লিখুন…', ur: 'ایک لفظ یا فقرہ درج کریں…', tr: 'Bir kelime veya ifade girin…', id: 'Masukkan kata atau frasa…' },
+  hadith_no_results: { en: 'No results found', bn: 'কোনো ফলাফল পাওয়া যায়নি', ur: 'کوئی نتیجہ نہیں ملا', tr: 'Sonuç bulunamadı', id: 'Tidak ada hasil ditemukan' },
+  hadith_number_range: { en: 'Hadith', bn: 'হাদিস', ur: 'حدیث', tr: 'Hadis', id: 'Hadis' },
+  hadith_no_translation: { en: 'Translation not available.', bn: 'অনুবাদ পাওয়া যায়নি।', ur: 'ترجمہ دستیاب نہیں ہے۔', tr: 'Çeviri mevcut değil.', id: 'Terjemahan tidak tersedia.' },
 
   // ── Qibla ────────────────────────────────────────────────────────────────────
   qibla_title: { en: 'Qibla', bn: 'কিবলা', ur: 'قبلہ', tr: 'Kıble', id: 'Kiblat' },
