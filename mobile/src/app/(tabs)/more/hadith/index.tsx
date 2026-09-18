@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { Screen } from '../../../../components/ui/Screen';
-import { hadithService, type HadithCollection } from '../../../../lib/services/hadith';
+import { hadithService, hadithLanguageFor, type HadithCollection } from '../../../../lib/services/hadith';
 import { useApp } from '../../../../context/AppContext';
 import { tr } from '../../../../data/translations';
 
@@ -20,9 +20,11 @@ export default function HadithCollectionsScreen() {
     staleTime: 24 * 60 * 60 * 1000,
   });
 
+  const searchLanguage = hadithLanguageFor(language);
+
   const { data: searchData, isLoading: searching } = useQuery({
-    queryKey: ['hadith-search', submitted],
-    queryFn: () => hadithService.search(submitted, { limit: 30 }),
+    queryKey: ['hadith-search', submitted, searchLanguage],
+    queryFn: () => hadithService.search(submitted, { language: searchLanguage, limit: 30 }),
     enabled: submitted.length > 1,
   });
 

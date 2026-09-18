@@ -5,18 +5,20 @@ import AdminLayout from '../../components/admin/AdminLayout.jsx';
 
 export default function AdminDashboard() {
   const { authFetch } = useAdmin();
-  const [stats, setStats] = useState({ books: '—', duas: '—' });
+  const [stats, setStats] = useState({ books: '—', duas: '—', masjids: '—' });
 
   useEffect(() => {
     Promise.all([
       authFetch('/books').then(d => d.length).catch(() => '?'),
       authFetch('/duas').then(d => d.length).catch(() => '?'),
-    ]).then(([books, duas]) => setStats({ books, duas }));
+      authFetch('/masjids').then(d => d.length).catch(() => '?'),
+    ]).then(([books, duas, masjids]) => setStats({ books, duas, masjids }));
   }, [authFetch]);
 
   const cards = [
     { label: 'Books', count: stats.books, to: '/admin/books', color: 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400' },
     { label: "Du'a", count: stats.duas,  to: '/admin/duas',  color: 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' },
+    { label: 'Masjids', count: stats.masjids, to: '/admin/masjids', color: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400' },
   ];
 
   return (

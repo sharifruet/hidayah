@@ -353,3 +353,77 @@ VALUES
   ('stories-of-the-prophets',   'Stories of the Prophets',   'قصص الأنبياء',    NULL,                                   'Ibn Kathir''s comprehensive retelling of the stories of the prophets from Adam to Jesus, drawn from the Quran, authentic hadiths, and historical records.',                                                   'en','en','["seerah","history"]',        'Ibn Kathir',                  NULL, NULL,          NULL, 'https://archive.org/services/img/StoriesOfTheProphetsIbnKathir',                        'https://archive.org/embed/StoriesOfTheProphetsIbnKathir',                         'https://archive.org/download/StoriesOfTheProphetsIbnKathir/StoriesOfTheProphets.pdf',                                 NULL, 'public_domain', 'live')
 ON DUPLICATE KEY UPDATE
   title=VALUES(title), description=VALUES(description), embed_url=VALUES(embed_url), cover_url=VALUES(cover_url), status=VALUES(status);
+
+-- ─── Masjids ──────────────────────────────────────────────────────────────────
+-- Community-contributed masjid directory with per-prayer jamah times.
+
+CREATE TABLE IF NOT EXISTS masjids (
+  id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name          VARCHAR(200) NOT NULL,
+  name_bn       VARCHAR(200),
+  address       VARCHAR(400),
+  city          VARCHAR(100),
+  district      VARCHAR(100),
+  latitude      DECIMAL(9,6) NOT NULL,
+  longitude     DECIMAL(9,6) NOT NULL,
+  phone         VARCHAR(40),
+  description   TEXT,
+  status        ENUM('active','hidden') NOT NULL DEFAULT 'active',
+  created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_masjids_coords (latitude, longitude),
+  INDEX idx_masjids_status (status),
+  INDEX idx_masjids_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- One row per (masjid, prayer). `updated_at` is set explicitly on every
+-- save so "last updated" reflects the last confirmation, not just changes.
+CREATE TABLE IF NOT EXISTS masjid_jamah_times (
+  id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  masjid_id     INT UNSIGNED NOT NULL,
+  prayer        ENUM('fajr','dhuhr','asr','maghrib','isha','jumuah') NOT NULL,
+  time          TIME NOT NULL,
+  created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_masjid_prayer (masjid_id, prayer),
+  FOREIGN KEY (masjid_id) REFERENCES masjids(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ─── Du'as ────────────────────────────────────────────────────────────────────
+-- Source of truth for the du'a collection; apps fetch GET /v1/duas
+-- (mobile caches a copy locally and re-syncs periodically).
+-- Seed with `npm run seed:duas` (data in src/database/data/duas.json).
+
+CREATE TABLE IF NOT EXISTS dua_categories (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  slug        VARCHAR(50) UNIQUE NOT NULL,
+  label_en    VARCHAR(100) NOT NULL,
+  label_bn    VARCHAR(100),
+  label_ur    VARCHAR(100),
+  label_tr    VARCHAR(100),
+  label_id    VARCHAR(100),
+  sort_order  SMALLINT NOT NULL DEFAULT 0,
+  created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS duas (
+  id              INT AUTO_INCREMENT PRIMARY KEY,
+  slug            VARCHAR(60) UNIQUE,
+  category        VARCHAR(50) NOT NULL,
+  arabic          TEXT NOT NULL,
+  transliteration TEXT,
+  translation_en  TEXT NOT NULL,
+  translation_bn  TEXT,
+  virtue_en       TEXT,
+  virtue_bn       TEXT,
+  reference       VARCHAR(200),
+  count           TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  quran_surah     TINYINT UNSIGNED,
+  quran_ayah      SMALLINT UNSIGNED,
+  sort_order      SMALLINT NOT NULL DEFAULT 0,
+  created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_duas_category (category),
+  INDEX idx_duas_sort (category, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

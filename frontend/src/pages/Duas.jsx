@@ -1,16 +1,30 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useApp } from '../context/AppContext.jsx';
-import { DUAS, DUA_CATEGORIES, getDuasByCategory } from '../data/duas.js';
+import { getDuasCollection, loadCachedDuasCollection, duaCategoryLabel } from '../services/duasService.js';
+import { tr } from '../i18n/translations.js';
+import Loading from '../components/common/Loading.jsx';
 
 export default function Duas() {
   const { language } = useApp();
   const [activeCategory, setActiveCategory] = useState('morning');
   const [expandedId, setExpandedId]         = useState(null);
   const [copiedId, setCopiedId]             = useState(null);
+  const [virtueId, setVirtueId]             = useState(null); // which card shows its fazilat
 
-  const catLabel = (cat) => cat[`label_${language}`] || cat.label_en;
-  const duas = getDuasByCategory(activeCategory);
+  // Du'as live in the DB (GET /v1/duas). The last successful payload is kept in
+  // localStorage so a flaky/offline connection still shows the collection.
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['duas-collection'],
+    queryFn: getDuasCollection,
+    initialData: loadCachedDuasCollection,
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+
+  const categories = data?.categories ?? [];
+  const catLabel = (cat) => duaCategoryLabel(cat, language);
+  const duas = (data?.duas ?? []).filter((d) => d.category === activeCategory);
 
   async function copyDua(dua) {
     const text = [dua.arabic, '', dua.transliteration, '', dua.translation_en, '', `(${dua.reference})`].join('\n');
@@ -33,9 +47,14 @@ export default function Duas() {
           </p>
         </div>
 
+        {isLoading && !data && <Loading message={tr('loading', language)} />}
+        {isError && !data && (
+          <p className="text-sm text-red-600 dark:text-red-400">{tr('error_generic', language)}</p>
+        )}
+
         {/* Category tabs — horizontal scroll */}
         <div className="flex gap-2 overflow-x-auto pb-2 mb-5 scrollbar-none">
-          {DUA_CATEGORIES.map((cat) => (
+          {categories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
@@ -54,6 +73,7 @@ export default function Duas() {
         <div className="space-y-3">
           {duas.map((dua) => {
             const expanded = expandedId === dua.id;
+            const showVirtue = virtueId === dua.id;
             return (
               <div
                 key={dua.id}
@@ -86,8 +106,27 @@ export default function Duas() {
                     {dua.transliteration}
                   </p>
 
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-gray-400 dark:text-gray-500">{dua.reference}</span>
+                  <div className="flex items-center justify-between gap-3 mt-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                      <span className="text-xs text-gray-400 dark:text-gray-500">{dua.reference}</span>
+                      {dua.virtue_en && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setVirtueId(showVirtue ? null : dua.id); }}
+                          aria-expanded={showVirtue}
+                          className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full border transition-colors ${
+                            showVirtue
+                              ? 'bg-amber-100 dark:bg-amber-900/40 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300'
+                              : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40'
+                          }`}
+                        >
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                          {tr('dua_virtue', language)}
+                        </button>
+                      )}
+                    </div>
                     <svg
                       className={`w-4 h-4 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`}
                       fill="none" stroke="currentColor" viewBox="0 0 24 24"
@@ -96,6 +135,21 @@ export default function Duas() {
                     </svg>
                   </div>
                 </div>
+
+                {/* Fazilat — hidden until the button is pressed */}
+                {showVirtue && dua.virtue_en && (
+                  <div className="border-t border-amber-200 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-900/15 px-4 py-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400 mb-1">
+                      {tr('dua_virtue', language)}
+                    </p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                      {language === 'bn' ? dua.virtue_bn : dua.virtue_en}
+                    </p>
+                    {language === 'bn' && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mt-2">{dua.virtue_en}</p>
+                    )}
+                  </div>
+                )}
 
                 {/* Expanded: translation + actions */}
                 {expanded && (

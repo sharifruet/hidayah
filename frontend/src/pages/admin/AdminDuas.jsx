@@ -2,16 +2,16 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAdmin } from '../../context/AdminContext.jsx';
 import AdminLayout from '../../components/admin/AdminLayout.jsx';
 
-const CATEGORIES = ['morning','evening','prayer','sleep','waking','general'];
-
 const EMPTY = {
-  category: 'morning', arabic: '', transliteration: '', translation_en: '',
-  translation_bn: '', reference: '', count: 1, quran_surah: '', quran_ayah: '', sort_order: 0,
+  slug: '', category: 'morning', arabic: '', transliteration: '', translation_en: '',
+  translation_bn: '', virtue_en: '', virtue_bn: '', reference: '', count: 1,
+  quran_surah: '', quran_ayah: '', sort_order: 0,
 };
 
 export default function AdminDuas() {
   const { authFetch } = useAdmin();
   const [duas, setDuas]       = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter]   = useState('all');
   const [modal, setModal]     = useState(null);
@@ -21,8 +21,14 @@ export default function AdminDuas() {
 
   const load = useCallback(() => {
     setLoading(true);
-    authFetch('/duas').then(setDuas).finally(() => setLoading(false));
+    Promise.all([
+      authFetch('/duas').then(setDuas),
+      authFetch('/duas/categories').then(setCategories).catch(() => {}),
+    ]).finally(() => setLoading(false));
   }, [authFetch]);
+
+  const categoryIds = categories.map(c => c.slug);
+  const categoryLabel = (id) => categories.find(c => c.slug === id)?.label_en || id;
 
   useEffect(() => { load(); }, [load]);
 
@@ -30,7 +36,12 @@ export default function AdminDuas() {
 
   function openAdd() { setForm(EMPTY); setError(''); setModal('add'); }
   function openEdit(d) {
-    setForm({ ...d, quran_surah: d.quran_surah ?? '', quran_ayah: d.quran_ayah ?? '' });
+    setForm({
+      ...d,
+      slug: d.slug ?? '', virtue_en: d.virtue_en ?? '', virtue_bn: d.virtue_bn ?? '',
+      transliteration: d.transliteration ?? '', translation_bn: d.translation_bn ?? '', reference: d.reference ?? '',
+      quran_surah: d.quran_surah ?? '', quran_ayah: d.quran_ayah ?? '',
+    });
     setError('');
     setModal(d);
   }
@@ -83,14 +94,14 @@ export default function AdminDuas() {
 
         {/* Category filter */}
         <div className="flex gap-2 flex-wrap mb-5">
-          {['all', ...CATEGORIES].map(c => (
+          {['all', ...categoryIds].map(c => (
             <button key={c} onClick={() => setFilter(c)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
                 filter === c
                   ? 'bg-green-600 text-white border-green-600'
                   : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600'
               }`}>
-              {c === 'all' ? 'All' : c.charAt(0).toUpperCase() + c.slice(1)}
+              {c === 'all' ? 'All' : categoryLabel(c)}
             </button>
           ))}
         </div>
@@ -105,6 +116,7 @@ export default function AdminDuas() {
                   <th className="px-4 py-3 font-medium">Arabic</th>
                   <th className="px-4 py-3 font-medium">Category</th>
                   <th className="px-4 py-3 font-medium">Reference</th>
+                  <th className="px-4 py-3 font-medium">Fazilat</th>
                   <th className="px-4 py-3 font-medium w-24">Actions</th>
                 </tr>
               </thead>
@@ -117,8 +129,9 @@ export default function AdminDuas() {
                       </p>
                       <p className="text-xs text-gray-400 truncate mt-0.5">{dua.transliteration}</p>
                     </td>
-                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400 capitalize">{dua.category}</td>
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{categoryLabel(dua.category)}</td>
                     <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{dua.reference || '—'}</td>
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{dua.virtue_en ? '✓' : '—'}</td>
                     <td className="px-4 py-3 flex gap-2">
                       <button onClick={() => openEdit(dua)} className="text-blue-600 dark:text-blue-400 hover:underline text-xs">Edit</button>
                       <button onClick={() => handleDelete(dua)} className="text-red-500 dark:text-red-400 hover:underline text-xs">Delete</button>
@@ -126,7 +139,7 @@ export default function AdminDuas() {
                   </tr>
                 ))}
                 {visible.length === 0 && (
-                  <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">No duas in this category</td></tr>
+                  <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">No duas in this category</td></tr>
                 )}
               </tbody>
             </table>
@@ -149,13 +162,17 @@ export default function AdminDuas() {
                 <div>
                   <label className={labelCls}>Category *</label>
                   <select name="category" value={form.category} onChange={handleField} className={inputCls}>
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
+                    {categories.map(c => <option key={c.slug} value={c.slug}>{c.label_en}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className={labelCls}>Repeat count</label>
                   <input type="number" name="count" value={form.count} onChange={handleField} min={1} className={inputCls} />
                 </div>
+              </div>
+              <div>
+                <label className={labelCls}>Slug <span className="font-normal text-gray-400">(stable id, e.g. major-20 — optional)</span></label>
+                <input name="slug" value={form.slug} onChange={handleField} maxLength={60} pattern="[a-z0-9-]*" className={inputCls + ' font-mono'} />
               </div>
 
               <div>
@@ -174,6 +191,14 @@ export default function AdminDuas() {
               <div>
                 <label className={labelCls}>Bengali translation</label>
                 <textarea name="translation_bn" value={form.translation_bn} onChange={handleField} rows={2} className={inputCls + ' resize-none'} />
+              </div>
+              <div>
+                <label className={labelCls}>Fazilat / virtue (English) <span className="font-normal text-gray-400">— hidden in the app until tapped</span></label>
+                <textarea name="virtue_en" value={form.virtue_en} onChange={handleField} rows={3} className={inputCls + ' resize-none'} />
+              </div>
+              <div>
+                <label className={labelCls}>Fazilat / virtue (Bengali)</label>
+                <textarea name="virtue_bn" value={form.virtue_bn} onChange={handleField} rows={3} className={inputCls + ' resize-none'} />
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="col-span-1">

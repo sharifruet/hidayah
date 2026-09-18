@@ -6,6 +6,7 @@ import LocationMap from '../components/map/LocationMap.jsx';
 import LocationSearch from '../components/location/LocationSearch.jsx';
 import PrayerTimesCard from '../components/prayer/PrayerTimesCard.jsx';
 import { format } from 'date-fns';
+import { tr } from '../i18n/translations.js';
 
 export default function PrayerTimes() {
   const { location, updateLocation, updateMethod, language } = useApp();
@@ -72,6 +73,29 @@ export default function PrayerTimes() {
               </Link>
             </div>
           </div>
+        </div>
+
+        {/* Nearby masjids link card */}
+        <div className="mb-6">
+          <Link
+            to="/masjids"
+            className="flex items-center justify-between gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 hover:border-primary-300 dark:hover:border-green-600 transition-colors"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="flex-shrink-0 w-10 h-10 rounded-full bg-primary-50 dark:bg-green-900/30 text-primary-700 dark:text-green-400 flex items-center justify-center">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </span>
+              <div className="min-w-0">
+                <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{tr('masjid_nearby_link', language)}</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{tr('masjid_nearby_link_sub', language)}</p>
+              </div>
+            </div>
+            <svg className="w-5 h-5 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">

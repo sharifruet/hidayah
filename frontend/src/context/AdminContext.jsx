@@ -47,7 +47,11 @@ export function AdminProvider({ children }) {
       throw new Error('Session expired');
     }
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    if (!res.ok) {
+      // Admin routes return { error: 'string' }; shared validators return { error: { message } }
+      const message = typeof data.error === 'object' ? data.error?.message : data.error;
+      throw new Error(message || `HTTP ${res.status}`);
+    }
     return data;
   }, [token, logout]);
 

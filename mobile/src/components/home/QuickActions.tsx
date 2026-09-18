@@ -2,8 +2,7 @@ import { Text, TouchableOpacity, View } from 'react-native';
 import { router, type Href } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-import { loadLastRead } from '../../lib/progress';
-import { getKhatmPercent } from '../../lib/progress';
+import { loadLastRead, getKhatmPercent } from '../../lib/progress';
 import { tr } from '../../data/translations';
 import { useApp } from '../../context/AppContext';
 
@@ -20,19 +19,20 @@ export function QuickActions() {
   const lastRead = loadLastRead();
   const khatmPct = getKhatmPercent();
 
-  const continueHref: Href = lastRead ? (`/quran/${lastRead.surah}/${lastRead.ayah}` as Href) : ('/quran' as Href);
-
   const actions: Action[] = [
     {
       label: tr('nav_quran', language),
       sub: lastRead ? `${khatmPct}% khatm` : tr('home_start_reading', language),
       icon: 'book',
-      href: continueHref,
+      // Same destination as the Qur'an tab in the bottom bar
+      href: '/quran' as Href,
       tint: 'bg-primary-50 dark:bg-primary-900/30',
     },
+    { label: tr('more_hadith', language), sub: tr('more_hadith_sub', language), icon: 'chatbox-ellipses', href: '/more/hadith' as Href, tint: 'bg-teal-500/10' },
     { label: tr('nav_duas', language), sub: tr('home_adhkar', language), icon: 'hand-left', href: '/duas' as Href, tint: 'bg-gold-500/10' },
     { label: tr('more_books', language), sub: tr('home_library', language), icon: 'library', href: '/more/books' as Href, tint: 'bg-blue-500/10' },
     { label: tr('more_qibla', language), sub: tr('home_compass', language), icon: 'compass', href: '/more/qibla' as Href, tint: 'bg-purple-500/10' },
+    { label: tr('more_masjids', language), sub: tr('more_masjids_sub', language), icon: 'business', href: '/more/masjids' as Href, tint: 'bg-orange-500/10' },
   ];
 
   return (

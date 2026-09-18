@@ -7,6 +7,15 @@ import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import pool from '../config/database.js';
 import { requireAdmin, signToken } from '../middleware/adminAuth.js';
+import { validateMasjidBody, validateJamahBody } from '../middleware/validation.js';
+import {
+  listAllMasjidsService,
+  getMasjidService,
+  createMasjidService,
+  updateMasjidService,
+  deleteMasjidService,
+  upsertJamahTimesService,
+} from '../services/masjidsService.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const router = Router();
@@ -191,16 +200,22 @@ router.get('/duas', requireAdmin, ah(async (req, res) => {
   res.json(rows);
 }));
 
+router.get('/duas/categories', requireAdmin, ah(async (req, res) => {
+  const [rows] = await pool.query('SELECT * FROM dua_categories ORDER BY sort_order, id');
+  res.json(rows);
+}));
+
 router.post('/duas', requireAdmin, ah(async (req, res) => {
   const d = req.body;
   const [result] = await pool.query(
     `INSERT INTO duas
-      (category, arabic, transliteration, translation_en, translation_bn,
-       reference, count, quran_surah, quran_ayah, sort_order)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (slug, category, arabic, transliteration, translation_en, translation_bn,
+       virtue_en, virtue_bn, reference, count, quran_surah, quran_ayah, sort_order)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      d.category, d.arabic, d.transliteration || null,
+      d.slug?.trim() || null, d.category, d.arabic, d.transliteration || null,
       d.translation_en, d.translation_bn || null,
+      d.virtue_en || null, d.virtue_bn || null,
       d.reference || null, d.count || 1,
       d.quran_surah || null, d.quran_ayah || null, d.sort_order || 0,
     ]
@@ -213,12 +228,13 @@ router.put('/duas/:id', requireAdmin, ah(async (req, res) => {
   const d = req.body;
   await pool.query(
     `UPDATE duas SET
-      category=?, arabic=?, transliteration=?, translation_en=?, translation_bn=?,
-      reference=?, count=?, quran_surah=?, quran_ayah=?, sort_order=?
+      slug=?, category=?, arabic=?, transliteration=?, translation_en=?, translation_bn=?,
+      virtue_en=?, virtue_bn=?, reference=?, count=?, quran_surah=?, quran_ayah=?, sort_order=?
      WHERE id=?`,
     [
-      d.category, d.arabic, d.transliteration || null,
+      d.slug?.trim() || null, d.category, d.arabic, d.transliteration || null,
       d.translation_en, d.translation_bn || null,
+      d.virtue_en || null, d.virtue_bn || null,
       d.reference || null, d.count || 1,
       d.quran_surah || null, d.quran_ayah || null, d.sort_order || 0,
       req.params.id,
@@ -231,6 +247,39 @@ router.put('/duas/:id', requireAdmin, ah(async (req, res) => {
 
 router.delete('/duas/:id', requireAdmin, ah(async (req, res) => {
   await pool.query('DELETE FROM duas WHERE id = ?', [req.params.id]);
+  res.json({ ok: true });
+}));
+
+// ─── Masjids ─────────────────────────────────────────────────────────────────
+
+router.get('/masjids', requireAdmin, ah(async (req, res) => {
+  res.json(await listAllMasjidsService());
+}));
+
+router.get('/masjids/:id', requireAdmin, ah(async (req, res) => {
+  const masjid = await getMasjidService(req.params.id, { includeHidden: true });
+  if (!masjid) return res.status(404).json({ error: 'Not found' });
+  res.json(masjid);
+}));
+
+router.post('/masjids', requireAdmin, validateMasjidBody, ah(async (req, res) => {
+  res.status(201).json(await createMasjidService(req.body));
+}));
+
+router.put('/masjids/:id', requireAdmin, validateMasjidBody, ah(async (req, res) => {
+  const masjid = await updateMasjidService(req.params.id, req.body);
+  if (!masjid) return res.status(404).json({ error: 'Not found' });
+  res.json(masjid);
+}));
+
+router.put('/masjids/:id/jamah', requireAdmin, validateJamahBody, ah(async (req, res) => {
+  const masjid = await upsertJamahTimesService(req.params.id, req.body, { includeHidden: true });
+  if (!masjid) return res.status(404).json({ error: 'Not found' });
+  res.json(masjid);
+}));
+
+router.delete('/masjids/:id', requireAdmin, ah(async (req, res) => {
+  await deleteMasjidService(req.params.id);
   res.json({ ok: true });
 }));
 

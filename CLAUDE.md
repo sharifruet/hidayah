@@ -19,7 +19,8 @@ All commands below are run from `backend/` or `frontend/` respectively unless no
 - `npm run lint` — ESLint (`eslint . --ext .js`); there is no `lint:fix` script — use `npx eslint . --ext .js --fix`
 - `npm run format` — Prettier write on `src/**/*.js`
 - `npm run migrate` / `npm run migrate:status` / `npm run migrate:rollback` — schema migration runner (see below)
-- `npm run seed` — seed base data (locations, calculation methods, etc.)
+- `npm run seed` — seed base data (locations, calculation methods, du'as)
+- `npm run seed:duas` — (re)seed the du'a collection from `src/database/data/duas.json` (idempotent, keyed by slug; also creates/upgrades the tables on an older DB)
 - `npm run seed:quran` / `npm run seed:quran:force` — seed Quran text/translations from `src/database/quranSeeder.js` (force re-seeds)
 - `npm run download:audio` — fetch per-ayah recitation audio into `backend/public/audio/` (`scripts/downloadAudio.js`)
 - `npm run generate:sql` — dump current DB state to SQL (`scripts/generateSqlDump.js`)
@@ -39,7 +40,7 @@ All commands below are run from `backend/` or `frontend/` respectively unless no
 ## Architecture
 
 ### Backend layering
-Express request flow is strictly layered: `routes/*.js` → `middleware/validation.js` (Joi schemas) → `controllers/*.js` (parse/format only) → `services/*.js` (business logic + DB queries via the shared `mysql2` pool) → MySQL. Routes are mounted in `src/server.js` under `/${API_VERSION}` (default `/v1`): `prayer-times`, `sun-times`, `calendar`, `batch`, `locations`, `methods`, `quran`, `books`, `admin`. Admin routes (`routes/admin.js`) are protected by `middleware/adminAuth.js` (JWT bearer, `requireAdmin`); non-admin routes are public/unauthenticated.
+Express request flow is strictly layered: `routes/*.js` → `middleware/validation.js` (Joi schemas) → `controllers/*.js` (parse/format only) → `services/*.js` (business logic + DB queries via the shared `mysql2` pool) → MySQL. Routes are mounted in `src/server.js` under `/${API_VERSION}` (default `/v1`): `prayer-times`, `sun-times`, `calendar`, `batch`, `locations`, `methods`, `quran`, `hadith`, `books`, `masjids`, `duas`, `admin`. Admin routes (`routes/admin.js`) are protected by `middleware/adminAuth.js` (JWT bearer, `requireAdmin`); non-admin routes are public/unauthenticated.
 
 ### Prayer/sun time calculation engine
 `src/utils/calculations.js` implements the astronomical formulas (solar declination, equation of time, solar noon, hour angles) directly — no external prayer-times library. `src/config/methods.js` defines ~20 named calculation methods (e.g. `karachi` [default], `mwl`, `isna`, `egyptian`, …) as angle/adjustment parameter sets that `calculations.js` consumes. Results are cached in MySQL (`prayer_times_cache`) via `src/services/cacheService.js`, keyed on lat/lng/date/method — custom angle/adjustment overrides bypass the cache entirely (see `generatePrayerTimesCacheKey`). Hijri calendar conversion is a separate self-contained tabular approximation in `src/utils/hijri.js` (and its frontend mirror `frontend/src/utils/hijri.js`).
@@ -50,11 +51,17 @@ Express request flow is strictly layered: `routes/*.js` → `middleware/validati
 ### Books module
 Islamic e-books live in `books` (metadata: slug, topics, language, license, `content_type` = `pdf`/`epub`/`text`/embed) and, for `content_type='text'` books, `book_chapters` — a **self-referencing tree** (`parent_id` + sibling `position`) representing book/section/chapter/scene/paragraph nesting; a node is only directly readable when `content` is non-null, otherwise it's a pure container. Admin CRUD for books/chapters is in `routes/admin.js`; the public reader is `frontend/src/pages/BookReader.jsx` with admin editing in `frontend/src/pages/admin/AdminBookChapters.jsx`.
 
+### Masjids module
+Community-contributed masjid directory: `masjids` (name/address/coords/status) + `masjid_jamah_times` (one row per `(masjid_id, prayer)`, prayers `fajr|dhuhr|asr|maghrib|isha|jumuah`). `services/masjidsService.js` does nearby lookups with a bounding-box prefilter (`utils/geo.js`) then an exact Haversine in SQL (`HAVING distance_km <= ?`). Public routes (`routes/masjids.js`) allow unauthenticated create (`POST /masjids`, `status` is forced to `active`) and jamah upserts (`PUT /masjids/:id/jamah`, `HH:MM` or `null` to clear) — the upsert sets `updated_at = NOW()` explicitly so re-confirming an unchanged time still bumps `jamah_updated_at` (the "last updated" shown in the UI). Admin CRUD (incl. `status: hidden`) lives in `routes/admin.js`. Joi validators are in `middleware/validation.js` (`validateMasjidBody`, `validateJamahBody`, `validateNearbyQuery`). Web pages: `pages/Masjids.jsx`, `MasjidDetail.jsx`, `MasjidNew.jsx`, `admin/AdminMasjids.jsx`; mobile: `app/(tabs)/more/masjids/`.
+
+### Du'as module
+The du'a collection is DB-backed (`dua_categories` + `duas`, the latter keyed by a stable `slug` such as `major-4`, with optional `virtue_en/virtue_bn` "fazilat" text). `backend/src/database/data/duas.json` is the canonical seed file (`npm run seed:duas`, also run by `npm run seed`). `GET /v1/duas` returns the whole collection plus `updated_at`. Clients don't page: web (`pages/Duas.jsx`) fetches it via react-query and keeps the last copy in `localStorage`; mobile (`lib/duasSync.ts`) copies it into MMKV at startup and re-syncs every `DUAS_SYNC_INTERVAL_DAYS` (7), falling back to the bundled snapshot `mobile/src/data/duas.json` until the first sync. Regenerate that snapshot from the seed JSON when the seed data changes.
+
 ### Database schema / migrations
 There are **two schema sources** — be aware which one you're editing:
 - `backend/src/database/schema.sql` — used by `npm run migrate` (via `src/database/migrate.js`) and by `docker-compose.yml`'s MySQL init mount; tracks execution in a `migrations` table (batch number, status) but does **not** support true up/down rollback — `migrate:rollback` only marks rows as `rolled_back`, it doesn't reverse SQL (see `backend/README_MIGRATIONS.md`).
 - `backend/scripts/setup.sql` — the fuller, more current hand-maintained schema (includes `books`, `book_chapters`, `admin_users`, Quran tables, etc.) used for setting up the production database directly.
-When adding/changing tables, check whether both files need updating.
+When adding/changing tables, check whether both files need updating. Because `migrate` skips `schema.sql` once it has completed, new tables for an *existing* database must be applied by hand — standalone SQL for that goes in `database/migrations/` (e.g. `001_masjids.sql`).
 
 The large `quran_data.sql` at the repo root is a standalone data dump (not part of the migration flow) — consumed via the seeder scripts.
 

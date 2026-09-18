@@ -3,6 +3,7 @@ import { Platform, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useColorScheme } from 'nativewind';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useApp } from '../../context/AppContext';
 import { tr } from '../../data/translations';
@@ -12,6 +13,7 @@ export default function TabsLayout() {
   const { language } = useApp();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const insets = useSafeAreaInsets();
 
   const activeColor = Palette.primary[500];
   const inactiveColor = isDark ? '#7d879a' : '#9aa3b2';
@@ -28,7 +30,9 @@ export default function TabsLayout() {
           position: 'absolute',
           borderTopWidth: 0,
           elevation: 0,
-          height: Platform.select({ ios: 84, default: 64 }),
+          // A fixed height overrides the navigator's inset-aware height while it still adds
+          // insets.bottom as padding — so the system nav bar's inset must be added here too.
+          height: Platform.select({ ios: 50, default: 64 }) + insets.bottom,
           paddingTop: 8,
           backgroundColor: Platform.OS === 'android' ? (isDark ? '#14171f' : '#ffffff') : 'transparent',
         },

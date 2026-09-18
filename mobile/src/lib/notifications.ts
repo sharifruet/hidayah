@@ -1,8 +1,17 @@
-import * as Notifications from 'expo-notifications';
+import type * as NotificationsModule from 'expo-notifications';
+import { isRunningInExpoGo } from 'expo';
 import { Platform } from 'react-native';
 
 import type { PrayerTimesResponse } from './services/prayer';
 import { PRAYER_LABELS } from './constants';
+
+// On Android, Expo Go (SDK 53+) throws as soon as expo-notifications is imported, so
+// reminders are unavailable there. Dev-client and store builds are unaffected.
+export const notificationsAvailable = !(isRunningInExpoGo() && Platform.OS === 'android');
+
+// Only dereferenced behind a `notificationsAvailable` check.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const Notifications = (notificationsAvailable ? require('expo-notifications') : undefined) as typeof NotificationsModule;
 
 const NOTIFIABLE: (keyof PrayerTimesResponse['times'])[] = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
 const NOTIFICATION_TAG = 'hidayah-prayer';
@@ -19,14 +28,23 @@ const PRAYER_CHANNEL_ID = 'hidayah-prayer-alarm';
 const CHECKIN_CHANNEL_ID = 'hidayah-checkin';
 const RAMADAN_CHANNEL_ID = 'hidayah-ramadan';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+if (notificationsAvailable) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+}
+
+export function addNotificationResponseListener(
+  listener: (response: NotificationsModule.NotificationResponse) => void
+): { remove: () => void } {
+  if (!notificationsAvailable) return { remove: () => {} };
+  return Notifications.addNotificationResponseReceivedListener(listener);
+}
 
 /** Android requires a notification channel (8+) for reliable, consistent alert behavior —
  * without one, notifications silently fall back to default/low-priority settings. iOS ignores
@@ -54,6 +72,7 @@ async function ensureAndroidChannels(): Promise<void> {
 }
 
 export async function requestNotificationPermissions(): Promise<boolean> {
+  if (!notificationsAvailable) return false;
   const existing = await Notifications.getPermissionsAsync();
   let granted = existing.status === 'granted';
   if (!granted) {
@@ -67,6 +86,7 @@ export async function requestNotificationPermissions(): Promise<boolean> {
 }
 
 async function cancelByTag(tag: string): Promise<void> {
+  if (!notificationsAvailable) return;
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
   await Promise.all(
     scheduled
@@ -84,6 +104,7 @@ function fireDateFor(timeStr: string, forDate: Date, offsetMinutes = 0): Date {
 }
 
 async function scheduleForDay(times: PrayerTimesResponse['times'], forDate: Date, now: Date): Promise<void> {
+  if (!notificationsAvailable) return;
   for (const key of NOTIFIABLE) {
     const timeStr = times[key];
     if (!timeStr) continue;
@@ -144,6 +165,7 @@ export async function cancelAllPrayerNotifications(): Promise<void> {
 // ── "Did you pray?" check-in reminders ──────────────────────────────────────────────────
 
 async function scheduleCheckInsForDay(times: PrayerTimesResponse['times'], forDate: Date, now: Date): Promise<void> {
+  if (!notificationsAvailable) return;
   for (const key of NOTIFIABLE) {
     const timeStr = times[key];
     if (!timeStr) continue;
@@ -193,6 +215,7 @@ async function scheduleRamadanForDay(
   forDate: Date,
   now: Date
 ): Promise<void> {
+  if (!notificationsAvailable) return;
   if (times.fajr) {
     const suhoorWarning = fireDateFor(times.fajr, forDate, -SUHOOR_WARNING_MINUTES);
     if (suhoorWarning.getTime() > now.getTime()) {

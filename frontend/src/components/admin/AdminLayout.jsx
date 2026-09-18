@@ -11,6 +11,9 @@ const NAV = [
   { to: '/admin/duas',  label: "Du'a", icon: (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
   )},
+  { to: '/admin/masjids', label: 'Masjids', icon: (
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+  )},
 ];
 
 export default function AdminLayout({ children }) {

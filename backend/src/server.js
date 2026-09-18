@@ -20,6 +20,8 @@ import methodsRoutes from './routes/methods.js';
 import quranRoutes from './routes/quran.js';
 import hadithRoutes from './routes/hadith.js';
 import booksRoutes from './routes/books.js';
+import masjidsRoutes from './routes/masjids.js';
+import duasRoutes from './routes/duas.js';
 import adminRoutes from './routes/admin.js';
 
 // Import middleware
@@ -123,6 +125,8 @@ app.use(`/${API_VERSION}/methods`, methodsRoutes);
 app.use(`/${API_VERSION}/quran`, quranRoutes);
 app.use(`/${API_VERSION}/hadith`, hadithRoutes);
 app.use(`/${API_VERSION}/books`, booksRoutes);
+app.use(`/${API_VERSION}/masjids`, masjidsRoutes);
+app.use(`/${API_VERSION}/duas`, duasRoutes);
 app.use(`/${API_VERSION}/admin`, adminRoutes);
 
 // Root endpoint
@@ -139,6 +143,8 @@ app.get('/', (req, res) => {
       calendar_date_range: `/${API_VERSION}/calendar/date-range`,
       batch_prayer_times: `/${API_VERSION}/batch/prayer-times`,
       locations_search: `/${API_VERSION}/locations/search`,
+      masjids_nearby: `/${API_VERSION}/masjids/nearby`,
+      duas: `/${API_VERSION}/duas`,
       methods: `/${API_VERSION}/methods`
     },
     documentation: 'https://github.com/your-repo/salat-saom-api'

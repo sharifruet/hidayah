@@ -1,16 +1,10 @@
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import { BANGLADESH_BOUNDS, MAP_CONFIG } from '../../utils/constants.js';
-import { Icon } from 'leaflet';
 import { useEffect, useCallback } from 'react';
 import { validateBangladeshBounds } from '../../utils/validators.js';
+import { fixLeafletDefaultIcon } from './leafletIcon.js';
 
-// Fix for default marker icon issue
-delete Icon.Default.prototype._getIconUrl;
-Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-});
+fixLeafletDefaultIcon();
 
 /**
  * Map click handler component

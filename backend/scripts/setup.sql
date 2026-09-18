@@ -509,15 +509,33 @@ INSERT INTO `admin_users` (username, password_hash) VALUES
 ON DUPLICATE KEY UPDATE username=username;
 
 -- -----------------------------------------------------------------------------
--- duas
+-- dua_categories / duas
+-- Source of truth for the du'a collection; apps fetch GET /v1/duas (mobile
+-- caches a copy locally and re-syncs periodically). Seed: `npm run seed:duas`.
 -- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `dua_categories` (
+  `id`          INT AUTO_INCREMENT PRIMARY KEY,
+  `slug`        VARCHAR(50) UNIQUE NOT NULL,
+  `label_en`    VARCHAR(100) NOT NULL,
+  `label_bn`    VARCHAR(100),
+  `label_ur`    VARCHAR(100),
+  `label_tr`    VARCHAR(100),
+  `label_id`    VARCHAR(100),
+  `sort_order`  SMALLINT NOT NULL DEFAULT 0,
+  `created_at`  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at`  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `duas` (
   `id`              INT AUTO_INCREMENT PRIMARY KEY,
+  `slug`            VARCHAR(60) UNIQUE,
   `category`        VARCHAR(50) NOT NULL,
   `arabic`          TEXT NOT NULL,
   `transliteration` TEXT,
   `translation_en`  TEXT NOT NULL,
   `translation_bn`  TEXT,
+  `virtue_en`       TEXT,
+  `virtue_bn`       TEXT,
   `reference`       VARCHAR(200),
   `count`           TINYINT UNSIGNED NOT NULL DEFAULT 1,
   `quran_surah`     TINYINT UNSIGNED,

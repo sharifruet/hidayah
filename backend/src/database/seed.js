@@ -1,4 +1,5 @@
 import pool from '../config/database.js';
+import { seedDuas } from './duasSeeder.js';
 
 async function seed() {
   let connection;
@@ -470,6 +471,8 @@ async function seed() {
       );
     }
     console.log(`✅ Seeded ${districts.length} district locations`);
+
+    await seedDuas(connection);
 
     connection.release();
     console.log('✅ Seeding completed successfully');

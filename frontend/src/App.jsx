@@ -27,11 +27,15 @@ import Duas from './pages/Duas.jsx';
 import Books from './pages/Books.jsx';
 import BookDetail from './pages/BookDetail.jsx';
 import BookReader from './pages/BookReader.jsx';
+import Masjids from './pages/Masjids.jsx';
+import MasjidDetail from './pages/MasjidDetail.jsx';
+import MasjidNew from './pages/MasjidNew.jsx';
 import AdminLogin from './pages/admin/AdminLogin.jsx';
 import AdminDashboard from './pages/admin/AdminDashboard.jsx';
 import AdminBooks from './pages/admin/AdminBooks.jsx';
 import AdminBookChapters from './pages/admin/AdminBookChapters.jsx';
 import AdminDuas from './pages/admin/AdminDuas.jsx';
+import AdminMasjids from './pages/admin/AdminMasjids.jsx';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -72,6 +76,9 @@ function AppShell() {
             <Route path="/books"                       element={<Books />} />
             <Route path="/books/:slug/read"            element={<BookReader />} />
             <Route path="/books/:slug"                 element={<BookDetail />} />
+            <Route path="/masjids"                     element={<Masjids />} />
+            <Route path="/masjids/new"                 element={<MasjidNew />} />
+            <Route path="/masjids/:id"                 element={<MasjidDetail />} />
           </Routes>
         </ErrorBoundary>
       </main>
@@ -94,6 +101,7 @@ function App() {
               <Route path="/admin/books" element={<ProtectedRoute><AdminBooks /></ProtectedRoute>} />
               <Route path="/admin/books/:id/chapters" element={<ProtectedRoute><AdminBookChapters /></ProtectedRoute>} />
               <Route path="/admin/duas" element={<ProtectedRoute><AdminDuas /></ProtectedRoute>} />
+              <Route path="/admin/masjids" element={<ProtectedRoute><AdminMasjids /></ProtectedRoute>} />
               {/* Public app */}
               <Route path="/*" element={<AppShell />} />
             </Routes>

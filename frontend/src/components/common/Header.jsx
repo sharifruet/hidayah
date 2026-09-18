@@ -13,6 +13,7 @@ export default function Header() {
   const navLinks = [
     { path: '/',               key: 'nav_home' },
     { path: '/prayer-times',   key: 'nav_prayer' },
+    { path: '/masjids',        key: 'nav_masjids',  prefix: true },
     { path: '/quran',          key: 'nav_quran',    prefix: true },
     { path: '/hadith',         key: 'nav_hadith',   prefix: true },
     { path: '/books',          key: 'nav_books',    prefix: true },

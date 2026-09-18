@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
 import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import * as Notifications from 'expo-notifications';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient } from '@tanstack/react-query';
@@ -14,6 +13,8 @@ import { Amiri_400Regular, Amiri_700Bold } from '@expo-google-fonts/amiri';
 
 import { AppProvider, useApp } from '../context/AppContext';
 import { queryPersister, shouldPersistQuery, QUERY_PERSIST_MAX_AGE } from '../lib/queryPersist';
+import { addNotificationResponseListener } from '../lib/notifications';
+import { syncDuasIfDue } from '../lib/duasSync';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -39,8 +40,15 @@ function RootNavigation() {
     SplashScreen.hideAsync();
   }, []);
 
+  // Copy the du'a collection from the server into local storage on first
+  // launch, then refresh it every DUAS_SYNC_INTERVAL_DAYS. Fire-and-forget:
+  // the Du'a tab reads the local copy (or the bundled snapshot) meanwhile.
   useEffect(() => {
-    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+    syncDuasIfDue();
+  }, []);
+
+  useEffect(() => {
+    const sub = addNotificationResponseListener((response) => {
       const screen = response.notification.request.content.data?.screen;
       if (screen === 'prayer-tracker') router.push('/more/prayer-tracker' as never);
     });

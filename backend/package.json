@@ -11,6 +11,7 @@
     "migrate:status": "node src/database/migrate.js status",
     "migrate:rollback": "node src/database/migrate.js rollback",
     "seed": "node src/database/seed.js",
+    "seed:duas": "node src/database/duasSeeder.js",
     "seed:quran": "node src/database/quranSeeder.js",
     "seed:quran:force": "node src/database/quranSeeder.js --force",
     "seed:hadith": "node src/database/hadithSeeder.js",

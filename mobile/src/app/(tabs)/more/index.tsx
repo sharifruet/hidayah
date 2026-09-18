@@ -22,6 +22,7 @@ const ITEMS: MenuItem[] = [
   { labelKey: 'more_hadith', subKey: 'more_hadith_sub', icon: 'chatbox-ellipses-outline', href: '/more/hadith' as Href },
   { labelKey: 'more_bookmarks', subKey: 'more_bookmarks_sub', icon: 'bookmark-outline', href: '/quran/bookmarks' as Href },
   { labelKey: 'more_qibla', subKey: 'more_qibla_sub', icon: 'compass-outline', href: '/more/qibla' as Href },
+  { labelKey: 'more_masjids', subKey: 'more_masjids_sub', icon: 'business-outline', href: '/more/masjids' as Href },
   { labelKey: 'nav_calendar', subKey: 'more_calendar_sub', icon: 'calendar-outline', href: '/prayer/calendar' as Href },
   { labelKey: 'methods_title', subKey: 'more_methods_sub', icon: 'options-outline', href: '/prayer/methods' as Href },
   { labelKey: 'nav_settings', subKey: 'more_settings_sub', icon: 'settings-outline', href: '/more/settings' as Href },

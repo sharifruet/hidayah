@@ -3,12 +3,12 @@ import { ActivityIndicator, Modal, ScrollView, Text, TouchableOpacity, View } fr
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { WebView } from 'react-native-webview';
-import Pdf from 'react-native-pdf';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { booksService, type BookChapter } from '../../../../../lib/services/books';
 import { getLocalBookUri, ensureBookDownloaded } from '../../../../../lib/offlineBooks';
+import { Pdf } from '../../../../../lib/pdfViewer';
 import { useApp } from '../../../../../context/AppContext';
 import { tr } from '../../../../../data/translations';
 
@@ -37,7 +37,7 @@ export default function BookReaderScreen() {
 
   // Download once, then read from disk from here on — the book stays available offline.
   useEffect(() => {
-    if (localPdfUri || !book?.pdf_url) return;
+    if (!Pdf || localPdfUri || !book?.pdf_url) return;
     let cancelled = false;
     ensureBookDownloaded(slug, book.pdf_url)
       .then((uri) => {
@@ -92,7 +92,14 @@ export default function BookReaderScreen() {
               {tr('books_file_error', language)}
             </Text>
           </View>
-        ) : localPdfUri ? (
+        ) : !Pdf && book.pdf_url ? (
+          <View className="flex-1 items-center justify-center px-8">
+            <Ionicons name="document-text-outline" size={32} color="#5b6579" />
+            <Text className="font-body text-sm text-ink-300 text-center mt-3">
+              {tr('books_pdf_unavailable', language)}
+            </Text>
+          </View>
+        ) : localPdfUri && Pdf ? (
           <Pdf
             source={{ uri: localPdfUri }}
             style={{ flex: 1, backgroundColor: '#0a0c11' }}

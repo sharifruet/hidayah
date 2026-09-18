@@ -54,9 +54,14 @@ export interface HadithSearchResponse {
   matches: HadithSearchMatch[];
 }
 
-/** Default English-translation edition identifier for a collection, e.g. "eng-bukhari". */
-export function defaultEdition(slug: string): string {
-  return `eng-${slug}`;
+/** Translation language served for an app language — only Bangla and English are seeded. */
+export function hadithLanguageFor(appLanguage: string): 'bn' | 'en' {
+  return appLanguage === 'bn' ? 'bn' : 'en';
+}
+
+/** Edition identifier for a collection in the given app language, e.g. "ben-bukhari" / "eng-bukhari". */
+export function editionFor(slug: string, appLanguage: string): string {
+  return `${hadithLanguageFor(appLanguage) === 'bn' ? 'ben' : 'eng'}-${slug}`;
 }
 
 export const hadithService = {
@@ -71,8 +76,14 @@ export const hadithService = {
       '/hadith/hadith',
       { params: { collection: slug, number, ...(translations?.length ? { translations: translations.join(',') } : {}) } }
     ),
-  search: (q: string, opts: { collection?: string; page?: number; limit?: number } = {}) =>
+  search: (q: string, opts: { language?: 'bn' | 'en'; collection?: string; page?: number; limit?: number } = {}) =>
     apiClient.get<{ data: HadithSearchResponse }, { data: HadithSearchResponse }>('/hadith/search', {
-      params: { q, collection: opts.collection ?? 'all', page: opts.page ?? 1, limit: opts.limit ?? 20 },
+      params: {
+        q,
+        language: opts.language ?? 'en',
+        collection: opts.collection ?? 'all',
+        page: opts.page ?? 1,
+        limit: opts.limit ?? 20,
+      },
     }),
 };

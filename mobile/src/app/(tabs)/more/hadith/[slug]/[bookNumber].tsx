@@ -4,16 +4,18 @@ import { useQuery } from '@tanstack/react-query';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { Screen } from '../../../../../components/ui/Screen';
-import { hadithService, defaultEdition, type Hadith } from '../../../../../lib/services/hadith';
+import { hadithService, editionFor, hadithLanguageFor, type Hadith } from '../../../../../lib/services/hadith';
 import { useApp } from '../../../../../context/AppContext';
 import { tr } from '../../../../../data/translations';
 import type { LanguageCode } from '../../../../../lib/constants';
 
 function HadithCard({ hadith, collectionName, language }: { hadith: Hadith; collectionName: string; language: LanguageCode }) {
-  const translation = hadith.translations.find((t) => t.language === 'en')?.text;
+  const translation = hadith.translations.find((t) => t.language === hadithLanguageFor(language))?.text;
 
   async function share() {
-    const text = [translation, '', `${collectionName} ${hadith.hadithnumber}`].filter(Boolean).join('\n');
+    const text = [hadith.text_ar, '', translation, '', `${collectionName} ${hadith.hadithnumber}`]
+      .filter((line) => line !== undefined)
+      .join('\n');
     await Share.share({ message: text });
   }
 
@@ -27,6 +29,9 @@ function HadithCard({ hadith, collectionName, language }: { hadith: Hadith; coll
           <Ionicons name="share-outline" size={18} color="#7d879a" />
         </TouchableOpacity>
       </View>
+      <Text className="font-arabic text-xl leading-[38px] text-right text-ink-900 dark:text-white mb-3">
+        {hadith.text_ar}
+      </Text>
       {translation ? (
         <Text className="font-body text-sm text-ink-700 dark:text-ink-300 leading-relaxed">{translation}</Text>
       ) : (
@@ -46,9 +51,11 @@ export default function HadithListScreen() {
   const { slug, bookNumber } = useLocalSearchParams<{ slug: string; bookNumber: string }>();
   const bookNum = Number(bookNumber);
 
+  const edition = editionFor(slug, language);
+
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['hadith-book', slug, bookNum],
-    queryFn: () => hadithService.getBookWithHadiths(slug, bookNum, [defaultEdition(slug)]),
+    queryKey: ['hadith-book', slug, bookNum, edition],
+    queryFn: () => hadithService.getBookWithHadiths(slug, bookNum, [edition]),
     enabled: !!slug && !isNaN(bookNum),
     staleTime: 24 * 60 * 60 * 1000,
   });

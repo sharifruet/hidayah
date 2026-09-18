@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
+import { formatDistanceToNow } from 'date-fns';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -7,13 +8,15 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Screen } from '../../../components/ui/Screen';
 import { Card } from '../../../components/ui/Card';
 import { useApp } from '../../../context/AppContext';
-import { DUA_CATEGORIES, DUAS, duaCategoryLabel, type Dua } from '../../../data/duas';
+import { duaCategoryLabel, type Dua } from '../../../lib/services/duas';
+import { useDuas, DUAS_SYNC_INTERVAL_DAYS } from '../../../lib/duasSync';
 import { tr } from '../../../data/translations';
 import type { LanguageCode } from '../../../lib/constants';
 
 function DuaCard({ dua, language }: { dua: Dua; language: LanguageCode }) {
   const [expanded, setExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showVirtue, setShowVirtue] = useState(false); // fazilat is hidden until tapped
 
   async function copy() {
     const text = [dua.arabic, '', dua.transliteration, '', dua.translation_en, '', `(${dua.reference})`].join('\n');
@@ -42,10 +45,38 @@ function DuaCard({ dua, language }: { dua: Dua; language: LanguageCode }) {
         </Text>
 
         <View className="flex-row items-center justify-between mt-2">
-          <Text className="font-body text-xs text-ink-400">{dua.reference}</Text>
+          <View className="flex-1 flex-row items-center flex-wrap mr-2">
+            <Text className="font-body text-xs text-ink-400 mr-2">{dua.reference}</Text>
+            {dua.virtue_en ? (
+              <TouchableOpacity
+                onPress={() => setShowVirtue((v) => !v)}
+                hitSlop={6}
+                className={`flex-row items-center px-2 py-0.5 rounded-full border ${
+                  showVirtue
+                    ? 'bg-gold-500/20 border-gold-500/60'
+                    : 'bg-gold-500/10 border-gold-500/30'
+                }`}
+              >
+                <Ionicons name={showVirtue ? 'sparkles' : 'sparkles-outline'} size={11} color="#c99a45" />
+                <Text className="font-body-medium text-[11px] text-gold-500 ml-1">{tr('dua_virtue', language)}</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
           <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color="#7d879a" />
         </View>
       </TouchableOpacity>
+
+      {showVirtue && dua.virtue_en ? (
+        <View className="border-t border-gold-500/30 bg-gold-500/10 px-4 py-3">
+          <Text className="font-body-semibold text-[10px] uppercase text-gold-500 mb-1">{tr('dua_virtue', language)}</Text>
+          <Text className="font-body text-sm text-ink-700 dark:text-ink-300 leading-relaxed">
+            {language === 'bn' ? dua.virtue_bn : dua.virtue_en}
+          </Text>
+          {language === 'bn' ? (
+            <Text className="font-body text-xs text-ink-500 dark:text-ink-400 leading-relaxed mt-2">{dua.virtue_en}</Text>
+          ) : null}
+        </View>
+      ) : null}
 
       {expanded ? (
         <View className="border-t border-ink-100 dark:border-ink-800 px-4 py-3 bg-ink-50 dark:bg-ink-950/40">
@@ -81,15 +112,22 @@ function DuaCard({ dua, language }: { dua: Dua; language: LanguageCode }) {
 export default function DuasScreen() {
   const { language } = useApp();
   const [activeCategory, setActiveCategory] = useState('morning');
-  const duas = DUAS.filter((d) => d.category === activeCategory);
+  // Local copy of the collection (synced from the API every DUAS_SYNC_INTERVAL_DAYS)
+  const { categories, duas: allDuas, lastSyncAt, syncing, refresh } = useDuas();
+  const duas = allDuas.filter((d) => d.category === activeCategory);
 
   return (
     <Screen>
-      <Text className="font-body-bold text-2xl text-ink-900 dark:text-white mt-4 mb-1">{tr('duas_title', language)}</Text>
+      <View className="flex-row items-start justify-between mt-4 mb-1">
+        <Text className="font-body-bold text-2xl text-ink-900 dark:text-white">{tr('duas_title', language)}</Text>
+        <TouchableOpacity onPress={refresh} disabled={syncing} hitSlop={8} className="p-1 mt-1">
+          {syncing ? <ActivityIndicator size="small" color="#7d879a" /> : <Ionicons name="refresh" size={18} color="#7d879a" />}
+        </TouchableOpacity>
+      </View>
       <Text className="font-body text-sm text-ink-500 dark:text-ink-400 mb-4">{tr('duas_subtitle', language)}</Text>
 
       <View className="flex-row flex-wrap -mx-1 mb-4">
-        {DUA_CATEGORIES.map((cat) => {
+        {categories.map((cat) => {
           const active = activeCategory === cat.id;
           return (
             <TouchableOpacity
@@ -110,6 +148,12 @@ export default function DuasScreen() {
       {duas.map((dua) => (
         <DuaCard key={dua.id} dua={dua} language={language} />
       ))}
+
+      <Text className="font-body text-[11px] text-ink-300 dark:text-ink-600 text-center mt-4">
+        {lastSyncAt
+          ? `${tr('duas_last_synced', language)} ${formatDistanceToNow(lastSyncAt, { addSuffix: true })} · ${tr('duas_sync_interval', language).replace('{days}', String(DUAS_SYNC_INTERVAL_DAYS))}`
+          : tr('duas_not_synced', language)}
+      </Text>
     </Screen>
   );
 }

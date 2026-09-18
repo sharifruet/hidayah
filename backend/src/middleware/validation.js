@@ -418,3 +418,100 @@ export const validateMonth = (req, res, next) => {
 
   next();
 };
+
+// ─── Masjids ─────────────────────────────────────────────────────────────────
+
+const JAMAH_PRAYERS = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jumuah'];
+const TIME_HH_MM = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+// { fajr: 'HH:MM', ... } — null/'' clears a prayer's jamah time
+const jamahSchema = Joi.object(
+  Object.fromEntries(
+    JAMAH_PRAYERS.map(p => [p, Joi.string().pattern(TIME_HH_MM).allow(null, '')])
+  )
+).messages({ 'string.pattern.base': '{{#label}} must be a time in HH:MM (24h) format' });
+
+const masjidBodySchema = Joi.object({
+  name: Joi.string().trim().min(2).max(200).required(),
+  name_bn: Joi.string().trim().max(200).allow(null, ''),
+  address: Joi.string().trim().max(400).allow(null, ''),
+  city: Joi.string().trim().max(100).allow(null, ''),
+  district: Joi.string().trim().max(100).allow(null, ''),
+  latitude: Joi.number().min(-90).max(90).required(),
+  longitude: Joi.number().min(-180).max(180).required(),
+  phone: Joi.string().trim().max(40).allow(null, ''),
+  description: Joi.string().trim().max(2000).allow(null, ''),
+  status: Joi.string().valid('active', 'hidden'),
+  jamah: jamahSchema,
+});
+
+function sendValidationError(req, res, error, code) {
+  const detail = error.details[0];
+  return res.status(400).json({
+    error: {
+      code,
+      message: detail.message.replace(/"/g, ''),
+      details: { parameter: detail.path.join('.'), value: detail.context?.value },
+      request_id: req.id
+    }
+  });
+}
+
+/**
+ * Validate masjid create/update body (public POST and admin PUT).
+ */
+export const validateMasjidBody = (req, res, next) => {
+  const { error, value } = masjidBodySchema.validate(req.body || {}, { abortEarly: true, stripUnknown: true });
+  if (error) return sendValidationError(req, res, error, 'INVALID_MASJID');
+  req.body = value;
+  next();
+};
+
+/**
+ * Validate jamah times body: at least one prayer key, each HH:MM or null.
+ */
+export const validateJamahBody = (req, res, next) => {
+  const { error, value } = jamahSchema.min(1).validate(req.body || {}, { abortEarly: true, stripUnknown: true });
+  if (error) return sendValidationError(req, res, error, 'INVALID_JAMAH_TIMES');
+  req.body = value;
+  next();
+};
+
+/**
+ * Validate lat/lng query params (required) plus optional radius/limit
+ * for the nearby-masjids lookup.
+ */
+export const validateNearbyQuery = (req, res, next) => {
+  const schema = Joi.object({
+    lat: Joi.number().min(-90).max(90).required(),
+    lng: Joi.number().min(-180).max(180).required(),
+    radius_km: Joi.number().min(0.1).max(50).optional(),
+    limit: Joi.number().integer().min(1).max(50).optional(),
+  });
+
+  const { error } = schema.validate({
+    lat: parseFloat(req.query.lat),
+    lng: parseFloat(req.query.lng),
+    ...(req.query.radius_km !== undefined && { radius_km: parseFloat(req.query.radius_km) }),
+    ...(req.query.limit !== undefined && { limit: parseInt(req.query.limit) }),
+  });
+  if (error) return sendValidationError(req, res, error, 'INVALID_NEARBY_QUERY');
+  next();
+};
+
+/**
+ * Validate optional lat/lng query params (for distance annotation on search/detail).
+ */
+export const validateOptionalCoords = (req, res, next) => {
+  const hasLat = req.query.lat !== undefined;
+  const hasLng = req.query.lng !== undefined;
+  if (!hasLat && !hasLng) return next();
+
+  const schema = Joi.object({
+    lat: Joi.number().min(-90).max(90).required(),
+    lng: Joi.number().min(-180).max(180).required(),
+  });
+  const { error } = schema.validate({ lat: parseFloat(req.query.lat), lng: parseFloat(req.query.lng) });
+  if (error) return sendValidationError(req, res, error, 'INVALID_COORDINATE');
+  next();
+};
