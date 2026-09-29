@@ -1,6 +1,7 @@
-import { formatDistanceToNow, format, parseISO } from 'date-fns';
+import { parseISO } from 'date-fns';
 
-import { tr } from '../data/translations';
+import { fmt, tr } from '../data/translations';
+import { formatClock, formatDate, formatRelative, localDigits, type TimeFormat } from './format';
 import type { LanguageCode } from './constants';
 import { JAMAH_PRAYERS, type JamahPrayer, type JamahTimes, type JamahUpdate } from './services/masjids';
 
@@ -13,27 +14,33 @@ export function prayerLabel(prayer: JamahPrayer, language: LanguageCode): string
   return prayer === 'jumuah' ? tr('masjid_jumuah', language) : tr(`prayer_${prayer}`, language);
 }
 
-export function relativeTime(iso?: string | null): string {
+/** "3 days ago" / "৩ দিন আগে" in the UI language. */
+export function relativeTime(iso: string | null | undefined, language: LanguageCode): string {
   if (!iso) return '';
   try {
-    return formatDistanceToNow(parseISO(iso), { addSuffix: true });
+    return formatRelative(parseISO(iso), language);
   } catch {
     return '';
   }
 }
 
-export function absoluteTime(iso?: string | null): string {
+/** "05 Oct 2026, 4:52 PM" / "০৫ অক্টো ২০২৬, বিকাল ৪:৫২". */
+export function absoluteTime(iso: string | null | undefined, language: LanguageCode, timeFormat?: TimeFormat): string {
   if (!iso) return '';
   try {
-    return format(parseISO(iso), 'dd MMM yyyy, HH:mm');
+    const d = parseISO(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return `${formatDate(d, language, { day: '2-digit', month: 'short', year: 'numeric' })}, ${formatClock(d, language, timeFormat)}`;
   } catch {
     return '';
   }
 }
 
-export function formatDistance(km?: number | null): string {
+export function formatDistance(km: number | null | undefined, language: LanguageCode): string {
   if (km == null) return '';
-  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(km < 10 ? 1 : 0)} km`;
+  return km < 1
+    ? fmt('distance_m', language, { n: Math.round(km * 1000) })
+    : fmt('distance_km', language, { n: localDigits(km.toFixed(km < 10 ? 1 : 0), language) });
 }
 
 export function directionsUrl(lat: number, lng: number): string {

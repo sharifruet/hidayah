@@ -1,19 +1,25 @@
-import { format } from 'date-fns';
 import { gregorianToHijri } from '../../utils/hijri.js';
+import { islamicDaysOn } from '../../utils/islamicDays.js';
+import { tr } from '../../i18n/translations.js';
+import { useApp } from '../../context/AppContext.jsx';
+import { formatTime, localDigits } from '../../utils/format.js';
 
 const PRAYERS = [
-  { key: 'fajr',    labelEn: 'Fajr',    labelBn: 'ফজর',    color: 'text-indigo-500 dark:text-indigo-300' },
-  { key: 'sunrise', labelEn: 'Sunrise',  labelBn: 'সূর্যোদয়', color: 'text-amber-500 dark:text-amber-300' },
-  { key: 'dhuhr',   labelEn: 'Dhuhr',   labelBn: 'যোহর',   color: 'text-yellow-600 dark:text-yellow-300' },
-  { key: 'asr',     labelEn: 'Asr',     labelBn: 'আসর',    color: 'text-orange-500 dark:text-orange-300' },
-  { key: 'maghrib', labelEn: 'Maghrib', labelBn: 'মাগরিব', color: 'text-rose-500 dark:text-rose-300' },
-  { key: 'isha',    labelEn: 'Isha',    labelBn: 'ইশা',    color: 'text-violet-500 dark:text-violet-300' },
+  { key: 'fajr',    color: 'text-indigo-500 dark:text-indigo-300' },
+  { key: 'sunrise', color: 'text-amber-500 dark:text-amber-300' },
+  { key: 'dhuhr',   color: 'text-yellow-600 dark:text-yellow-300' },
+  { key: 'asr',     color: 'text-orange-500 dark:text-orange-300' },
+  { key: 'maghrib', color: 'text-rose-500 dark:text-rose-300' },
+  { key: 'isha',    color: 'text-violet-500 dark:text-violet-300' },
 ];
 
 export default function CalendarDay({ day, dayData, isToday = false, onClick = null, language = 'en' }) {
-  const dayNumber = format(day, 'd');
+  const { timeFormat } = useApp();
+  const dayNumber = localDigits(day.getDate(), language);
   const hijri = gregorianToHijri(day);
-  const isBn = language === 'bn';
+  const events = islamicDaysOn(day);
+  const special = events.filter((e) => e.kind !== 'fast');
+  const fasts = events.filter((e) => e.kind === 'fast');
 
   return (
     <div
@@ -32,23 +38,35 @@ export default function CalendarDay({ day, dayData, isToday = false, onClick = n
           {dayNumber}
         </span>
         <span className="text-[10px] text-gray-400 dark:text-gray-500 leading-none">
-          {hijri.day} {hijri.monthNameAr}
+          {localDigits(hijri.day, language)} {hijri.monthNameAr}
         </span>
       </div>
+
+      {/* Islamic days */}
+      {special.map((e) => (
+        <div key={e.key} className="mb-1 rounded px-1 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-[10px] font-semibold leading-tight text-amber-800 dark:text-amber-300">
+          {e.kind === 'night' ? '🌙 ' : ''}{tr(`iday_${e.key}`, language)}
+        </div>
+      ))}
+      {fasts.length > 0 && (
+        <div className="mb-1 text-[9px] leading-tight text-sky-600 dark:text-sky-400" title={fasts.map((e) => tr(`iday_${e.key}`, language)).join(' · ')}>
+          ● {fasts.map((e) => tr(`iday_${e.key}`, language)).join(' · ')}
+        </div>
+      )}
 
       {/* Prayer times */}
       {dayData?.prayer_times ? (
         <div className="space-y-0.5">
-          {PRAYERS.map(({ key, labelEn, labelBn, color }) => {
+          {PRAYERS.map(({ key, color }) => {
             const time = dayData.prayer_times[key];
             if (!time) return null;
             return (
               <div key={key} className="flex items-center justify-between gap-1">
                 <span className={`text-[10px] font-medium leading-none ${color}`}>
-                  {isBn ? labelBn : labelEn}
+                  {tr(`prayer_${key}`, language)}
                 </span>
                 <span className="text-[10px] text-gray-600 dark:text-gray-300 tabular-nums leading-none">
-                  {time}
+                  {formatTime(time, language, timeFormat, { withPeriod: false })}
                 </span>
               </div>
             );

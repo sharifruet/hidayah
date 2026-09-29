@@ -3,6 +3,8 @@ import WordToken from './WordToken.jsx';
 import AyahTafsir from './AyahTafsir.jsx';
 import AyahImageCard from './AyahImageCard.jsx';
 import { isBookmarked, addBookmark, removeBookmark } from '../../services/bookmarkService.js';
+import { tr, fmt } from '../../i18n/translations.js';
+import { localDigits } from '../../utils/format.js';
 
 const TRANSLITERATION_EDITION = 'en.transliteration';
 
@@ -77,6 +79,7 @@ export default function AyahRow({
       }));
 
   const hidden = memorisationMode && !isRevealed;
+  const n = localDigits(ayah.number, language);
 
   return (
     <div
@@ -102,11 +105,11 @@ export default function AyahRow({
               checked={!!isSelected}
               onChange={() => onToggleSelect(ayah.number)}
               className="w-4 h-4 accent-green-600 cursor-pointer"
-              aria-label={`Select ayah ${ayah.number}`}
+              aria-label={fmt('qr_select_ayah', language, { n })}
             />
           )}
           <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold flex-shrink-0">
-            {ayah.number}
+            {n}
           </span>
         </div>
 
@@ -114,11 +117,12 @@ export default function AyahRow({
           {/* Bookmark */}
           <button
             onClick={toggleBookmark}
-            title={language === 'bn' ? (bookmarked ? 'বুকমার্ক সরান' : 'বুকমার্ক করুন') : (bookmarked ? 'Remove bookmark' : 'Bookmark')}
+            title={tr(bookmarked ? 'qr_remove_bookmark' : 'qr_bookmark', language)}
             className={`p-1.5 rounded-full transition-colors ${
               bookmarked ? 'text-green-600 dark:text-green-400' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500'
             }`}
-            aria-label={bookmarked ? `Remove bookmark for ayah ${ayah.number}` : `Bookmark ayah ${ayah.number}`}
+            aria-label={fmt(bookmarked ? 'qr_remove_bookmark_ayah' : 'qr_bookmark_ayah', language, { n })}
+            aria-pressed={bookmarked}
           >
             <svg className="w-4 h-4" fill={bookmarked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
@@ -127,11 +131,11 @@ export default function AyahRow({
 
           <button
             onClick={() => onPlay(ayah)}
-            title={language === 'bn' ? 'চালান' : 'Play'}
+            title={tr(isPlaying ? 'qr_pause' : 'play', language)}
             className={`p-1.5 rounded-full transition-colors ${
               isPlaying ? 'bg-yellow-200 text-yellow-800' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400'
             }`}
-            aria-label={`${isPlaying ? 'Pause' : 'Play'} ayah ${ayah.number}`}
+            aria-label={fmt(isPlaying ? 'qr_pause_ayah' : 'qr_play_ayah', language, { n })}
           >
             {isPlaying ? (
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -146,9 +150,9 @@ export default function AyahRow({
 
           <button
             onClick={() => onCopy(ayah)}
-            title={language === 'bn' ? 'কপি করুন' : 'Copy'}
+            title={tr('copy', language)}
             className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors"
-            aria-label={`Copy ayah ${ayah.number}`}
+            aria-label={fmt('qr_copy_ayah', language, { n })}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -158,9 +162,9 @@ export default function AyahRow({
           {/* Image card */}
           <button
             onClick={() => setShowImageCard(true)}
-            title={language === 'bn' ? 'ছবি কার্ড' : 'Image card'}
+            title={tr('qr_image_card', language)}
             className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors"
-            aria-label={`Generate image card for ayah ${ayah.number}`}
+            aria-label={fmt('qr_image_card_ayah', language, { n })}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -169,9 +173,9 @@ export default function AyahRow({
 
           <button
             onClick={() => onShare(ayah)}
-            title={language === 'bn' ? 'শেয়ার করুন' : 'Share'}
+            title={tr('share', language)}
             className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors"
-            aria-label={`Share ayah ${ayah.number}`}
+            aria-label={fmt('qr_share_ayah', language, { n })}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
@@ -185,14 +189,14 @@ export default function AyahRow({
         <button
           onClick={() => onReveal(ayah.number)}
           className="w-full py-6 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors flex flex-col items-center gap-2 mb-3"
-          aria-label={`Reveal ayah ${ayah.number}`}
+          aria-label={fmt('qr_reveal_ayah', language, { n })}
         >
           <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
           </svg>
           <span className="text-sm text-gray-400">
-            {language === 'bn' ? 'ট্যাপ করুন প্রকাশ করতে' : 'Tap to reveal'}
+            {tr('quran_tap_reveal', language)}
           </span>
         </button>
       ) : (
@@ -239,14 +243,14 @@ export default function AyahRow({
                   <p className="text-sm text-gray-700 font-medium mt-1">{activeWord.gloss}</p>
                 ) : (
                   <p className="text-xs text-gray-400 mt-1 italic">
-                    {language === 'bn' ? 'অর্থ পাওয়া যায়নি' : 'Gloss unavailable'}
+                    {tr('qr_gloss_unavailable', language)}
                   </p>
                 )}
               </div>
               <button
                 onClick={() => setActiveWord(null)}
                 className="text-gray-400 hover:text-gray-600 flex-shrink-0 text-lg leading-none"
-                aria-label="Close"
+                aria-label={tr('qr_close', language)}
               >
                 ×
               </button>
@@ -287,7 +291,7 @@ export default function AyahRow({
       {showImageCard && (
         <AyahImageCard
           ayah={ayah}
-          surahName={surahName || `Surah ${surahNumber}`}
+          surahName={surahName || fmt('qr_surah_n', language, { n: localDigits(surahNumber, language) })}
           surahNumber={surahNumber}
           language={language}
           onClose={() => setShowImageCard(false)}

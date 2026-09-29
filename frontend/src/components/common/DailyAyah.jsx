@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom';
+import { tr } from '../../i18n/translations.js';
+import { bnOr, formatDate } from '../../utils/format.js';
 
 // Curated list of well-known ayahs: { surah, ayah, arabic, translation_en, translation_bn, ref }
 const CURATED = [
@@ -25,13 +27,13 @@ function getDailyAyah() {
 
 export default function DailyAyah({ language }) {
   const ayah = getDailyAyah();
-  const today = new Date().toLocaleDateString(language === 'bn' ? 'bn-BD' : 'en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  const today = formatDate(new Date(), language, { weekday: 'long', month: 'long', day: 'numeric' });
 
   return (
     <div className="bg-gradient-to-br from-green-700 to-green-900 dark:from-green-900 dark:to-gray-900 rounded-2xl p-5 text-white shadow-md">
       <div className="flex items-center justify-between mb-3">
         <p className="text-xs font-medium text-green-200 uppercase tracking-wide">
-          {language === 'bn' ? 'আজকের আয়াত' : "Ayah of the Day"}
+          {tr('qb_daily_ayah', language)}
         </p>
         <p className="text-xs text-green-300">{today}</p>
       </div>
@@ -41,7 +43,7 @@ export default function DailyAyah({ language }) {
       </p>
 
       <p className="text-sm leading-relaxed text-green-100 mb-3">
-        {language === 'bn' ? ayah.translation_bn : ayah.translation_en}
+        {bnOr(language, ayah.translation_bn, ayah.translation_en)}
       </p>
 
       <div className="flex items-center justify-between">
@@ -50,7 +52,7 @@ export default function DailyAyah({ language }) {
           to={`/quran/${ayah.surah}/${ayah.ayah}`}
           className="text-xs bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-lg transition-colors"
         >
-          {language === 'bn' ? 'পড়ুন' : 'Read'}
+          {tr('qb_read', language)}
         </Link>
       </div>
     </div>

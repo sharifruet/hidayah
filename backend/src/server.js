@@ -22,6 +22,8 @@ import hadithRoutes from './routes/hadith.js';
 import booksRoutes from './routes/books.js';
 import masjidsRoutes from './routes/masjids.js';
 import duasRoutes from './routes/duas.js';
+import zakatRoutes from './routes/zakat.js';
+import syncRoutes from './routes/sync.js';
 import adminRoutes from './routes/admin.js';
 
 // Import middleware
@@ -59,7 +61,9 @@ app.use(cors({
 // Compression
 app.use(compression());
 
-// Body parsing
+// Body parsing. Sync documents (e.g. years of prayer-tracker history) can exceed the default
+// 100 KB, so that route gets a larger limit; the global parser then skips the parsed body.
+app.use(`/${API_VERSION}/sync`, express.json({ limit: '1mb' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -127,6 +131,8 @@ app.use(`/${API_VERSION}/hadith`, hadithRoutes);
 app.use(`/${API_VERSION}/books`, booksRoutes);
 app.use(`/${API_VERSION}/masjids`, masjidsRoutes);
 app.use(`/${API_VERSION}/duas`, duasRoutes);
+app.use(`/${API_VERSION}/zakat`, zakatRoutes);
+app.use(`/${API_VERSION}/sync`, syncRoutes);
 app.use(`/${API_VERSION}/admin`, adminRoutes);
 
 // Root endpoint

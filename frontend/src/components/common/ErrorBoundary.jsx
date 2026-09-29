@@ -1,4 +1,6 @@
 import { Component } from 'react';
+import { useAppLocale } from '../../context/AppContext.jsx';
+import { tr } from '../../i18n/translations.js';
 
 /**
  * React error boundary — catches render/lifecycle errors in its subtree
@@ -9,12 +11,20 @@ import { Component } from 'react';
  *     <SomeComponent />
  *   </ErrorBoundary>
  *
- * With a custom label:
- *   <ErrorBoundary label="Tafsir">
+ * With a label (only used in the console log; the fallback UI is localized) and the
+ * compact one-line fallback:
+ *   <ErrorBoundary label="Tafsir" compact>
  *     <AyahTafsir ... />
  *   </ErrorBoundary>
  */
-export default class ErrorBoundary extends Component {
+export default function ErrorBoundary(props) {
+  // The class below can't use hooks, so the UI language is passed in from here.
+  // `useAppLocale` falls back to English outside an AppProvider.
+  const { language } = useAppLocale();
+  return <Boundary {...props} language={language} />;
+}
+
+class Boundary extends Component {
   constructor(props) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -25,7 +35,7 @@ export default class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, info) {
-    console.error('[ErrorBoundary]', error, info.componentStack);
+    console.error(`[ErrorBoundary${this.props.label ? `: ${this.props.label}` : ''}]`, error, info.componentStack);
   }
 
   reset() {
@@ -35,7 +45,7 @@ export default class ErrorBoundary extends Component {
   render() {
     if (!this.state.hasError) return this.props.children;
 
-    const { label = 'This section', compact = false } = this.props;
+    const { language, compact = false } = this.props;
 
     if (compact) {
       return (
@@ -43,12 +53,12 @@ export default class ErrorBoundary extends Component {
           <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
           </svg>
-          <span>{label} failed to load.</span>
+          <span>{tr('ct_section_failed', language)}</span>
           <button
             onClick={() => this.reset()}
             className="underline hover:no-underline"
           >
-            Retry
+            {tr('retry', language)}
           </button>
         </div>
       );
@@ -62,15 +72,13 @@ export default class ErrorBoundary extends Component {
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
           </div>
-          <h3 className="text-sm font-semibold text-gray-900 mb-1">{label} encountered an error</h3>
-          <p className="text-xs text-gray-500 mb-4">
-            {this.state.error?.message || 'An unexpected error occurred.'}
-          </p>
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">{tr('error_title', language)}</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{tr('ct_unexpected_error', language)}</p>
           <button
             onClick={() => this.reset()}
             className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
           >
-            Try again
+            {tr('retry', language)}
           </button>
         </div>
       </div>

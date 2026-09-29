@@ -23,8 +23,11 @@ export const DEFAULT_LOCATION = {
   lat: 23.8103,
   lng: 90.4125,
   name: 'Dhaka',
+  name_bn: 'ঢাকা',
   district: 'Dhaka',
-  division: 'Dhaka'
+  district_bn: 'ঢাকা',
+  division: 'Dhaka',
+  division_bn: 'ঢাকা'
 };
 
 // Map configuration

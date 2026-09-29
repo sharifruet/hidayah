@@ -12,6 +12,7 @@
     "migrate:rollback": "node src/database/migrate.js rollback",
     "seed": "node src/database/seed.js",
     "seed:duas": "node src/database/duasSeeder.js",
+    "seed:upazilas": "node src/database/upazilasSeeder.js",
     "seed:quran": "node src/database/quranSeeder.js",
     "seed:quran:force": "node src/database/quranSeeder.js --force",
     "seed:hadith": "node src/database/hadithSeeder.js",
@@ -19,6 +20,7 @@
     "download:audio": "node scripts/downloadAudio.js",
     "generate:sql": "node scripts/generateSqlDump.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:unit": "node --test --experimental-test-module-mocks tests/masjids.test.js tests/zakat.test.js tests/sync.test.js",
     "lint": "eslint . --ext .js",
     "format": "prettier --write \"src/**/*.js\"",
     "prepare": "node -e \"if(process.env.NODE_ENV!=='production'){require('child_process').execSync('husky install',{stdio:'inherit'})}\""

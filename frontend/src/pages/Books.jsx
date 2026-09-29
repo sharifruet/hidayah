@@ -3,8 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import { booksService } from '../services/booksService.js';
 import BookCard from '../components/books/BookCard.jsx';
 import BookFilters from '../components/books/BookFilters.jsx';
+import ErrorMessage from '../components/common/ErrorMessage.jsx';
+import { useApp } from '../context/AppContext.jsx';
+import { tr } from '../i18n/translations.js';
 
 export default function Books() {
+  const { language } = useApp();
   const [topic, setTopic] = useState('');
   const [lang, setLang] = useState('');
   const [rawQ, setRawQ] = useState('');
@@ -17,7 +21,7 @@ export default function Books() {
     debounceRef.timer = setTimeout(() => setDebouncedQ(v), 350);
   }, [debounceRef]);
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['books', topic, lang, debouncedQ],
     queryFn: () => booksService.listBooks({ topic: topic || undefined, lang: lang || undefined, q: debouncedQ || undefined, limit: 50 }),
     keepPreviousData: true,
@@ -27,9 +31,9 @@ export default function Books() {
     <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Islamic Books</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{tr('ct_books_title', language)}</h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Free Islamic books — read online, no account needed
+          {tr('ct_books_subtitle', language)}
         </p>
       </div>
 
@@ -60,11 +64,7 @@ export default function Books() {
         </div>
       )}
 
-      {isError && (
-        <div className="text-center py-16 text-gray-500 dark:text-gray-400">
-          <p>Failed to load books. Is the backend running?</p>
-        </div>
-      )}
+      {isError && <ErrorMessage error={error} onRetry={refetch} />}
 
       {!isLoading && !isError && data?.books?.length === 0 && (
         <div className="text-center py-16 text-gray-500 dark:text-gray-400">
@@ -72,7 +72,7 @@ export default function Books() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
               d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
           </svg>
-          <p>No books found.</p>
+          <p>{tr('ct_books_none', language)}</p>
         </div>
       )}
 

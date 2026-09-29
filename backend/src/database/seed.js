@@ -1,5 +1,6 @@
 import pool from '../config/database.js';
 import { seedDuas } from './duasSeeder.js';
+import { seedUpazilas } from './upazilasSeeder.js';
 
 async function seed() {
   let connection;
@@ -472,6 +473,7 @@ async function seed() {
     }
     console.log(`✅ Seeded ${districts.length} district locations`);
 
+    await seedUpazilas(connection);
     await seedDuas(connection);
 
     connection.release();

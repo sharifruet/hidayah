@@ -1,21 +1,39 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useApp } from '../context/AppContext.jsx';
 import { getDuasCollection, loadCachedDuasCollection, duaCategoryLabel } from '../services/duasService.js';
 import { tr } from '../i18n/translations.js';
 import Loading from '../components/common/Loading.jsx';
+import ErrorMessage from '../components/common/ErrorMessage.jsx';
+import { bnOr, localDigits } from '../utils/format.js';
+import { getFavouriteDuaIds, toggleFavouriteDua } from '../utils/saved.js';
+
+const FAVOURITES = 'favourites';
+
+/** Case/diacritic-insensitive match across every text field of a du'a. */
+function duaMatches(dua, query) {
+  const norm = (v) => String(v ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f\u064b-\u065f'ʿ’-]/g, '');
+  const q = norm(query.trim());
+  if (!q) return true;
+  return [dua.arabic, dua.transliteration, dua.translation_en, dua.translation_bn, dua.reference, dua.virtue_en, dua.virtue_bn]
+    .some((field) => norm(field).includes(q));
+}
 
 export default function Duas() {
   const { language } = useApp();
-  const [activeCategory, setActiveCategory] = useState('morning');
+  // `?view=favourites` opens the favourites list directly (linked from the Saved page).
+  const [searchParams] = useSearchParams();
+  const [activeCategory, setActiveCategory] = useState(() => (searchParams.get('view') === FAVOURITES ? FAVOURITES : 'morning'));
+  const [favourites, setFavourites] = useState(getFavouriteDuaIds);
+  const [query, setQuery] = useState('');
   const [expandedId, setExpandedId]         = useState(null);
   const [copiedId, setCopiedId]             = useState(null);
   const [virtueId, setVirtueId]             = useState(null); // which card shows its fazilat
 
   // Du'as live in the DB (GET /v1/duas). The last successful payload is kept in
   // localStorage so a flaky/offline connection still shows the collection.
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['duas-collection'],
     queryFn: getDuasCollection,
     initialData: loadCachedDuasCollection,
@@ -24,10 +42,20 @@ export default function Duas() {
 
   const categories = data?.categories ?? [];
   const catLabel = (cat) => duaCategoryLabel(cat, language);
-  const duas = (data?.duas ?? []).filter((d) => d.category === activeCategory);
+  // A search spans every category; otherwise show the chosen category (or favourites).
+  const duas = useMemo(() => {
+    const all = data?.duas ?? [];
+    if (query.trim()) return all.filter((d) => duaMatches(d, query));
+    if (activeCategory === FAVOURITES) {
+      const byId = new Map(all.map((d) => [d.id, d]));
+      return favourites.map((id) => byId.get(id)).filter(Boolean);
+    }
+    return all.filter((d) => d.category === activeCategory);
+  }, [data, activeCategory, favourites, query]);
 
   async function copyDua(dua) {
-    const text = [dua.arabic, '', dua.transliteration, '', dua.translation_en, '', `(${dua.reference})`].join('\n');
+    const translation = bnOr(language, dua.translation_bn, dua.translation_en);
+    const text = [dua.arabic, '', dua.transliteration, '', translation, '', `(${dua.reference})`].join('\n');
     try {
       await navigator.clipboard.writeText(text);
       setCopiedId(dua.id);
@@ -40,20 +68,37 @@ export default function Duas() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {language === 'bn' ? 'দু\'আ ও আযকার' : "Du'a & Adhkar"}
+            {tr('ct_duas_title', language)}
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-            {language === 'bn' ? 'কুরআন ও সুন্নাহ থেকে প্রামাণিক দু\'আসমূহ' : "Authentic supplications from the Qur'an & Sunnah"}
+            {tr('ct_duas_subtitle', language)}
           </p>
         </div>
 
-        {isLoading && !data && <Loading message={tr('loading', language)} />}
-        {isError && !data && (
-          <p className="text-sm text-red-600 dark:text-red-400">{tr('error_generic', language)}</p>
-        )}
+        {isLoading && !data && <Loading />}
+        {error && !data && <ErrorMessage error={error} onRetry={refetch} />}
+
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={tr('sv_search_duas', language)}
+          aria-label={tr('sv_search_duas', language)}
+          className="w-full sm:max-w-md mb-4 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
+        />
 
         {/* Category tabs — horizontal scroll */}
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-5 scrollbar-none">
+        <div className={`flex gap-2 overflow-x-auto pb-2 mb-5 scrollbar-none ${query.trim() ? 'opacity-40' : ''}`}>
+          <button
+            onClick={() => setActiveCategory(FAVOURITES)}
+            className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              activeCategory === FAVOURITES
+                ? 'bg-rose-600 text-white'
+                : 'bg-white dark:bg-gray-800 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900 hover:border-rose-400'
+            }`}
+          >
+            {tr('sv_favourites', language)}{favourites.length ? ` ${localDigits(favourites.length, language)}` : ''}
+          </button>
           {categories.map((cat) => (
             <button
               key={cat.id}
@@ -74,6 +119,9 @@ export default function Duas() {
           {duas.map((dua) => {
             const expanded = expandedId === dua.id;
             const showVirtue = virtueId === dua.id;
+            // Bangla text when the UI is Bangla (and it exists), with the English beneath it.
+            const virtue = bnOr(language, dua.virtue_bn, dua.virtue_en);
+            const translation = bnOr(language, dua.translation_bn, dua.translation_en);
             return (
               <div
                 key={dua.id}
@@ -85,7 +133,7 @@ export default function Duas() {
                   onClick={() => setExpandedId(expanded ? null : dua.id)}
                 >
                   <p
-                    className="text-3xl font-arabic text-gray-900 dark:text-gray-100 leading-loose text-right mb-3"
+                    className="text-4xl font-arabic text-gray-900 dark:text-gray-100 leading-loose text-right mb-3"
                     dir="rtl"
                     lang="ar"
                   >
@@ -96,7 +144,7 @@ export default function Duas() {
                   {dua.count > 1 && (
                     <div className="flex justify-end mb-2">
                       <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full">
-                        × {dua.count}
+                        × {localDigits(dua.count, language)}
                       </span>
                     </div>
                   )}
@@ -127,6 +175,16 @@ export default function Duas() {
                         </button>
                       )}
                     </div>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setFavourites(toggleFavouriteDua(dua.id)); }}
+                      aria-pressed={favourites.includes(dua.id)}
+                      aria-label={tr(favourites.includes(dua.id) ? 'sv_remove_favourite' : 'sv_add_favourite', language)}
+                      title={tr(favourites.includes(dua.id) ? 'sv_remove_favourite' : 'sv_add_favourite', language)}
+                      className={`ms-auto text-lg leading-none ${favourites.includes(dua.id) ? 'text-rose-600' : 'text-gray-400 hover:text-rose-500'}`}
+                    >
+                      {favourites.includes(dua.id) ? '♥' : '♡'}
+                    </button>
                     <svg
                       className={`w-4 h-4 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`}
                       fill="none" stroke="currentColor" viewBox="0 0 24 24"
@@ -143,9 +201,9 @@ export default function Duas() {
                       {tr('dua_virtue', language)}
                     </p>
                     <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                      {language === 'bn' ? dua.virtue_bn : dua.virtue_en}
+                      {virtue}
                     </p>
-                    {language === 'bn' && (
+                    {virtue !== dua.virtue_en && (
                       <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mt-2">{dua.virtue_en}</p>
                     )}
                   </div>
@@ -155,9 +213,9 @@ export default function Duas() {
                 {expanded && (
                   <div className="border-t border-gray-100 dark:border-gray-700 px-4 py-3 bg-gray-50 dark:bg-gray-900/50">
                     <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-2">
-                      {language === 'bn' ? dua.translation_bn : dua.translation_en}
+                      {translation}
                     </p>
-                    {language === 'bn' && (
+                    {translation !== dua.translation_en && (
                       <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-3">
                         {dua.translation_en}
                       </p>
@@ -176,10 +234,7 @@ export default function Duas() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                           </svg>
                         )}
-                        {copiedId === dua.id
-                          ? (language === 'bn' ? 'কপি হয়েছে!' : 'Copied!')
-                          : (language === 'bn' ? 'কপি করুন' : 'Copy')
-                        }
+                        {tr(copiedId === dua.id ? 'ct_copied' : 'copy', language)}
                       </button>
                       {dua.quranRef && (
                         <Link
@@ -189,7 +244,7 @@ export default function Duas() {
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                           </svg>
-                          {language === 'bn' ? 'কুরআনে দেখুন' : 'View in Qur\'an'}
+                          {tr('ct_view_in_quran', language)}
                         </Link>
                       )}
                     </div>
@@ -198,6 +253,11 @@ export default function Duas() {
               </div>
             );
           })}
+          {data && duas.length === 0 && (
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
+              {query.trim() ? tr('sv_no_results', language) : activeCategory === FAVOURITES ? tr('sv_empty_duas', language) : ''}
+            </p>
+          )}
         </div>
       </div>
     </div>

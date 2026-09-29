@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppProvider, useApp } from './context/AppContext.jsx';
@@ -30,6 +31,12 @@ import BookReader from './pages/BookReader.jsx';
 import Masjids from './pages/Masjids.jsx';
 import MasjidDetail from './pages/MasjidDetail.jsx';
 import MasjidNew from './pages/MasjidNew.jsx';
+import Ramadan from './pages/Ramadan.jsx';
+import IslamicDays from './pages/IslamicDays.jsx';
+import Zakat from './pages/Zakat.jsx';
+import Names from './pages/Names.jsx';
+import Sync from './pages/Sync.jsx';
+import { startAutoSync } from './utils/sync.js';
 import AdminLogin from './pages/admin/AdminLogin.jsx';
 import AdminDashboard from './pages/admin/AdminDashboard.jsx';
 import AdminBooks from './pages/admin/AdminBooks.jsx';
@@ -49,11 +56,16 @@ const queryClient = new QueryClient({
 
 function AppShell() {
   const { language } = useApp();
+  // Optional backup: a no-op unless the user turned it on (see pages/Sync.jsx).
+  useEffect(() => startAutoSync(), []);
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900">
-      <OfflineBanner language={language} />
-      <Header />
-      <main className="flex-grow pb-16 sm:pb-0">
+      {/* Chrome is hidden when printing (e.g. the Ramadan timetable). */}
+      <div className="print:hidden">
+        <OfflineBanner language={language} />
+        <Header />
+      </div>
+      <main className="flex-grow pb-16 sm:pb-0 print:pb-0">
         <ErrorBoundary label="Page">
           <Routes>
             <Route path="/"                            element={<Home />} />
@@ -79,11 +91,18 @@ function AppShell() {
             <Route path="/masjids"                     element={<Masjids />} />
             <Route path="/masjids/new"                 element={<MasjidNew />} />
             <Route path="/masjids/:id"                 element={<MasjidDetail />} />
+            <Route path="/ramadan"                     element={<Ramadan />} />
+            <Route path="/islamic-days"                element={<IslamicDays />} />
+            <Route path="/zakat"                       element={<Zakat />} />
+            <Route path="/names"                       element={<Names />} />
+            <Route path="/sync"                        element={<Sync />} />
           </Routes>
         </ErrorBoundary>
       </main>
-      <Footer />
-      <BottomTabBar />
+      <div className="print:hidden">
+        <Footer />
+        <BottomTabBar />
+      </div>
     </div>
   );
 }

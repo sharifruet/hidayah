@@ -1,7 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { booksService } from '../services/booksService.js';
+import ErrorMessage from '../components/common/ErrorMessage.jsx';
+import { useApp } from '../context/AppContext.jsx';
+import { tr } from '../i18n/translations.js';
+import { localDigits } from '../utils/format.js';
+import { getBookPosition, saveBookPosition } from '../utils/saved.js';
 
 // Pre-order DFS over the tree, collecting only "readable" (has_content) nodes
 // in document order, each carrying its ancestor titles for a breadcrumb.
@@ -14,7 +19,7 @@ function computeReadingOrder(tree, ancestors = []) {
   return order;
 }
 
-function TocTree({ tree, currentId, onSelect }) {
+function TocTree({ tree, currentId, onSelect, language }) {
   return (
     <ul className="space-y-0.5">
       {tree.map(node => (
@@ -22,12 +27,12 @@ function TocTree({ tree, currentId, onSelect }) {
           {node.has_content ? (
             <button
               onClick={() => onSelect(node.id)}
-              className={`block w-full text-left px-2 py-1 rounded text-sm transition-colors ${
+              className={`block w-full text-start px-2 py-1 rounded text-sm transition-colors ${
                 node.id === currentId ? 'bg-green-100 dark:bg-green-900/40 font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
               style={{ color: 'var(--reader-text)' }}
             >
-              {node.title || `${node.type} ${node.position}`}
+              {node.title || `${node.type} ${localDigits(node.position, language)}`}
             </button>
           ) : (
             <div className="px-2 py-1 text-xs font-semibold uppercase opacity-50" style={{ color: 'var(--reader-text)' }}>
@@ -36,7 +41,7 @@ function TocTree({ tree, currentId, onSelect }) {
           )}
           {node.children.length > 0 && (
             <div className="ml-3 border-l pl-2" style={{ borderColor: 'color-mix(in srgb, var(--reader-text) 15%, transparent)' }}>
-              <TocTree tree={node.children} currentId={currentId} onSelect={onSelect} />
+              <TocTree tree={node.children} currentId={currentId} onSelect={onSelect} language={language} />
             </div>
           )}
         </li>
@@ -47,18 +52,19 @@ function TocTree({ tree, currentId, onSelect }) {
 
 export default function BookReader() {
   const { slug } = useParams();
+  const { language } = useApp();
   const [focusMode, setFocusMode] = useState(false);
   const [tocOpen, setTocOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const { data: book, isLoading, isError } = useQuery({
+  const { data: book, isLoading, error, refetch } = useQuery({
     queryKey: ['book', slug],
     queryFn: () => booksService.getBook(slug),
   });
 
   const isText = book?.content_type === 'text';
 
-  const { data: tree } = useQuery({
+  const { data: tree, error: treeError, refetch: refetchTree } = useQuery({
     queryKey: ['book-chapters', slug],
     queryFn: () => booksService.listChapters(slug),
     enabled: isText,
@@ -66,27 +72,40 @@ export default function BookReader() {
 
   const readingOrder = useMemo(() => (tree ? computeReadingOrder(tree) : []), [tree]);
 
-  const currentId = Number(searchParams.get('id')) || readingOrder[0]?.id || null;
+  // An explicit ?id= wins; otherwise resume the last chapter read (if it still exists).
+  const savedChapterId = getBookPosition(slug)?.chapterId;
+  const resumeId = readingOrder.some((c) => c.id === savedChapterId) ? savedChapterId : null;
+  const currentId = Number(searchParams.get('id')) || resumeId || readingOrder[0]?.id || null;
 
-  const { data: chapter, isLoading: chapterLoading } = useQuery({
+  const { data: chapter, isLoading: chapterLoading, error: chapterError, refetch: refetchChapter } = useQuery({
     queryKey: ['book-chapter', slug, currentId],
     queryFn: () => booksService.getChapter(slug, currentId),
     enabled: isText && !!currentId,
   });
 
+  useEffect(() => {
+    const node = readingOrder.find((c) => c.id === currentId);
+    if (node) saveBookPosition(slug, { chapterId: node.id, chapterTitle: node.title });
+  }, [slug, currentId, readingOrder]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen" style={{ backgroundColor: 'var(--reader-bg)' }}>
-        <p style={{ color: 'var(--reader-text)' }} className="text-sm opacity-60 animate-pulse">Loading…</p>
+        <p style={{ color: 'var(--reader-text)' }} className="text-sm opacity-60 animate-pulse">{tr('loading', language)}</p>
       </div>
     );
   }
 
-  if (isError || !book) {
+  if (error || !book) {
+    const notFound = !error || error.status === 404;
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-3" style={{ backgroundColor: 'var(--reader-bg)' }}>
-        <p style={{ color: 'var(--reader-text)' }}>Book not found.</p>
-        <Link to="/books" className="text-green-600 hover:underline text-sm">← Back to Books</Link>
+      <div className="flex flex-col items-center justify-center min-h-screen gap-3 px-4" style={{ backgroundColor: 'var(--reader-bg)' }}>
+        {notFound ? (
+          <p style={{ color: 'var(--reader-text)' }}>{tr('ct_book_not_found', language)}</p>
+        ) : (
+          <ErrorMessage error={error} onRetry={refetch} />
+        )}
+        <Link to="/books" className="text-green-600 hover:underline text-sm">← {tr('ct_back_to_books', language)}</Link>
       </div>
     );
   }
@@ -94,8 +113,17 @@ export default function BookReader() {
   if (!isText && !book.embed_url) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-3" style={{ backgroundColor: 'var(--reader-bg)' }}>
-        <p style={{ color: 'var(--reader-text)' }}>No reader available for this book.</p>
-        <Link to={`/books/${slug}`} className="text-green-600 hover:underline text-sm">← Back to book</Link>
+        <p style={{ color: 'var(--reader-text)' }}>{tr('ct_no_reader', language)}</p>
+        <Link to={`/books/${slug}`} className="text-green-600 hover:underline text-sm">← {tr('ct_back_to_book', language)}</Link>
+      </div>
+    );
+  }
+
+  if (isText && treeError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-3 px-4" style={{ backgroundColor: 'var(--reader-bg)' }}>
+        <ErrorMessage error={treeError} onRetry={refetchTree} />
+        <Link to={`/books/${slug}`} className="text-green-600 hover:underline text-sm">← {tr('ct_back_to_book', language)}</Link>
       </div>
     );
   }
@@ -103,8 +131,8 @@ export default function BookReader() {
   if (isText && tree && readingOrder.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-3" style={{ backgroundColor: 'var(--reader-bg)' }}>
-        <p style={{ color: 'var(--reader-text)' }}>No chapters available for this book yet.</p>
-        <Link to={`/books/${slug}`} className="text-green-600 hover:underline text-sm">← Back to book</Link>
+        <p style={{ color: 'var(--reader-text)' }}>{tr('ct_no_chapters', language)}</p>
+        <Link to={`/books/${slug}`} className="text-green-600 hover:underline text-sm">← {tr('ct_back_to_book', language)}</Link>
       </div>
     );
   }
@@ -144,7 +172,8 @@ export default function BookReader() {
             {isText && (
               <button
                 onClick={() => setTocOpen(v => !v)}
-                title="Contents"
+                title={tr('ct_contents', language)}
+                aria-label={tr('ct_contents', language)}
                 className="p-1.5 rounded transition-opacity hover:opacity-70"
                 style={{ color: 'var(--reader-text)' }}
               >
@@ -155,7 +184,8 @@ export default function BookReader() {
             )}
             <button
               onClick={() => setFocusMode(true)}
-              title="Focus mode"
+              title={tr('ct_focus_mode', language)}
+              aria-label={tr('ct_focus_mode', language)}
               className="p-1.5 rounded transition-opacity hover:opacity-70"
               style={{ color: 'var(--reader-text)' }}
             >
@@ -172,7 +202,8 @@ export default function BookReader() {
         <button
           onClick={() => setFocusMode(false)}
           className="fixed top-3 right-3 z-50 p-2 rounded-full bg-black/20 hover:bg-black/30 transition-colors"
-          title="Exit focus mode"
+          title={tr('ct_exit_focus_mode', language)}
+          aria-label={tr('ct_exit_focus_mode', language)}
         >
           <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -191,10 +222,10 @@ export default function BookReader() {
                 style={{ backgroundColor: 'var(--reader-bg)', borderColor: 'color-mix(in srgb, var(--reader-text) 15%, transparent)' }}
               >
                 <div className="flex items-center justify-between mb-3 px-2">
-                  <h2 className="text-sm font-semibold" style={{ color: 'var(--reader-text)' }}>Contents</h2>
-                  <button onClick={() => setTocOpen(false)} style={{ color: 'var(--reader-text)' }}>✕</button>
+                  <h2 className="text-sm font-semibold" style={{ color: 'var(--reader-text)' }}>{tr('ct_contents', language)}</h2>
+                  <button onClick={() => setTocOpen(false)} style={{ color: 'var(--reader-text)' }} aria-label={tr('qb_close', language)}>✕</button>
                 </div>
-                {tree && <TocTree tree={tree} currentId={currentId} onSelect={goTo} />}
+                {tree && <TocTree tree={tree} currentId={currentId} onSelect={goTo} language={language} />}
               </div>
             </>
           )}
@@ -212,10 +243,10 @@ export default function BookReader() {
                   className="text-sm font-medium disabled:opacity-30 hover:opacity-70 transition-opacity"
                   style={{ color: 'var(--reader-text)' }}
                 >
-                  ← Prev
+                  ← {tr('qb_prev', language)}
                 </button>
                 <span className="text-xs opacity-60" style={{ color: 'var(--reader-text)' }}>
-                  {currentIndex + 1} / {readingOrder.length}
+                  {localDigits(`${currentIndex + 1} / ${readingOrder.length}`, language)}
                 </span>
                 <button
                   onClick={() => nextEntry && goTo(nextEntry.id)}
@@ -223,15 +254,17 @@ export default function BookReader() {
                   className="text-sm font-medium disabled:opacity-30 hover:opacity-70 transition-opacity"
                   style={{ color: 'var(--reader-text)' }}
                 >
-                  Next →
+                  {tr('qb_next', language)} →
                 </button>
               </div>
             )}
 
             {/* Chapter content */}
             <div className="flex-1 max-w-3xl mx-auto w-full px-5 py-8 sm:px-6">
-              {chapterLoading || !chapter ? (
-                <p style={{ color: 'var(--reader-text)' }} className="text-sm opacity-60 animate-pulse">Loading…</p>
+              {chapterError ? (
+                <ErrorMessage error={chapterError} onRetry={refetchChapter} />
+              ) : chapterLoading || !chapter ? (
+                <p style={{ color: 'var(--reader-text)' }} className="text-sm opacity-60 animate-pulse">{tr('loading', language)}</p>
               ) : (
                 <article>
                   {chapter.breadcrumb?.length > 0 && (
@@ -260,7 +293,7 @@ export default function BookReader() {
                     className="text-sm font-medium disabled:opacity-30 hover:opacity-70 transition-opacity"
                     style={{ color: 'var(--reader-text)' }}
                   >
-                    ← Previous
+                    ← {tr('qb_prev', language)}
                   </button>
                   <button
                     onClick={() => nextEntry && goTo(nextEntry.id)}
@@ -268,7 +301,7 @@ export default function BookReader() {
                     className="text-sm font-medium disabled:opacity-30 hover:opacity-70 transition-opacity"
                     style={{ color: 'var(--reader-text)' }}
                   >
-                    Next →
+                    {tr('qb_next', language)} →
                   </button>
                 </div>
               )}

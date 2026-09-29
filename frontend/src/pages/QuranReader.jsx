@@ -20,6 +20,8 @@ import ReaderSettingsDrawer from '../components/quran/ReaderSettingsDrawer.jsx';
 import ErrorBoundary from '../components/common/ErrorBoundary.jsx';
 import QuranSkeleton from '../components/quran/QuranSkeleton.jsx';
 import ErrorMessage from '../components/common/ErrorMessage.jsx';
+import { tr, fmt } from '../i18n/translations.js';
+import { localDigits } from '../utils/format.js';
 
 // Map app language → preferred translation edition on alquran.cloud
 const LANG_TRANSLATION_MAP = {
@@ -130,13 +132,13 @@ export default function QuranReader() {
     staleTime: 30 * 60 * 1000,
   });
 
-  const { data: translationsData } = useQuery({
+  const { data: translationsData, error: translationsError, refetch: refetchTranslations } = useQuery({
     queryKey: ['quran-translations'],
     queryFn: fetchTranslations,
     staleTime: 24 * 60 * 60 * 1000,
   });
 
-  const { data: recitersData } = useQuery({
+  const { data: recitersData, error: recitersError, refetch: refetchReciters } = useQuery({
     queryKey: ['quran-reciters'],
     queryFn: fetchReciters,
     staleTime: 24 * 60 * 60 * 1000,
@@ -150,7 +152,7 @@ export default function QuranReader() {
   });
 
   const surah = data?.data?.surah;
-  const rawAyahs = data?.data?.ayahs || [];
+  const rawAyahs = useMemo(() => data?.data?.ayahs || [], [data]);
   // Ayah 1's text_ar comes prefixed with the Basmalah for every surah except Al-Faatiha/
   // At-Tawbah — strip it here so it isn't shown twice alongside the page-level Bismillah
   // header above, and so every downstream consumer (AyahRow, image card, copy, share,
@@ -300,9 +302,9 @@ export default function QuranReader() {
     try {
       const res = await fetchCitation(surahNum, from, to, translationsToFetch);
       await navigator.clipboard.writeText(res.data?.text || '');
-      setRangeActionMsg(language === 'bn' ? 'কপি হয়েছে!' : 'Copied!');
+      setRangeActionMsg(tr('qr_copied', language));
     } catch {
-      setRangeActionMsg(language === 'bn' ? 'ব্যর্থ হয়েছে' : 'Failed');
+      setRangeActionMsg(tr('qr_copy_failed', language));
     }
     setTimeout(() => setRangeActionMsg(''), 2000);
   }
@@ -318,7 +320,7 @@ export default function QuranReader() {
       navigator.share({ title: `${surah?.name_en} ${ref}`, url });
     } else {
       navigator.clipboard.writeText(url).catch(() => {});
-      setRangeActionMsg(language === 'bn' ? 'লিংক কপি হয়েছে!' : 'Link copied!');
+      setRangeActionMsg(tr('qr_link_copied', language));
       setTimeout(() => setRangeActionMsg(''), 2000);
     }
   }
@@ -339,40 +341,32 @@ export default function QuranReader() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-500 mb-4">Invalid surah number</p>
-          <Link to="/quran" className="text-green-600 hover:underline">← Back to Quran</Link>
+          <p className="text-gray-500 mb-4">{tr('qr_invalid_surah', language)}</p>
+          <Link to="/quran" className="text-green-600 hover:underline">
+            ← {tr('qr_back_to_quran', language)}
+          </Link>
         </div>
       </div>
     );
   }
 
   const activeBadges = [
-    settings.wordByWord && (language === 'bn' ? 'শব্দ ভিত্তিক' : 'Word by Word'),
-    (settings.selectedTranslations || []).includes(TRANSLITERATION_EDITION) && (language === 'bn' ? 'প্রতিবর্ণীকরণ' : 'Transliteration'),
-    settings.showTafsir && (language === 'bn' ? 'তাফসির' : 'Tafsir'),
-    settings.memorisationMode && (language === 'bn' ? 'মুখস্থ মোড' : 'Memorisation'),
-    selectionMode && (language === 'bn' ? 'নির্বাচন মোড' : 'Selection Mode'),
+    settings.wordByWord && { key: 'qr_word_by_word', color: 'bg-amber-100 text-amber-700' },
+    (settings.selectedTranslations || []).includes(TRANSLITERATION_EDITION) && { key: 'qr_transliteration', color: 'bg-blue-100 text-blue-700' },
+    settings.showTafsir && { key: 'qr_tafsir', color: 'bg-teal-100 text-teal-700' },
+    settings.memorisationMode && { key: 'qr_memorisation', color: 'bg-purple-100 text-purple-700' },
+    selectionMode && { key: 'qr_selection_mode', color: 'bg-orange-100 text-orange-700' },
   ].filter(Boolean);
 
-  const badgeColors = {
-    'Word by Word': 'bg-amber-100 text-amber-700',
-    'শব্দ ভিত্তিক': 'bg-amber-100 text-amber-700',
-    'Transliteration': 'bg-blue-100 text-blue-700',
-    'প্রতিবর্ণীকরণ': 'bg-blue-100 text-blue-700',
-    'Tafsir': 'bg-teal-100 text-teal-700',
-    'তাফসির': 'bg-teal-100 text-teal-700',
-    'Memorisation': 'bg-purple-100 text-purple-700',
-    'মুখস্থ মোড': 'bg-purple-100 text-purple-700',
-    'Selection Mode': 'bg-orange-100 text-orange-700',
-    'নির্বাচন মোড': 'bg-orange-100 text-orange-700',
-  };
+  const ayahCountLabel = surah ? fmt('qr_ayah_count', language, { n: localDigits(surah.ayah_count, language) }) : '';
+  const revelationLabel = { Meccan: 'qr_meccan', Medinan: 'qr_medinan' }[surah?.revelation_type];
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
       {/* Top bar */}
       <div className="sticky top-0 z-30 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <Link to="/quran" className="text-gray-500 hover:text-gray-700 flex-shrink-0" aria-label="Back">
+          <Link to="/quran" className="text-gray-500 hover:text-gray-700 flex-shrink-0" aria-label={tr('qr_back', language)}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
@@ -382,10 +376,10 @@ export default function QuranReader() {
             {surah ? (
               <>
                 <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">{surah.name_en}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{surah.name_en_trans} • {surah.ayah_count} ayahs</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{surah.name_en_trans} • {ayahCountLabel}</p>
               </>
             ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-400">Surah {surahNum}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{fmt('qr_surah_n', language, { n: localDigits(surahNum, language) })}</p>
             )}
           </div>
 
@@ -395,8 +389,8 @@ export default function QuranReader() {
               <Link
                 to={`/quran/page/${ayahs[0].page}`}
                 className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"
-                title={language === 'bn' ? 'মুসহাফ দৃশ্য' : 'Mushaf view'}
-                aria-label="Open Mushaf page view"
+                title={tr('quran_mushaf', language)}
+                aria-label={tr('quran_mushaf', language)}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -412,15 +406,16 @@ export default function QuranReader() {
                   ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400'
                   : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400'
               }`}
-              title={language === 'bn' ? 'আয়াত নির্বাচন করুন' : 'Select ayahs'}
-              aria-label="Toggle selection mode"
+              title={tr('quran_select_ayahs', language)}
+              aria-label={tr('quran_select_ayahs', language)}
+              aria-pressed={selectionMode}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
               </svg>
             </button>
 
-            <Link to="/quran/search" className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400" aria-label="Search">
+            <Link to="/quran/search" className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400" aria-label={tr('quran_search', language)}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
@@ -429,7 +424,7 @@ export default function QuranReader() {
             <button
               onClick={() => setSettingsOpen(true)}
               className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
-              aria-label="Reader settings"
+              aria-label={tr('qr_reader_settings', language)}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -440,21 +435,16 @@ export default function QuranReader() {
         </div>
 
         {/* Active feature badges + keyboard hint */}
-        {(activeBadges.length > 0 || true) && (
-          <div className="max-w-7xl mx-auto px-4 pb-2 flex gap-2 flex-wrap items-center">
-            {activeBadges.map((badge) => (
-              <span
-                key={badge}
-                className={`text-xs px-2 py-0.5 rounded-full ${badgeColors[badge] || 'bg-gray-100 text-gray-600'}`}
-              >
-                {badge}
-              </span>
-            ))}
-            <span className="text-xs text-gray-300 ml-auto hidden sm:inline select-none" title="Keyboard: ↑↓ navigate · Space play · M reveal · Esc stop">
-              ↑↓ · Space · M · Esc
+        <div className="max-w-7xl mx-auto px-4 pb-2 flex gap-2 flex-wrap items-center">
+          {activeBadges.map((badge) => (
+            <span key={badge.key} className={`text-xs px-2 py-0.5 rounded-full ${badge.color}`}>
+              {tr(badge.key, language)}
             </span>
-          </div>
-        )}
+          ))}
+          <span className="text-xs text-gray-300 ms-auto hidden sm:inline select-none" title={tr('qr_keyboard_hint', language)} dir="ltr">
+            ↑↓ · Space · M · Esc
+          </span>
+        </div>
       </div>
 
       {/* Jump to ayah */}
@@ -478,14 +468,14 @@ export default function QuranReader() {
               max={surah?.ayah_count}
               value={jumpValue}
               onChange={(e) => setJumpValue(e.target.value)}
-              placeholder={language === 'bn' ? 'আয়াত নং...' : 'Jump to ayah...'}
+              placeholder={tr('qr_jump_placeholder', language)}
               className="flex-1 px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
             />
             <button
               type="submit"
               className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
-              {language === 'bn' ? 'যান' : 'Go'}
+              {tr('qr_go', language)}
             </button>
           </form>
         </div>
@@ -497,12 +487,11 @@ export default function QuranReader() {
           <p className="text-5xl font-arabic text-gray-900 dark:text-gray-100 mb-1" dir="rtl" lang="ar">{surah.name_ar}</p>
           <p className="text-lg font-semibold text-gray-700 dark:text-gray-200">{surah.name_en}</p>
           <p className="text-sm text-gray-400 dark:text-gray-500">
-            {surah.name_en_trans} • {surah.revelation_type} • {surah.ayah_count}{' '}
-            {language === 'bn' ? 'আয়াত' : 'ayahs'}
+            {surah.name_en_trans} • {revelationLabel ? tr(revelationLabel, language) : surah.revelation_type} • {ayahCountLabel}
           </p>
 
           {surahNum !== 1 && surahNum !== 9 && (
-            <div className="mt-6 flex items-center gap-3 justify-center" aria-label="Bismillah">
+            <div className="mt-6 flex items-center gap-3 justify-center" aria-label={tr('qr_bismillah', language)}>
               <span className="flex-1 h-px bg-gradient-to-r from-transparent via-green-200 to-transparent" />
               <p className="text-3xl font-arabic text-gray-800 leading-loose tracking-wide" dir="rtl" lang="ar">
                 بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
@@ -521,7 +510,7 @@ export default function QuranReader() {
         {!isLoading && !error && (
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 mx-4 mb-4 overflow-hidden">
             {ayahs.map((ayah) => (
-              <ErrorBoundary key={ayah.number} label={`Ayah ${ayah.number}`} compact>
+              <ErrorBoundary key={ayah.number} label={fmt('qr_ayah_n', language, { n: localDigits(ayah.number, language) })} compact>
               <AyahRow
                 key={ayah.number}
                 ayah={ayah}
@@ -562,12 +551,12 @@ export default function QuranReader() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
-                {language === 'bn' ? `সুরা ${prevSurah}` : `Surah ${prevSurah}`}
+                {fmt('qr_surah_n', language, { n: localDigits(prevSurah, language) })}
               </Link>
             ) : <div />}
             {nextSurah ? (
               <Link to={`/quran/${nextSurah}`} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 transition-colors ml-auto">
-                {language === 'bn' ? `সুরা ${nextSurah}` : `Surah ${nextSurah}`}
+                {fmt('qr_surah_n', language, { n: localDigits(nextSurah, language) })}
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
@@ -584,6 +573,10 @@ export default function QuranReader() {
         onSettingsChange={handleSettingsChange}
         availableTranslations={translationsData?.data || []}
         availableReciters={recitersData?.data || []}
+        translationsError={translationsError}
+        onRetryTranslations={refetchTranslations}
+        recitersError={recitersError}
+        onRetryReciters={refetchReciters}
         language={language}
       />
 
@@ -594,19 +587,19 @@ export default function QuranReader() {
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-gray-600">
                 {selectedAyahs.size > 0
-                  ? (language === 'bn'
-                    ? `${selectedAyahs.size}টি আয়াত নির্বাচিত`
-                    : `${selectedAyahs.size} ayah${selectedAyahs.size > 1 ? 's' : ''} selected`)
-                  : (language === 'bn' ? 'আয়াত নির্বাচন করুন' : 'Select ayahs')}
+                  ? fmt(selectedAyahs.size === 1 ? 'qr_selected_one' : 'qr_selected_many', language, {
+                      n: localDigits(selectedAyahs.size, language),
+                    })
+                  : tr('quran_select_ayahs', language)}
                 {rangeActionMsg && (
-                  <span className="ml-2 text-green-600 font-medium">{rangeActionMsg}</span>
+                  <span className="ms-2 text-green-600 font-medium">{rangeActionMsg}</span>
                 )}
               </p>
               <button
                 onClick={exitSelectionMode}
                 className="text-gray-400 hover:text-gray-600 text-sm"
               >
-                {language === 'bn' ? 'বাতিল' : 'Cancel'}
+                {tr('cancel', language)}
               </button>
             </div>
             <div className="flex gap-2">
@@ -614,21 +607,21 @@ export default function QuranReader() {
                 onClick={handleSelectAll}
                 className="flex-1 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
               >
-                {language === 'bn' ? 'সব নির্বাচন' : 'Select all'}
+                {tr('qr_select_all', language)}
               </button>
               <button
                 onClick={handleRangeCopy}
                 disabled={!selectedAyahs.size}
                 className="flex-1 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-40 transition-colors"
               >
-                {language === 'bn' ? 'কপি করুন' : 'Copy range'}
+                {tr('qr_copy_range', language)}
               </button>
               <button
                 onClick={handleRangeShare}
                 disabled={!selectedAyahs.size}
                 className="flex-1 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-40 transition-colors"
               >
-                {language === 'bn' ? 'শেয়ার করুন' : 'Share range'}
+                {tr('qr_share_range', language)}
               </button>
             </div>
           </div>

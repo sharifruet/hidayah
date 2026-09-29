@@ -4,6 +4,15 @@ import { useApp } from '../context/AppContext.jsx';
 import { fetchSearch } from '../services/quranService.js';
 import Loading from '../components/common/Loading.jsx';
 import ErrorMessage from '../components/common/ErrorMessage.jsx';
+import { tr, fmt } from '../i18n/translations.js';
+import { formatNumber, localDigits } from '../utils/format.js';
+
+const EDITIONS = [
+  { id: 'en.sahih', label: 'English – Saheeh International' },
+  { id: 'bn.bengali', label: 'বাংলা – মুহিউদ্দিন খান' },
+  { id: 'en.pickthall', label: 'English – Pickthall' },
+  { id: 'en.yusufali', label: 'English – Yusuf Ali' },
+];
 
 export default function QuranSearch() {
   const { language } = useApp();
@@ -25,7 +34,7 @@ export default function QuranSearch() {
       setResults(data.data);
       setSearchParams({ q: q.trim(), edition: ed });
     } catch (err) {
-      setError(err?.message || 'Search failed');
+      setError(err);
     } finally {
       setLoading(false);
     }
@@ -43,25 +52,18 @@ export default function QuranSearch() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  const editions = [
-    { id: 'en.sahih',  label: 'English – Saheeh International' },
-    { id: 'bn.bengali', label: 'বাংলা – মুহিউদ্দিন খান' },
-    { id: 'en.pickthall', label: 'English – Pickthall' },
-    { id: 'en.yusufali', label: 'English – Yusuf Ali' },
-  ];
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
-          <Link to="/quran" className="text-gray-500 hover:text-gray-700" aria-label="Back">
+          <Link to="/quran" className="text-gray-500 hover:text-gray-700" aria-label={tr('qb_back', language)}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">
-            {language === 'bn' ? 'কুরআন অনুসন্ধান' : 'Search Qur\'an'}
+            {tr('qb_search_title', language)}
           </h1>
         </div>
 
@@ -72,9 +74,9 @@ export default function QuranSearch() {
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={language === 'bn' ? 'শব্দ বা বাক্যাংশ লিখুন...' : 'Enter a word or phrase...'}
+              placeholder={tr('qb_search_ph', language)}
               className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
-              aria-label="Search query"
+              aria-label={tr('qb_search_query_aria', language)}
               minLength={2}
               maxLength={200}
             />
@@ -83,7 +85,7 @@ export default function QuranSearch() {
               disabled={loading || query.trim().length < 2}
               className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium"
             >
-              {language === 'bn' ? 'খুঁজুন' : 'Search'}
+              {tr('qb_search_btn', language)}
             </button>
           </div>
 
@@ -91,16 +93,16 @@ export default function QuranSearch() {
             value={edition}
             onChange={(e) => setEdition(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-sm"
-            aria-label="Translation to search in"
+            aria-label={tr('qb_search_edition_aria', language)}
           >
-            {editions.map((ed) => (
+            {EDITIONS.map((ed) => (
               <option key={ed.id} value={ed.id}>{ed.label}</option>
             ))}
           </select>
         </form>
 
         {/* Loading */}
-        {loading && <Loading message={language === 'bn' ? 'অনুসন্ধান করা হচ্ছে...' : 'Searching...'} />}
+        {loading && <Loading message={tr('qb_searching', language)} />}
 
         {/* Error */}
         {error && <ErrorMessage error={error} onRetry={() => doSearch(query, edition, page)} />}
@@ -109,11 +111,12 @@ export default function QuranSearch() {
         {results && !loading && (
           <>
             <p className="text-sm text-gray-500 mb-4">
-              {language === 'bn'
-                ? `${results.total}টি ফলাফল`
-                : `${results.total} results`}
+              {fmt('qb_results_count', language, { count: formatNumber(results.total, language) })}
               {results.total > 0 &&
-                ` (${language === 'bn' ? 'পৃষ্ঠা' : 'page'} ${results.page} ${language === 'bn' ? 'এর' : 'of'} ${results.total_pages})`}
+                ` (${fmt('qb_page_of', language, {
+                  page: localDigits(results.page, language),
+                  total: localDigits(results.total_pages, language),
+                })})`}
             </p>
 
             <div className="space-y-3">
@@ -125,7 +128,7 @@ export default function QuranSearch() {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded">
-                      {match.surah_name} {match.surah_number}:{match.ayah_number}
+                      {match.surah_name} {localDigits(`${match.surah_number}:${match.ayah_number}`, language)}
                     </span>
                     <span className="text-xs text-gray-400" dir="rtl" lang="ar">{match.surah_name_ar}</span>
                   </div>
@@ -141,17 +144,17 @@ export default function QuranSearch() {
                   disabled={page <= 1}
                   className="px-3 py-2 rounded border border-gray-300 text-sm disabled:opacity-40 hover:bg-gray-50"
                 >
-                  {language === 'bn' ? 'আগের' : 'Prev'}
+                  {tr('qb_prev', language)}
                 </button>
                 <span className="px-3 py-2 text-sm text-gray-600">
-                  {page} / {results.total_pages}
+                  {localDigits(`${page} / ${results.total_pages}`, language)}
                 </span>
                 <button
                   onClick={() => handlePage(page + 1)}
                   disabled={page >= results.total_pages}
                   className="px-3 py-2 rounded border border-gray-300 text-sm disabled:opacity-40 hover:bg-gray-50"
                 >
-                  {language === 'bn' ? 'পরের' : 'Next'}
+                  {tr('qb_next', language)}
                 </button>
               </div>
             )}
@@ -159,10 +162,10 @@ export default function QuranSearch() {
             {results.matches.length === 0 && (
               <div className="text-center py-12 text-gray-500">
                 <p className="text-lg mb-2">
-                  {language === 'bn' ? 'কোনো ফলাফল পাওয়া যায়নি' : 'No results found'}
+                  {tr('qb_no_results', language)}
                 </p>
                 <p className="text-sm">
-                  {language === 'bn' ? 'অন্য শব্দ দিয়ে চেষ্টা করুন' : 'Try different keywords'}
+                  {tr('qb_try_different', language)}
                 </p>
               </div>
             )}

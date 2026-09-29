@@ -11,6 +11,7 @@ import { getLocalBookUri, ensureBookDownloaded } from '../../../../../lib/offlin
 import { Pdf } from '../../../../../lib/pdfViewer';
 import { useApp } from '../../../../../context/AppContext';
 import { tr } from '../../../../../data/translations';
+import { getBookPosition, saveBookPosition } from '../../../../../lib/saved';
 
 function flattenChapters(nodes: BookChapter[], depth = 0, out: { node: BookChapter; depth: number }[] = []) {
   for (const node of nodes) {
@@ -24,7 +25,9 @@ export default function BookReaderScreen() {
   const { language } = useApp();
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const insets = useSafeAreaInsets();
-  const [activeChapterId, setActiveChapterId] = useState<number | null>(null);
+  // Resume where the reader left off (chapter for text books, page for PDFs).
+  const [saved] = useState(() => getBookPosition(slug));
+  const [activeChapterId, setActiveChapterId] = useState<number | null>(saved?.chapterId ?? null);
   const [tocOpen, setTocOpen] = useState(false);
   const [pdfError, setPdfError] = useState(false);
   const [localPdfUri, setLocalPdfUri] = useState<string | null>(() => getLocalBookUri(slug));
@@ -62,6 +65,11 @@ export default function BookReaderScreen() {
 
   const currentId = activeChapterId ?? readable[0]?.node.id ?? null;
   const currentIdx = readable.findIndex((f) => f.node.id === currentId);
+
+  useEffect(() => {
+    const node = readable.find((f) => f.node.id === currentId)?.node;
+    if (node) saveBookPosition(slug, { chapterId: node.id, chapterTitle: node.title });
+  }, [currentId, readable, slug]);
 
   const { data: chapter } = useQuery({
     queryKey: ['book-chapter', slug, currentId],
@@ -102,6 +110,8 @@ export default function BookReaderScreen() {
         ) : localPdfUri && Pdf ? (
           <Pdf
             source={{ uri: localPdfUri }}
+            page={saved?.page ?? 1}
+            onPageChanged={(page: number) => saveBookPosition(slug, { page })}
             style={{ flex: 1, backgroundColor: '#0a0c11' }}
             renderActivityIndicator={() => <ActivityIndicator color="#fff" />}
             onError={() => setPdfError(true)}
@@ -128,7 +138,12 @@ export default function BookReaderScreen() {
         <Text className="font-body-semibold text-base text-ink-900 dark:text-white flex-1" numberOfLines={1}>
           {book?.title ?? tr('books_read_now', language)}
         </Text>
-        <TouchableOpacity onPress={() => setTocOpen(true)} className="p-1.5">
+        <TouchableOpacity
+          onPress={() => setTocOpen(true)}
+          className="p-1.5"
+          accessibilityRole="button"
+          accessibilityLabel={tr('books_contents', language)}
+        >
           <Ionicons name="list" size={20} color="#5b6579" />
         </TouchableOpacity>
       </View>
@@ -173,7 +188,7 @@ export default function BookReaderScreen() {
         <View className="flex-1 bg-white dark:bg-ink-950" style={{ paddingTop: insets.top + 8 }}>
           <View className="flex-row items-center justify-between px-4 mb-3">
             <Text className="font-body-bold text-lg text-ink-900 dark:text-white">{tr('books_contents', language)}</Text>
-            <TouchableOpacity onPress={() => setTocOpen(false)}>
+            <TouchableOpacity onPress={() => setTocOpen(false)} accessibilityRole="button" accessibilityLabel={tr('close', language)}>
               <Ionicons name="close" size={24} color="#5b6579" />
             </TouchableOpacity>
           </View>

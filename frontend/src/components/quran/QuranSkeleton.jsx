@@ -2,9 +2,18 @@
  * Shimmer skeleton for the QuranReader ayah list.
  * Shows 5 placeholder ayah cards that match the real card layout.
  */
+import { useApp } from '../../context/AppContext.jsx';
+import { tr } from '../../i18n/translations.js';
+
 export default function QuranSkeleton() {
+  const { language } = useApp();
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 mx-4 mb-4 overflow-hidden">
+    <div
+      className="bg-white rounded-xl shadow-sm border border-gray-100 mx-4 mb-4 overflow-hidden"
+      role="status"
+      aria-busy="true"
+      aria-label={tr('quran_loading', language)}
+    >
       {[...Array(5)].map((_, i) => (
         <AyahSkeleton key={i} last={i === 4} wide={i % 2 === 0} />
       ))}

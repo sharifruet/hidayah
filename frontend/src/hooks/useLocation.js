@@ -1,11 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { searchLocations, getLocationByCoordinates } from '../services/locationService.js';
 import { validateBangladeshBounds } from '../utils/validators.js';
+import { useAppLocale } from '../context/AppContext.jsx';
+import { tr } from '../i18n/translations.js';
 
 /**
- * Hook for location search and geolocation
+ * Hook for location search and geolocation. `error` is a localized, user-facing message
+ * (the hook stores a translation key so it follows language changes).
  */
 export function useLocation() {
+  const { language } = useAppLocale();
   const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -15,7 +19,6 @@ export function useLocation() {
    */
   const search = useCallback(async (query) => {
     if (!query || query.trim().length === 0) {
-      setError('Search query is required');
       return [];
     }
 
@@ -25,8 +28,8 @@ export function useLocation() {
     try {
       const response = await searchLocations(query.trim());
       return response.results || [];
-    } catch (err) {
-      setError(err.message || 'Failed to search locations');
+    } catch {
+      setError('pr_loc_search_failed');
       return [];
     } finally {
       setLoading(false);
@@ -39,7 +42,7 @@ export function useLocation() {
   const getByCoordinates = useCallback(async (lat, lng) => {
     const validation = validateBangladeshBounds(lat, lng);
     if (!validation.valid) {
-      setError(validation.error);
+      setError('pr_loc_outside_bd');
       return null;
     }
 
@@ -50,8 +53,8 @@ export function useLocation() {
       const locationData = await getLocationByCoordinates(lat, lng);
       setLocation(locationData);
       return locationData;
-    } catch (err) {
-      setError(err.message || 'Failed to get location');
+    } catch {
+      setError('pr_loc_lookup_failed');
       return null;
     } finally {
       setLoading(false);
@@ -63,7 +66,7 @@ export function useLocation() {
    */
   const getCurrentLocation = useCallback(() => {
     if (!navigator.geolocation) {
-      setError('Geolocation is not supported by your browser');
+      setError('pr_geo_unsupported');
       return Promise.reject(new Error('Geolocation not supported'));
     }
 
@@ -78,16 +81,15 @@ export function useLocation() {
             const locationData = await getByCoordinates(latitude, longitude);
             resolve(locationData);
           } catch (error) {
-            setError(error.message || 'Failed to get location data');
+            setError('pr_loc_lookup_failed');
             setLoading(false);
             reject(error);
           }
         },
         (err) => {
-          const errorMessage = err.message || 'Failed to get current location';
-          setError(errorMessage);
+          setError('pr_geo_failed');
           setLoading(false);
-          reject(new Error(errorMessage));
+          reject(new Error(err.message || 'Failed to get current location'));
         },
         {
           enableHighAccuracy: true,
@@ -109,7 +111,7 @@ export function useLocation() {
   return {
     location,
     loading,
-    error,
+    error: error ? tr(error, language) : null,
     search,
     getByCoordinates,
     getCurrentLocation,

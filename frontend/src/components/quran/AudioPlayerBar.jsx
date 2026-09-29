@@ -1,5 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { resolveAudioUrl } from '../../services/quranService.js';
+import { tr, fmt } from '../../i18n/translations.js';
+import { localDigits } from '../../utils/format.js';
 
 export default function AudioPlayerBar({
   surah,
@@ -34,6 +36,8 @@ export default function AudioPlayerBar({
     audioRef.current.src = audioUrl;
     audioRef.current.playbackRate = speed;
     audioRef.current.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+    // Only a new ayah/reciter reloads the audio; speed changes are applied by the effect below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioUrl]);
 
   // Sync speed without reloading
@@ -138,12 +142,12 @@ export default function AudioPlayerBar({
             <span className="font-medium text-gray-900 dark:text-gray-100">{surah.name_en}</span>
             {' '}
             <span className="text-gray-500">
-              {language === 'bn' ? 'আয়াত' : 'Ayah'} {ayah.number}
+              {fmt('qr_ayah_n', language, { n: localDigits(ayah.number, language) })}
             </span>
             {/* Repeat indicator */}
             {repeat > 1 && (
-              <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full">
-                {loopCount}/{repeat}
+              <span className="ms-2 text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full">
+                {localDigits(`${loopCount}/${repeat}`, language)}
               </span>
             )}
           </div>
@@ -152,10 +156,11 @@ export default function AudioPlayerBar({
               value={speed}
               onChange={(e) => setSpeed(parseFloat(e.target.value))}
               className="text-xs border border-gray-200 rounded px-1 py-0.5"
-              aria-label="Playback speed"
+              aria-label={tr('qr_playback_speed', language)}
+              title={tr('qr_playback_speed', language)}
             >
               {[0.75, 1, 1.25, 1.5].map((s) => (
-                <option key={s} value={s}>{s}x</option>
+                <option key={s} value={s}>{localDigits(s, language)}×</option>
               ))}
             </select>
 
@@ -164,26 +169,26 @@ export default function AudioPlayerBar({
               value={sleepMinutes}
               onChange={(e) => startSleepTimer(parseInt(e.target.value))}
               className="text-xs border border-gray-200 rounded px-1 py-0.5"
-              aria-label="Sleep timer"
-              title="Sleep timer"
+              aria-label={tr('qr_sleep_timer', language)}
+              title={tr('qr_sleep_timer', language)}
             >
               <option value={0}>⏾</option>
               {[5, 10, 15, 20, 30, 45, 60].map((m) => (
-                <option key={m} value={m}>{m}m</option>
+                <option key={m} value={m}>{localDigits(m, language)} {tr('minutes_short', language)}</option>
               ))}
             </select>
 
             {/* Sleep countdown */}
             {sleepRemaining > 0 && (
               <span className="text-xs text-purple-600 font-medium tabular-nums">
-                {Math.floor(sleepRemaining / 60)}:{String(sleepRemaining % 60).padStart(2, '0')}
+                {localDigits(`${Math.floor(sleepRemaining / 60)}:${String(sleepRemaining % 60).padStart(2, '0')}`, language)}
               </span>
             )}
 
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600"
-              aria-label="Close player"
+              aria-label={tr('qr_close_player', language)}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -200,7 +205,7 @@ export default function AudioPlayerBar({
           value={progress}
           onChange={handleSeek}
           className="w-full h-1 mb-2 accent-green-600"
-          aria-label="Seek"
+          aria-label={tr('qr_seek', language)}
         />
 
         {/* Controls */}
@@ -209,7 +214,7 @@ export default function AudioPlayerBar({
             onClick={prevAyah}
             disabled={currentIdx <= 0}
             className="text-gray-500 hover:text-gray-800 disabled:opacity-30"
-            aria-label="Previous ayah"
+            aria-label={tr('qr_prev_ayah', language)}
           >
             <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -219,7 +224,7 @@ export default function AudioPlayerBar({
           <button
             onClick={togglePlay}
             className="w-10 h-10 flex items-center justify-center rounded-full bg-green-600 text-white hover:bg-green-700"
-            aria-label={isPlaying ? 'Pause' : 'Play'}
+            aria-label={tr(isPlaying ? 'qr_pause' : 'play', language)}
           >
             {isPlaying ? (
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -236,7 +241,7 @@ export default function AudioPlayerBar({
             onClick={nextAyah}
             disabled={currentIdx >= ayahs.length - 1}
             className="text-gray-500 hover:text-gray-800 disabled:opacity-30"
-            aria-label="Next ayah"
+            aria-label={tr('qr_next_ayah', language)}
           >
             <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />

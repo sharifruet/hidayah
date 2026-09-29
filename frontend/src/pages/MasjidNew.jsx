@@ -6,6 +6,7 @@ import { tr } from '../i18n/translations.js';
 import { createMasjid } from '../services/masjidService.js';
 import MasjidMap from '../components/masjid/MasjidMap.jsx';
 import JamahTimesFields from '../components/masjid/JamahTimesFields.jsx';
+import ErrorMessage from '../components/common/ErrorMessage.jsx';
 import { jamahFormToBody, jamahToForm } from '../utils/masjid.js';
 
 const inputCls = 'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500';
@@ -24,12 +25,14 @@ export default function MasjidNew() {
   const [jamah, setJamah] = useState(jamahToForm());
   const [locating, setLocating] = useState(false);
   const [validationError, setValidationError] = useState('');
+  const [geoError, setGeoError] = useState('');
 
   const setPin = useCallback((lat, lng) => {
     setCoords({ lat, lng });
     setLatInput(lat.toFixed(6));
     setLngInput(lng.toFixed(6));
     setValidationError('');
+    setGeoError('');
   }, []);
 
   const handleCoordInput = (which, value) => {
@@ -42,11 +45,15 @@ export default function MasjidNew() {
   };
 
   const useMyLocation = () => {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) {
+      setGeoError('pr_geo_unsupported');
+      return;
+    }
     setLocating(true);
+    setGeoError('');
     navigator.geolocation.getCurrentPosition(
       (pos) => { setPin(pos.coords.latitude, pos.coords.longitude); setLocating(false); },
-      () => setLocating(false),
+      () => { setGeoError('pr_geo_failed'); setLocating(false); },
       { enableHighAccuracy: true, timeout: 10000 }
     );
   };
@@ -158,24 +165,21 @@ export default function MasjidNew() {
               <p className="text-xs text-gray-500 dark:text-gray-400">{tr('masjid_coords_hint', language)}</p>
               <div className="grid grid-cols-2 gap-3">
                 <input
-                  type="number" step="any" placeholder="Latitude"
+                  type="number" step="any" placeholder={tr('pr_latitude', language)} aria-label={tr('pr_latitude', language)}
                   value={latInput} onChange={(e) => handleCoordInput('lat', e.target.value)}
                   className={inputCls + ' font-mono'}
                 />
                 <input
-                  type="number" step="any" placeholder="Longitude"
+                  type="number" step="any" placeholder={tr('pr_longitude', language)} aria-label={tr('pr_longitude', language)}
                   value={lngInput} onChange={(e) => handleCoordInput('lng', e.target.value)}
                   className={inputCls + ' font-mono'}
                 />
               </div>
+              {geoError && <p className="text-xs text-amber-600 dark:text-amber-400">{tr(geoError, language)}</p>}
               {validationError && <p className="text-sm text-red-600 dark:text-red-400">{validationError}</p>}
             </div>
 
-            {mutation.isError && (
-              <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">
-                {mutation.error?.message || tr('error_generic', language)}
-              </p>
-            )}
+            {mutation.isError && <ErrorMessage error={mutation.error} />}
 
             <div className="flex justify-end gap-3">
               <Link to="/masjids" className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:underline">

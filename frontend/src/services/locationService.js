@@ -35,7 +35,9 @@ export async function getLocationByCoordinates(lat, lng) {
       name: response.location?.name || null,
       name_bengali: response.location?.name_bengali || null,
       district: response.location?.district || null,
+      district_bengali: response.location?.district_bengali || null,
       division: response.location?.division || null,
+      division_bengali: response.location?.division_bengali || null,
       timezone: response.location?.timezone || '+06:00'
     };
   } catch (error) {

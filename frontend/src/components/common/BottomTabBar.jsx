@@ -1,11 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext.jsx';
+import { tr } from '../../i18n/translations.js';
 
 const TABS = [
   {
     path: '/',
     exact: true,
-    label: { en: 'Home',    bn: 'হোম',   ur: 'ہوم',   tr: 'Ana',    id: 'Beranda' },
+    labelKey: 'ct_tab_home',
     icon: (active) => (
       <svg className="w-6 h-6" fill={active ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={active ? 0 : 2}
@@ -19,7 +20,7 @@ const TABS = [
   },
   {
     path: '/prayer-times',
-    label: { en: 'Prayer', bn: 'সালাত', ur: 'نماز', tr: 'Namaz', id: 'Shalat' },
+    labelKey: 'ct_tab_prayer',
     icon: (active) => (
       <svg className="w-6 h-6" fill={active ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={active ? 0 : 2}
@@ -34,7 +35,7 @@ const TABS = [
   {
     path: '/quran',
     prefix: true,
-    label: { en: "Qur'an", bn: 'কুরআন', ur: 'قرآن', tr: "Kur'an", id: "Qur'an" },
+    labelKey: 'nav_quran',
     icon: (active) => (
       <svg className="w-6 h-6" fill={active ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={active ? 0 : 2}
@@ -45,7 +46,7 @@ const TABS = [
   },
   {
     path: '/books',
-    label: { en: 'Books', bn: 'বই', ur: 'کتب', tr: 'Kitaplar', id: 'Buku' },
+    labelKey: 'nav_books',
     icon: (active) => (
       <svg className="w-6 h-6" fill={active ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={active ? 0 : 2}
@@ -56,7 +57,7 @@ const TABS = [
   },
   {
     path: '/settings',
-    label: { en: 'Settings', bn: 'সেটিংস', ur: 'ترتیبات', tr: 'Ayarlar', id: 'Pengaturan' },
+    labelKey: 'nav_settings',
     icon: (active) => (
       <svg className="w-6 h-6" fill={active ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={active ? 0 : 2}
@@ -74,7 +75,7 @@ export default function BottomTabBar() {
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex sm:hidden"
-      aria-label="Main navigation"
+      aria-label={tr('ct_main_nav', language)}
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       {TABS.map((tab) => {
@@ -96,7 +97,7 @@ export default function BottomTabBar() {
             aria-current={active ? 'page' : undefined}
           >
             {tab.icon(active)}
-            <span>{tab.label[language] || tab.label.en}</span>
+            <span>{tr(tab.labelKey, language)}</span>
           </Link>
         );
       })}

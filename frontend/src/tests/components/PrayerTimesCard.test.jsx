@@ -22,6 +22,9 @@ describe('PrayerTimesCard', () => {
       },
     });
     vi.clearAllMocks();
+    // Bangla is the app default; pin English + 12-hour so assertions are stable.
+    localStorage.setItem('app_language', 'en');
+    localStorage.setItem('app_time_format', '12h');
   });
 
   const renderWithProviders = (component) => {
@@ -68,19 +71,23 @@ describe('PrayerTimesCard', () => {
     renderWithProviders(<PrayerTimesCard />);
 
     await waitFor(() => {
-      expect(screen.getByText('04:45')).toBeInTheDocument();
-      expect(screen.getByText('12:15')).toBeInTheDocument();
-      expect(screen.getByText('18:30')).toBeInTheDocument();
+      expect(screen.getByText('4:45 AM')).toBeInTheDocument();
+      expect(screen.getByText('12:15 PM')).toBeInTheDocument();
+      expect(screen.getByText('6:30 PM')).toBeInTheDocument();
     });
   });
 
-  it('should render error message on error', async () => {
+  it('should render a localized error message with retry on error', async () => {
     prayerTimesService.getPrayerTimes.mockRejectedValue(new Error('API Error'));
 
     renderWithProviders(<PrayerTimesCard />);
 
     await waitFor(() => {
-      expect(screen.getByText(/error/i)).toBeInTheDocument();
+      expect(screen.getByRole('alert')).toBeInTheDocument();
     });
+    expect(screen.getByText("Couldn't load prayer times.")).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+    // Raw error text is never shown to users
+    expect(screen.queryByText(/API Error/)).not.toBeInTheDocument();
   });
 });

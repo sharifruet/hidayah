@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext.jsx';
 import { usePrayerTimes } from '../../hooks/usePrayerTimes.js';
+import { tr } from '../../i18n/translations.js';
+import { formatTime, localDigits } from '../../utils/format.js';
+import ErrorMessage from '../common/ErrorMessage.jsx';
 
 const PRAYERS = [
-  { key: 'fajr',    en: 'Fajr',    bn: 'ফজর',      above: true,  dot: 'bg-indigo-300',  line: 'bg-indigo-200',  label: 'text-indigo-600 dark:text-indigo-400',  time: 'text-indigo-400 dark:text-indigo-500'  },
-  { key: 'sunrise', en: 'Sunrise', bn: 'সূর্যোদয়', above: false, dot: 'bg-amber-300',   line: 'bg-amber-200',   label: 'text-amber-600 dark:text-amber-400',    time: 'text-amber-400 dark:text-amber-500'    },
-  { key: 'dhuhr',   en: 'Dhuhr',  bn: 'যোহর',     above: true,  dot: 'bg-yellow-300',  line: 'bg-yellow-200',  label: 'text-yellow-600 dark:text-yellow-400',  time: 'text-yellow-400 dark:text-yellow-500'  },
-  { key: 'asr',     en: 'Asr',    bn: 'আসর',      above: false, dot: 'bg-orange-300',  line: 'bg-orange-200',  label: 'text-orange-600 dark:text-orange-400',  time: 'text-orange-400 dark:text-orange-500'  },
-  { key: 'maghrib', en: 'Maghrib', bn: 'মাগরিব',  above: true,  dot: 'bg-rose-300',    line: 'bg-rose-200',    label: 'text-rose-600 dark:text-rose-400',      time: 'text-rose-400 dark:text-rose-500'      },
-  { key: 'isha',    en: 'Isha',   bn: 'ইশা',      above: false, dot: 'bg-violet-300',  line: 'bg-violet-200',  label: 'text-violet-600 dark:text-violet-400',  time: 'text-violet-400 dark:text-violet-500'  },
+  { key: 'fajr',    above: true,  dot: 'bg-indigo-300',  line: 'bg-indigo-200',  label: 'text-indigo-600 dark:text-indigo-400',  time: 'text-indigo-400 dark:text-indigo-500'  },
+  { key: 'sunrise', above: false, dot: 'bg-amber-300',   line: 'bg-amber-200',   label: 'text-amber-600 dark:text-amber-400',    time: 'text-amber-400 dark:text-amber-500'    },
+  { key: 'dhuhr',   above: true,  dot: 'bg-yellow-300',  line: 'bg-yellow-200',  label: 'text-yellow-600 dark:text-yellow-400',  time: 'text-yellow-400 dark:text-yellow-500'  },
+  { key: 'asr',     above: false, dot: 'bg-orange-300',  line: 'bg-orange-200',  label: 'text-orange-600 dark:text-orange-400',  time: 'text-orange-400 dark:text-orange-500'  },
+  { key: 'maghrib', above: true,  dot: 'bg-rose-300',    line: 'bg-rose-200',    label: 'text-rose-600 dark:text-rose-400',      time: 'text-rose-400 dark:text-rose-500'      },
+  { key: 'isha',    above: false, dot: 'bg-violet-300',  line: 'bg-violet-200',  label: 'text-violet-600 dark:text-violet-400',  time: 'text-violet-400 dark:text-violet-500'  },
 ];
 
 // Colored bands painted on the track between salah periods
@@ -49,9 +52,18 @@ const BELOW_H = 52;
 const TOTAL_H = ABOVE_H + TRACK_H + BELOW_H;
 const TRACK_Y = ABOVE_H;
 
+function TimelineCard({ title, children }) {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 px-5 pt-4 pb-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-3">{title}</p>
+      {children}
+    </div>
+  );
+}
+
 export default function PrayerTimeline() {
-  const { location, method, language } = useApp();
-  const { data, isLoading } = usePrayerTimes(location.lat, location.lng, new Date(), method);
+  const { location, method, language, timeFormat } = useApp();
+  const { data, isLoading, error, refetch } = usePrayerTimes(location.lat, location.lng, new Date(), method);
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -60,11 +72,18 @@ export default function PrayerTimeline() {
   }, []);
 
   const nowMins = now.getHours() * 60 + now.getMinutes();
-  const nowLabel = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const nowLabel = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const title = tr('pr_today_times', language);
+  const shortTime = (hhmm) => formatTime(hhmm, language, timeFormat, { withPeriod: false });
 
-  if (isLoading || !data?.times) return null;
-
-  const isBn = language === 'bn';
+  if (isLoading) return null;
+  if (error || !data?.times) {
+    return (
+      <TimelineCard title={title}>
+        <ErrorMessage variant="inline" error={tr('error_load_times', language)} onRetry={refetch} className="pb-1" />
+      </TimelineCard>
+    );
+  }
   const nowPct = toPct(nowMins);
 
   // Precompute prayer minute positions
@@ -89,12 +108,8 @@ export default function PrayerTimeline() {
   });
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 px-5 pt-4 pb-3">
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-3">
-        {isBn ? 'আজকের সালাতের সময়' : "Today's Prayer Times"}
-      </p>
-
-      <div className="relative w-full" style={{ height: TOTAL_H }}>
+    <TimelineCard title={title}>
+      <div className="relative w-full" style={{ height: TOTAL_H }} dir="ltr">
 
         {/* ── Base track ── */}
         <div
@@ -130,7 +145,7 @@ export default function PrayerTimeline() {
                 className="absolute left-1/2 -translate-x-1/2 text-gray-300 dark:text-gray-600 select-none"
                 style={{ top: TRACK_H + 4, fontSize: 9, whiteSpace: 'nowrap' }}
               >
-                {label}
+                {localDigits(label, language)}
               </span>
             )}
           </div>
@@ -165,10 +180,10 @@ export default function PrayerTimeline() {
                 }
               >
                 <div className={`text-[10px] font-semibold leading-tight ${p.label}`}>
-                  {isBn ? p.bn : p.en}
+                  {tr(`prayer_${p.key}`, language)}
                 </div>
                 <div className={`text-[9px] leading-tight tabular-nums ${p.time}`}>
-                  {data.times[p.key]}
+                  {shortTime(data.times[p.key])}
                 </div>
               </div>
             </div>
@@ -190,11 +205,11 @@ export default function PrayerTimeline() {
             className="absolute left-1/2 -translate-x-1/2 bg-red-400 text-white rounded px-1 leading-none tabular-nums"
             style={{ top: 0, fontSize: 9, paddingTop: 2, paddingBottom: 2, whiteSpace: 'nowrap' }}
           >
-            {nowLabel}
+            {shortTime(nowLabel)}
           </div>
         </div>
 
       </div>
-    </div>
+    </TimelineCard>
   );
 }

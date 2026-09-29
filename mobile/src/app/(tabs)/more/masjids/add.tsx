@@ -9,10 +9,12 @@ import { Card } from '../../../../components/ui/Card';
 import { JamahTimesFields } from '../../../../components/masjid/JamahTimesFields';
 import { useApp } from '../../../../context/AppContext';
 import { tr } from '../../../../data/translations';
+import { localDigits } from '../../../../lib/format';
 import { getCurrentCoords, reverseGeocode } from '../../../../lib/geocoding';
 import { masjidsService, type Masjid } from '../../../../lib/services/masjids';
 import { jamahFormIsValid, jamahFormToTimes, jamahToForm } from '../../../../lib/masjid';
 import { Palette } from '../../../../constants/theme';
+import { userErrorMessage } from '../../../../lib/errors';
 
 const inputCls = 'font-body text-base text-ink-900 dark:text-white bg-white dark:bg-ink-900 border border-ink-100 dark:border-ink-800 rounded-xl px-3 py-2.5';
 const labelCls = 'font-body-medium text-xs text-ink-500 dark:text-ink-400 mb-1 mt-3';
@@ -55,8 +57,8 @@ export default function AddMasjidScreen() {
         setLngInput(coords.lng.toFixed(6));
         setValidationError('');
         // Pre-fill city/district from the OS geocoder if the user hasn't typed them
-        const place = await reverseGeocode(coords.lat, coords.lng);
-        if (!city && place.name && place.name !== 'Current location') setCity(place.name);
+        const place = await reverseGeocode(coords.lat, coords.lng, language);
+        if (!city && place.name && !place.unnamed) setCity(place.name);
         if (!district && place.district) setDistrict(place.district);
       }
     } finally {
@@ -119,7 +121,7 @@ export default function AddMasjidScreen() {
             {locating
               ? tr('masjids_locating', language)
               : coordsValid
-                ? `${tr('masjid_location_set', language)} · ${lat.toFixed(5)}, ${lng.toFixed(5)}`
+                ? `${tr('masjid_location_set', language)} · ${localDigits(`${lat.toFixed(5)}, ${lng.toFixed(5)}`, language)}`
                 : tr('masjids_use_my_location', language)}
           </Text>
         </TouchableOpacity>
@@ -128,13 +130,13 @@ export default function AddMasjidScreen() {
         <View className="flex-row -mx-1">
           <View className="flex-1 px-1">
             <TextInput
-              value={latInput} onChangeText={setLatInput} placeholder="Latitude" placeholderTextColor="#7d879a"
+              value={latInput} onChangeText={setLatInput} placeholder={tr('masjid_latitude', language)} placeholderTextColor="#7d879a"
               keyboardType="numbers-and-punctuation" className={inputCls}
             />
           </View>
           <View className="flex-1 px-1">
             <TextInput
-              value={lngInput} onChangeText={setLngInput} placeholder="Longitude" placeholderTextColor="#7d879a"
+              value={lngInput} onChangeText={setLngInput} placeholder={tr('masjid_longitude', language)} placeholderTextColor="#7d879a"
               keyboardType="numbers-and-punctuation" className={inputCls}
             />
           </View>
@@ -168,7 +170,7 @@ export default function AddMasjidScreen() {
       {validationError ? <Text className="font-body text-sm text-red-500 mb-3">{validationError}</Text> : null}
       {mutation.isError ? (
         <Text className="font-body text-sm text-red-500 mb-3">
-          {(mutation.error as { message?: string })?.message ?? tr('error_generic', language)}
+          {userErrorMessage(mutation.error, language)}
         </Text>
       ) : null}
 

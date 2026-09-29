@@ -5,10 +5,12 @@ import { useQuery } from '@tanstack/react-query';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { fetchMushafPage, splitBasmalah } from '../../lib/services/quran';
+import { fetchMushafPage, revelationLabel, splitBasmalah } from '../../lib/services/quran';
+import { localDigits } from '../../lib/format';
 import { backOr } from '../../lib/navigation';
 import { useApp } from '../../context/AppContext';
 import { tr } from '../../data/translations';
+import { ErrorState } from '../ui/ErrorState';
 
 const MAX_PAGE = 604;
 
@@ -34,7 +36,7 @@ export function MushafScreen({ pageNumber }: { pageNumber: number }) {
 
   const valid = !isNaN(pageNumber) && pageNumber >= 1 && pageNumber <= MAX_PAGE;
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, error, refetch, isRefetching } = useQuery({
     queryKey: ['mushaf-page', pageNumber],
     queryFn: () => fetchMushafPage(pageNumber, []),
     enabled: valid,
@@ -79,8 +81,8 @@ export function MushafScreen({ pageNumber }: { pageNumber: number }) {
 
         <View className="flex-1 items-center">
           <Text className="font-body-semibold text-sm text-green-900 dark:text-green-400">
-            {tr('quran_mushaf_page', language)} {pageNumber}
-            {pageData ? `  ·  ${tr('quran_mushaf_juz', language)} ${pageData.juz}` : ''}
+            {tr('quran_mushaf_page', language)} {localDigits(pageNumber, language)}
+            {pageData ? `  ·  ${tr('quran_mushaf_juz', language)} ${localDigits(pageData.juz, language)}` : ''}
           </Text>
         </View>
 
@@ -104,7 +106,7 @@ export function MushafScreen({ pageNumber }: { pageNumber: number }) {
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }}>
         {isLoading ? <ActivityIndicator color="#166534" style={{ marginTop: 24 }} /> : null}
-        {isError ? <Text className="font-body text-sm text-red-500 text-center mt-6">{tr('error_generic', language)}</Text> : null}
+        {isError ? <ErrorState error={error} onRetry={refetch} retrying={isRefetching} /> : null}
 
         {pageData?.surahs.map((surah, idx) => (
           <View key={surah.number} className={idx > 0 ? 'mt-8' : ''}>
@@ -116,7 +118,8 @@ export function MushafScreen({ pageNumber }: { pageNumber: number }) {
                       {surah.name_ar}
                     </Text>
                     <Text className="font-body-medium text-xs text-green-800 dark:text-green-500 text-center mt-1">
-                      {surah.name_en} · {surah.ayah_count} {tr('quran_ayahs', language)} · {surah.revelation_type}
+                      {surah.name_en} · {localDigits(surah.ayah_count, language)} {tr('quran_ayahs', language)} ·{' '}
+                      {revelationLabel(surah.revelation_type, language)}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -142,7 +145,7 @@ export function MushafScreen({ pageNumber }: { pageNumber: number }) {
         {pageData ? (
           <View className="flex-row items-center justify-center gap-3 mt-10">
             <View className="flex-1 h-px bg-amber-200 dark:bg-ink-800" />
-            <Text className="font-body-medium text-xs text-green-800 dark:text-green-600">{pageNumber}</Text>
+            <Text className="font-body-medium text-xs text-green-800 dark:text-green-600">{localDigits(pageNumber, language)}</Text>
             <View className="flex-1 h-px bg-amber-200 dark:bg-ink-800" />
           </View>
         ) : null}

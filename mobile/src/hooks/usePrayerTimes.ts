@@ -1,20 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
 import { useApp } from '../context/AppContext';
-import { getPrayerTimes } from '../lib/services/prayer';
+import { localPrayerTimes } from '../lib/prayerCalc';
 import { getDeviceTimezoneOffset } from '../lib/prayerMath';
+import { localISODate } from '../lib/dates';
 
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
+/** Prayer times for the current location/method, computed on-device so they work offline. */
 export function usePrayerTimes(dateOverride?: string) {
   const { location, method } = useApp();
-  const date = dateOverride ?? todayISO();
+  const date = dateOverride ?? localISODate();
   const timezone = getDeviceTimezoneOffset();
 
   return useQuery({
     queryKey: ['prayer-times', location.lat, location.lng, method, date, timezone],
-    queryFn: () => getPrayerTimes(location.lat, location.lng, date, method, { timezone }),
-    staleTime: 5 * 60 * 1000,
+    queryFn: () => localPrayerTimes(location.lat, location.lng, date, method),
+    staleTime: Infinity,
+    networkMode: 'always',
   });
 }

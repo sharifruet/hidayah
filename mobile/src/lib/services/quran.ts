@@ -1,4 +1,15 @@
+import { tr } from '../../data/translations';
+import type { LanguageCode } from '../constants';
 import apiClient from '../api';
+
+/** "Meccan"/"Medinan" from the API → the UI language; anything else is shown as-is. */
+export function revelationLabel(type: string | null | undefined, language: LanguageCode): string {
+  if (!type) return '';
+  const t = type.toLowerCase();
+  if (t.startsWith('mecca') || t.startsWith('makk')) return tr('quran_meccan', language);
+  if (t.startsWith('medin') || t.startsWith('madan')) return tr('quran_medinan', language);
+  return type;
+}
 
 export interface Surah {
   number: number;
@@ -134,8 +145,17 @@ export function resolveAudioUrl(template: string, surahNumber: number, ayahNumbe
   return template.replace('{surah3}', surah3).replace('{ayah3}', ayah3);
 }
 
-export async function fetchWordByWord(surahNumber: number) {
-  return apiClient.get(`/quran/surahs/${surahNumber}/words`);
+export interface QuranWord {
+  position: number;
+  text_ar: string;
+  transliteration: string;
+  /** Meaning in the requested language (bn/en/ur/id/tr). */
+  gloss: string;
+}
+
+/** Word-by-word breakdown of a surah, keyed by ayah number. */
+export async function fetchWordByWord(surahNumber: number, lang = 'en'): Promise<{ data: Record<string, QuranWord[]> }> {
+  return apiClient.get(`/quran/surahs/${surahNumber}/words`, { params: { lang } });
 }
 
 export async function fetchTafsir(surahNumber: number, ayahNumber: number, edition = 'en.kathir') {

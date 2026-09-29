@@ -4,6 +4,9 @@ import { Link } from 'react-router-dom';
 import { MAP_CONFIG } from '../../utils/constants.js';
 import { fixLeafletDefaultIcon, masjidIcon } from '../map/leafletIcon.js';
 import { formatDistance } from '../../utils/masjid.js';
+import { useApp } from '../../context/AppContext.jsx';
+import { tr } from '../../i18n/translations.js';
+import { bnOr } from '../../utils/format.js';
 
 fixLeafletDefaultIcon();
 
@@ -36,6 +39,7 @@ export default function MasjidMap({
   onMapClick = null,
   height = '360px',
 }) {
+  const { language } = useApp();
   const mapCenter = center || userLocation || MAP_CONFIG.center;
 
   return (
@@ -58,7 +62,7 @@ export default function MasjidMap({
         {userLocation && (
           <>
             <Marker position={userLocation}>
-              <Popup>You are here</Popup>
+              <Popup>{tr('pr_you_are_here', language)}</Popup>
             </Marker>
             {radiusKm && (
               <Circle
@@ -79,11 +83,11 @@ export default function MasjidMap({
             <Popup>
               <div className="text-sm">
                 <Link to={`/masjids/${m.id}`} className="font-semibold text-primary-700 hover:underline">
-                  {m.name}
+                  {bnOr(language, m.name_bn, m.name)}
                 </Link>
                 {m.address && <div className="text-gray-600 text-xs mt-0.5">{m.address}</div>}
                 {m.distance_km != null && (
-                  <div className="text-gray-500 text-xs mt-0.5">{formatDistance(m.distance_km)}</div>
+                  <div className="text-gray-500 text-xs mt-0.5">{formatDistance(m.distance_km, language)}</div>
                 )}
               </div>
             </Popup>

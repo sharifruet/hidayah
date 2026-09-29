@@ -1,8 +1,11 @@
 import { useRef, useEffect, useState } from 'react';
+import { tr, fmt } from '../../i18n/translations.js';
+import { localDigits } from '../../utils/format.js';
 
 const CARD_W = 1080;
 const SQUARE_H = 1080;
 const STORY_H  = 1920;
+const RTL_TEXT = /[\u0590-\u08FF]/;
 
 /**
  * Wraps `text` into lines that fit within `maxWidth` pixels using `ctx` metrics.
@@ -24,7 +27,7 @@ function wrapText(ctx, text, maxWidth) {
   return lines;
 }
 
-function drawCard(canvas, { arabicText, translationText, reference, theme, format }) {
+function drawCard(canvas, { arabicText, translationText, reference, watermark, theme, format }) {
   const ctx = canvas.getContext('2d');
   const CARD_H = format === 'story' ? STORY_H : SQUARE_H;
   canvas.width  = CARD_W;
@@ -120,17 +123,21 @@ function drawCard(canvas, { arabicText, translationText, reference, theme, forma
   if (translationText) {
     const transFontBase = format === 'story' ? 44 : 36;
     const transFontSize = translationText.length > 200 ? transFontBase - 8 : translationText.length > 100 ? transFontBase - 4 : transFontBase;
+    // Translations may be in an RTL script (e.g. Urdu) — lay them out right-aligned.
+    const rtl = RTL_TEXT.test(translationText);
     ctx.font = `italic ${transFontSize}px 'Georgia', serif`;
     ctx.fillStyle = textColor;
-    ctx.textAlign = 'left';
+    ctx.direction = rtl ? 'rtl' : 'ltr';
+    ctx.textAlign = rtl ? 'right' : 'left';
 
     const transLines = wrapText(ctx, translationText, W);
     const transLineH = transFontSize * 1.55;
     const transY = divY + 48;
 
     transLines.forEach((line, i) => {
-      ctx.fillText(line, PAD, transY + i * transLineH);
+      ctx.fillText(line, rtl ? CARD_W - PAD : PAD, transY + i * transLineH);
     });
+    ctx.direction = 'ltr';
   }
 
   const refFontSize = format === 'story' ? 38 : 30;
@@ -151,7 +158,7 @@ function drawCard(canvas, { arabicText, translationText, reference, theme, forma
   // Watermark
   ctx.font = `400 ${format === 'story' ? 28 : 22}px 'Segoe UI', sans-serif`;
   ctx.fillStyle = mutedColor;
-  ctx.fillText('Hidayah', CARD_W / 2, CARD_H - 52);
+  ctx.fillText(watermark, CARD_W / 2, CARD_H - 52);
 }
 
 function wrapTextRTL(ctx, text, maxWidth) {
@@ -200,7 +207,8 @@ export default function AyahImageCard({ ayah, surahName, surahNumber, language, 
   const [theme, setTheme]   = useState('light');
   const [format, setFormat] = useState('square'); // 'square' | 'story'
 
-  const reference = `${surahName} (${surahNumber}:${ayah.number})`;
+  const reference = `${surahName} (${localDigits(`${surahNumber}:${ayah.number}`, language)})`;
+  const watermark = tr('app_name', language);
   const visibleTranslation = (ayah.translations || [])[0]?.text || '';
 
   useEffect(() => {
@@ -209,11 +217,12 @@ export default function AyahImageCard({ ayah, surahName, surahNumber, language, 
         arabicText:      ayah.text_ar,
         translationText: visibleTranslation,
         reference,
+        watermark,
         theme,
         format,
       });
     }
-  }, [ayah, theme, format, visibleTranslation, reference]);
+  }, [ayah, theme, format, visibleTranslation, reference, watermark]);
 
   function handleDownload() {
     const link = document.createElement('a');
@@ -233,9 +242,9 @@ export default function AyahImageCard({ ayah, surahName, surahNumber, language, 
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 dark:border-gray-700">
             <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
-              {language === 'bn' ? 'ছবি কার্ড তৈরি করুন' : 'Generate Image Card'}
+              {tr('qb_card_title', language)}
             </h3>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label={tr('qb_close', language)}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -268,7 +277,7 @@ export default function AyahImageCard({ ayah, surahName, surahNumber, language, 
                     : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-300'
                 }`}
               >
-                {language === 'bn' ? 'বর্গাকার (1:1)' : 'Square (1:1)'}
+                {fmt('qb_card_square', language, { ratio: localDigits('1:1', language) })}
               </button>
               <button
                 onClick={() => setFormat('story')}
@@ -278,7 +287,7 @@ export default function AyahImageCard({ ayah, surahName, surahNumber, language, 
                     : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-300'
                 }`}
               >
-                {language === 'bn' ? 'স্টোরি (9:16)' : 'Story (9:16)'}
+                {fmt('qb_card_story', language, { ratio: localDigits('9:16', language) })}
               </button>
             </div>
 
@@ -292,7 +301,7 @@ export default function AyahImageCard({ ayah, surahName, surahNumber, language, 
                     : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-300'
                 }`}
               >
-                {language === 'bn' ? 'হালকা' : 'Light'}
+                {tr('qb_card_light', language)}
               </button>
               <button
                 onClick={() => setTheme('dark')}
@@ -302,7 +311,7 @@ export default function AyahImageCard({ ayah, surahName, surahNumber, language, 
                     : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-300'
                 }`}
               >
-                {language === 'bn' ? 'গাঢ়' : 'Dark'}
+                {tr('qb_card_dark', language)}
               </button>
             </div>
 
@@ -313,7 +322,7 @@ export default function AyahImageCard({ ayah, surahName, surahNumber, language, 
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
-              {language === 'bn' ? 'PNG ডাউনলোড করুন' : 'Download PNG'}
+              {tr('qb_card_download', language)}
             </button>
           </div>
         </div>

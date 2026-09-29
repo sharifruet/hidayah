@@ -3,18 +3,22 @@ import { useApp } from '../../context/AppContext.jsx';
 import Loading from '../common/Loading.jsx';
 import ErrorMessage from '../common/ErrorMessage.jsx';
 import PrayerTimeItem from './PrayerTimeItem.jsx';
-import { formatDate, getCurrentPrayer, getTimeUntilNextPrayer, formatCountdown } from '../../utils/formatters.js';
-import { format } from 'date-fns';
-import { PRAYER_LABELS, PRAYER_LABELS_BN } from '../../utils/constants.js';
+import { getCurrentPrayer, getTimeUntilNextPrayer } from '../../utils/formatters.js';
+import { formatDate, formatDuration, formatTime } from '../../utils/format.js';
+import { tr } from '../../i18n/translations.js';
 import { useState, useEffect } from 'react';
+import { placeName } from '../../utils/place.js';
+
+const ROWS = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha'];
 
 export default function PrayerTimesCard({ date = new Date(), onMethodChange = null }) {
-  const { location, method, language } = useApp();
+  const { location, method, language, timeFormat } = useApp();
   const { data, isLoading, error, refetch } = usePrayerTimes(location.lat, location.lng, date, method);
   const [currentPrayer, setCurrentPrayer] = useState(null);
   const [countdown, setCountdown] = useState(null);
 
-  const labels = language === 'bn' ? PRAYER_LABELS_BN : PRAYER_LABELS;
+  const label = (key) => tr(`prayer_${key}`, language);
+  const time = (hhmm) => formatTime(hhmm, language, timeFormat);
 
   useEffect(() => {
     if (data?.times) {
@@ -40,79 +44,57 @@ export default function PrayerTimesCard({ date = new Date(), onMethodChange = nu
   }, [data]);
 
   if (isLoading) {
-    return <Loading message="Loading prayer times..." />;
+    return <Loading />;
   }
 
   if (error) {
-    return <ErrorMessage error={error} onRetry={refetch} />;
+    return <ErrorMessage error={error} title={tr('error_load_times', language)} onRetry={refetch} />;
   }
 
   if (!data?.times) {
-    return <ErrorMessage error="No prayer times data available" />;
+    return <ErrorMessage error={tr('error_load_times', language)} onRetry={refetch} />;
   }
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="mb-4">
         <h2 className="text-2xl font-bold text-gray-800">
-          {language === 'bn' ? 'সালাতের সময়' : 'Prayer Times'}
+          {tr('pr_title', language)}
         </h2>
         <p className="text-sm text-gray-600 mt-1">
-          {formatDate(date)} • {location.name || `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`}
+          {formatDate(date, language)} • {placeName(location, language) || `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`}
         </p>
       </div>
 
       {currentPrayer && countdown !== null && (
         <div className="mb-4 p-4 bg-primary-50 rounded-lg">
           <p className="text-sm text-gray-600">
-            {language === 'bn' ? 'পরবর্তী সালাত' : 'Next Prayer'}
+            {tr('widget_next', language)}
           </p>
           <p className="text-lg font-semibold text-primary-700">
-            {labels[currentPrayer.next]}: {data.times[currentPrayer.next]}
+            {label(currentPrayer.next)}: {time(data.times[currentPrayer.next])}
           </p>
           <p className="text-sm text-gray-600 mt-1">
-            {language === 'bn' ? 'সময় বাকি' : 'Time remaining'}: {formatCountdown(countdown)}
+            {tr('pr_time_remaining', language)}: {formatDuration(countdown, language)}
           </p>
         </div>
       )}
 
       <div className="space-y-2">
-        <PrayerTimeItem
-          label={labels.fajr}
-          time={data.times.fajr}
-          isCurrent={currentPrayer?.current === 'fajr'}
-        />
-        <PrayerTimeItem
-          label={labels.sunrise}
-          time={data.times.sunrise}
-          isCurrent={currentPrayer?.current === 'sunrise'}
-        />
-        <PrayerTimeItem
-          label={labels.dhuhr}
-          time={data.times.dhuhr}
-          isCurrent={currentPrayer?.current === 'dhuhr'}
-        />
-        <PrayerTimeItem
-          label={labels.asr}
-          time={data.times.asr}
-          isCurrent={currentPrayer?.current === 'asr'}
-        />
-        <PrayerTimeItem
-          label={labels.maghrib}
-          time={data.times.maghrib}
-          isCurrent={currentPrayer?.current === 'maghrib'}
-        />
-        <PrayerTimeItem
-          label={labels.isha}
-          time={data.times.isha}
-          isCurrent={currentPrayer?.current === 'isha'}
-        />
+        {ROWS.map((key) => (
+          <PrayerTimeItem
+            key={key}
+            label={label(key)}
+            time={time(data.times[key])}
+            isCurrent={currentPrayer?.current === key}
+          />
+        ))}
       </div>
 
       {onMethodChange && (
         <div className="mt-4 pt-4 border-t border-gray-200">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            {language === 'bn' ? 'গণনা পদ্ধতি' : 'Calculation Method'}
+            {tr('settings_calc_method', language)}
           </label>
           <select
             value={method}

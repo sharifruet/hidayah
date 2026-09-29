@@ -8,13 +8,15 @@ import { Screen } from '../../../../components/ui/Screen';
 import { hadithService, hadithLanguageFor, type HadithCollection } from '../../../../lib/services/hadith';
 import { useApp } from '../../../../context/AppContext';
 import { tr } from '../../../../data/translations';
+import { formatNumber, localDigits } from '../../../../lib/format';
+import { ErrorState } from '../../../../components/ui/ErrorState';
 
 export default function HadithCollectionsScreen() {
   const { language } = useApp();
   const [q, setQ] = useState('');
   const [submitted, setSubmitted] = useState('');
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, error, refetch, isRefetching } = useQuery({
     queryKey: ['hadith-collections'],
     queryFn: hadithService.listCollections,
     staleTime: 24 * 60 * 60 * 1000,
@@ -57,7 +59,7 @@ export default function HadithCollectionsScreen() {
       </View>
 
       {isError && collections.length === 0 && !showingSearch ? (
-        <Text className="font-body text-sm text-red-500 px-4 mb-2">{tr('error_generic', language)}</Text>
+        <ErrorState error={error} onRetry={refetch} retrying={isRefetching} />
       ) : null}
       {(isLoading && !showingSearch) || (searching && showingSearch) ? (
         <Text className="font-body text-sm text-ink-400 px-4">{tr('loading', language)}</Text>
@@ -79,7 +81,7 @@ export default function HadithCollectionsScreen() {
               className="bg-white dark:bg-ink-900 border border-ink-100 dark:border-ink-800 rounded-xl p-4 mb-2.5"
             >
               <Text className="font-body-medium text-xs text-primary-600 dark:text-primary-400 mb-1.5">
-                {item.collection_name} · #{item.hadithnumber}
+                {item.collection_name} · {tr('hadith_number', language)} {localDigits(item.hadithnumber, language)}
               </Text>
               <Text className="font-body text-sm text-ink-700 dark:text-ink-300" numberOfLines={3}>
                 {item.text}
@@ -103,7 +105,8 @@ export default function HadithCollectionsScreen() {
               <View className="flex-1 ml-3">
                 <Text className="font-body-semibold text-sm text-ink-900 dark:text-white">{item.name}</Text>
                 <Text className="font-body text-xs text-ink-400 mt-0.5">
-                  {item.total_hadiths} {tr('hadith_hadiths_count', language)} · {item.total_books} {tr('hadith_books_count', language)}
+                  {formatNumber(item.total_hadiths, language)} {tr('hadith_hadiths_count', language)} · {formatNumber(item.total_books, language)}{' '}
+                  {tr('hadith_books_count', language)}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color="#7d879a" />

@@ -5,6 +5,12 @@ import { useApp } from '../context/AppContext.jsx';
 import { fetchMushafPage, splitBasmalah } from '../services/quranService.js';
 import Loading from '../components/common/Loading.jsx';
 import ErrorMessage from '../components/common/ErrorMessage.jsx';
+import { tr, fmt } from '../i18n/translations.js';
+import { localDigits } from '../utils/format.js';
+
+const REVELATION_KEYS = { Meccan: 'qb_meccan', Medinan: 'qb_medinan' };
+const revelationLabel = (type, language) =>
+  REVELATION_KEYS[type] ? tr(REVELATION_KEYS[type], language) : type;
 
 export default function QuranMushaf() {
   const { pageNumber } = useParams();
@@ -38,8 +44,12 @@ export default function QuranMushaf() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-amber-50 dark:bg-gray-900">
         <div className="text-center">
-          <p className="text-gray-500 dark:text-gray-400 mb-4">Invalid page number (1–604)</p>
-          <Link to="/quran" className="text-green-700 dark:text-green-400 hover:underline">← Back to Qur'an</Link>
+          <p className="text-gray-500 dark:text-gray-400 mb-4">
+            {fmt('qb_invalid_page', language, { min: localDigits(1, language), max: localDigits(604, language) })}
+          </p>
+          <Link to="/quran" className="text-green-700 dark:text-green-400 hover:underline">
+            {tr('qb_back_to_quran', language)}
+          </Link>
         </div>
       </div>
     );
@@ -55,7 +65,7 @@ export default function QuranMushaf() {
           <Link
             to="/quran"
             className="text-green-800 dark:text-green-500 hover:text-green-600 flex-shrink-0"
-            aria-label="Back"
+            aria-label={tr('qb_back', language)}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -67,7 +77,7 @@ export default function QuranMushaf() {
             onClick={() => goToPage(pageNum - 1)}
             disabled={pageNum <= 1}
             className="text-green-800 dark:text-green-500 disabled:opacity-30"
-            aria-label="Previous page"
+            aria-label={tr('qb_prev_page', language)}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -77,10 +87,10 @@ export default function QuranMushaf() {
           {/* Page / Juz info */}
           <div className="flex-1 text-center">
             <p className="text-sm font-semibold text-green-900 dark:text-green-400">
-              {language === 'bn' ? `পৃষ্ঠা ${pageNum}` : `Page ${pageNum}`}
+              {fmt('qb_page_n', language, { n: localDigits(pageNum, language) })}
               {pageData && (
-                <span className="font-normal text-green-700 dark:text-green-600 ml-2">
-                  · {language === 'bn' ? `জুজ ${pageData.juz}` : `Juz ${pageData.juz}`}
+                <span className="font-normal text-green-700 dark:text-green-600 ms-2">
+                  · {fmt('qb_juz_n', language, { n: localDigits(pageData.juz, language) })}
                 </span>
               )}
             </p>
@@ -91,7 +101,7 @@ export default function QuranMushaf() {
             onClick={() => goToPage(pageNum + 1)}
             disabled={pageNum >= 604}
             className="text-green-800 dark:text-green-500 disabled:opacity-30"
-            aria-label="Next page"
+            aria-label={tr('qb_next_page', language)}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -106,15 +116,15 @@ export default function QuranMushaf() {
               max={604}
               value={jumpInput}
               onChange={(e) => setJumpInput(e.target.value)}
-              placeholder={language === 'bn' ? 'পৃষ্ঠা' : 'Page'}
+              placeholder={tr('qb_page_ph', language)}
               className="w-14 px-2 py-1 text-xs border border-amber-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-green-600"
-              aria-label="Jump to page"
+              aria-label={tr('qb_jump_to_page', language)}
             />
             <button
               type="submit"
               className="text-xs px-2 py-1 bg-green-700 dark:bg-green-800 text-white rounded hover:bg-green-800"
             >
-              {language === 'bn' ? 'যান' : 'Go'}
+              {tr('qb_go', language)}
             </button>
           </form>
         </div>
@@ -122,7 +132,7 @@ export default function QuranMushaf() {
 
       {/* ── Content ──────────────────────────────────────────────────── */}
       <div className="max-w-2xl mx-auto px-5 pt-6">
-        {isLoading && <Loading message={language === 'bn' ? 'লোড হচ্ছে...' : 'Loading...'} />}
+        {isLoading && <Loading />}
         {error && <ErrorMessage error={error} onRetry={refetch} />}
 
         {pageData && !isLoading && (
@@ -153,9 +163,9 @@ export default function QuranMushaf() {
                           <p className="text-sm font-medium text-green-800 dark:text-green-500 mt-1">
                             {surah.name_en}
                             <span className="mx-1.5 text-green-400">·</span>
-                            {surah.ayah_count} {language === 'bn' ? 'আয়াত' : 'Ayahs'}
+                            {fmt('qb_ayah_count', language, { count: localDigits(surah.ayah_count, language) })}
                             <span className="mx-1.5 text-green-400">·</span>
-                            {surah.revelation_type}
+                            {revelationLabel(surah.revelation_type, language)}
                           </p>
                         </Link>
                       </div>
@@ -190,9 +200,9 @@ export default function QuranMushaf() {
                           <p className="text-sm font-medium text-green-800 dark:text-green-500 mt-1">
                             {surah.name_en}
                             <span className="mx-1.5 text-green-400">·</span>
-                            {surah.ayah_count} {language === 'bn' ? 'আয়াত' : 'Ayahs'}
+                            {fmt('qb_ayah_count', language, { count: localDigits(surah.ayah_count, language) })}
                             <span className="mx-1.5 text-green-400">·</span>
-                            {surah.revelation_type}
+                            {revelationLabel(surah.revelation_type, language)}
                           </p>
                         </Link>
                       </div>
@@ -213,7 +223,7 @@ export default function QuranMushaf() {
                       {/* Inline ayah number marker */}
                       <span
                         className="inline-flex items-center justify-center mx-1 align-middle"
-                        aria-label={`Ayah ${ayah.number}`}
+                        aria-label={fmt('qb_ayah_n', language, { n: localDigits(ayah.number, language) })}
                       >
                         <span className="relative inline-flex items-center justify-center w-7 h-7">
                           {/* Ornate circle using Arabic end-of-ayah Unicode */}
@@ -238,7 +248,7 @@ export default function QuranMushaf() {
             <div className="flex items-center justify-center gap-4 mt-10">
               <span className="flex-1 h-px bg-amber-200 dark:bg-gray-800" />
               <span className="text-sm text-green-800 dark:text-green-600 font-medium tabular-nums px-3">
-                {pageNum}
+                {localDigits(pageNum, language)}
               </span>
               <span className="flex-1 h-px bg-amber-200 dark:bg-gray-800" />
             </div>
@@ -253,7 +263,7 @@ export default function QuranMushaf() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
-                {language === 'bn' ? 'আগের পৃষ্ঠা' : 'Previous'}
+                {tr('qb_prev_page', language)}
               </button>
 
               <button
@@ -261,7 +271,7 @@ export default function QuranMushaf() {
                 disabled={pageNum >= 604}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm text-green-800 dark:text-green-500 border border-amber-200 dark:border-gray-800 hover:bg-amber-100 dark:hover:bg-gray-900 disabled:opacity-30 transition-colors"
               >
-                {language === 'bn' ? 'পরের পৃষ্ঠা' : 'Next'}
+                {tr('qb_next_page', language)}
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>

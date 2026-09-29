@@ -192,8 +192,9 @@ export async function getWords(req, res, next) {
     if (isNaN(num) || num < 1 || num > 114) {
       throw new ValidationError('surahNumber must be between 1 and 114');
     }
-    const data = await getWordByWord(num);
-    res.json({ meta: { surah: num }, data });
+    const lang = typeof req.query.lang === 'string' ? req.query.lang : 'en';
+    const data = await getWordByWord(num, lang);
+    res.json({ meta: { surah: num, lang }, data });
   } catch (err) {
     next(err);
   }

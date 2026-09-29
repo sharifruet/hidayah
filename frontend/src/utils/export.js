@@ -1,7 +1,20 @@
-import { format } from 'date-fns';
+import { tr, fmt, RTL_LANGUAGES } from '../i18n/translations.js';
+import { formatDate, formatTime, localDigits } from './format.js';
+
+const PRAYER_COLUMNS = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha'];
+
+function escapeHTML(value) {
+  return String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+}
+
+/** iCal TEXT values must escape backslashes, commas, semicolons and newlines. */
+function escapeICalText(value) {
+  return String(value).replace(/[\\,;]/g, (c) => `\\${c}`).replace(/\n/g, '\\n');
+}
 
 /**
- * Export calendar data to CSV
+ * Export calendar data to CSV. Values stay raw ASCII (ISO dates, 24-hour HH:MM) and headers
+ * stay English so the file imports cleanly into spreadsheets regardless of UI language.
  */
 export function exportToCSV(data, filename) {
   if (!data || !data.days) {
@@ -38,9 +51,10 @@ export function exportToJSON(data, filename) {
 }
 
 /**
- * Export calendar data to iCal format
+ * Export calendar data to iCal format. Event times stay raw; the human-readable summary and
+ * description use the UI language.
  */
-export function exportToICal(data, filename, locationName = '') {
+export function exportToICal(data, filename, locationName = '', { language = 'en', timeFormat } = {}) {
   if (!data || !data.days) {
     throw new Error('No data to export');
   }
@@ -48,7 +62,7 @@ export function exportToICal(data, filename, locationName = '') {
   let icalContent = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Salat & Saom Timing//EN',
+    'PRODID:-//Hidayah//Prayer Times//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH'
   ].join('\r\n') + '\r\n';
@@ -56,37 +70,28 @@ export function exportToICal(data, filename, locationName = '') {
   data.days.forEach(day => {
     const date = day.date.replace(/-/g, '');
 
-    // Fajr event
-    if (day.prayer_times?.fajr) {
-      const fajrTime = `${date}T${day.prayer_times.fajr.replace(':', '')}00`;
+    ['fajr', 'maghrib'].forEach((key) => {
+      const time = day.prayer_times?.[key];
+      if (!time) return;
+      const stamp = `${date}T${time.replace(':', '')}00`;
+      const prayer = tr(`prayer_${key}`, language);
+      const description = locationName
+        ? fmt('cal_ical_prayer_time_at', language, { prayer, location: locationName })
+        : fmt('cal_ical_prayer_time', language, { prayer });
       icalContent += [
         'BEGIN:VEVENT',
-        `DTSTART:${fajrTime}`,
-        `DTEND:${fajrTime}`,
-        `SUMMARY:Fajr - ${day.prayer_times.fajr}`,
-        `DESCRIPTION:Fajr prayer time${locationName ? ` at ${locationName}` : ''}`,
+        `DTSTART:${stamp}`,
+        `DTEND:${stamp}`,
+        `SUMMARY:${escapeICalText(`${prayer} - ${formatTime(time, language, timeFormat)}`)}`,
+        `DESCRIPTION:${escapeICalText(description)}`,
         'END:VEVENT'
       ].join('\r\n') + '\r\n';
-    }
-
-    // Maghrib event
-    if (day.prayer_times?.maghrib) {
-      const maghribTime = `${date}T${day.prayer_times.maghrib.replace(':', '')}00`;
-      icalContent += [
-        'BEGIN:VEVENT',
-        `DTSTART:${maghribTime}`,
-        `DTEND:${maghribTime}`,
-        `SUMMARY:Maghrib - ${day.prayer_times.maghrib}`,
-        `DESCRIPTION:Maghrib prayer time${locationName ? ` at ${locationName}` : ''}`,
-        'END:VEVENT'
-      ].join('\r\n') + '\r\n';
-    }
-
+    });
   });
 
   icalContent += 'END:VCALENDAR\r\n';
 
-  downloadFile(icalContent, filename, 'text/calendar');
+  downloadFile(icalContent, filename, 'text/calendar;charset=utf-8');
 }
 
 /**
@@ -124,16 +129,17 @@ export function generateFilename(locationName, viewType, params, format) {
 }
 
 /**
- * Print calendar
+ * Print calendar (the browser's print dialog also offers "Save as PDF"). Localized for the
+ * UI language: headings, dates, times and numerals.
  */
-export function printCalendar(data, title = 'Salat & Saom Calendar') {
+export function printCalendar(data, title, { language = 'en', timeFormat } = {}) {
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
-    alert('Please allow popups to print the calendar');
+    alert(tr('cal_popup_blocked', language));
     return;
   }
 
-  const htmlContent = generatePrintHTML(data, title);
+  const htmlContent = generatePrintHTML(data, title, language, timeFormat);
   printWindow.document.write(htmlContent);
   printWindow.document.close();
   printWindow.focus();
@@ -147,37 +153,36 @@ export function printCalendar(data, title = 'Salat & Saom Calendar') {
 /**
  * Generate HTML for printing
  */
-function generatePrintHTML(data, title) {
+function generatePrintHTML(data, title, language, timeFormat) {
   const locationInfo = data.location?.name
     ? `${data.location.name}${data.location.district ? `, ${data.location.district}` : ''}`
-    : `${data.coordinates?.latitude?.toFixed(4)}, ${data.coordinates?.longitude?.toFixed(4)}`;
+    : localDigits(`${data.coordinates?.latitude?.toFixed(4)}, ${data.coordinates?.longitude?.toFixed(4)}`, language);
 
   let tableRows = '';
   if (data.days) {
     tableRows = data.days.map(day => `
         <tr>
-          <td>${day.date}</td>
-          <td>${day.prayer_times?.fajr || '--'}</td>
-          <td>${day.prayer_times?.sunrise || '--'}</td>
-          <td>${day.prayer_times?.dhuhr || '--'}</td>
-          <td>${day.prayer_times?.asr || '--'}</td>
-          <td>${day.prayer_times?.maghrib || '--'}</td>
-          <td>${day.prayer_times?.isha || '--'}</td>
+          <td>${escapeHTML(formatDate(day.date, language, { day: 'numeric', month: 'short', year: 'numeric' }))}</td>
+          ${PRAYER_COLUMNS.map((key) => `<td>${escapeHTML(formatTime(day.prayer_times?.[key], language, timeFormat))}</td>`).join('')}
         </tr>
       `).join('');
   }
 
+  const headerCells = PRAYER_COLUMNS.map((key) => `<th>${escapeHTML(tr(`prayer_${key}`, language))}</th>`).join('');
+  const dir = RTL_LANGUAGES.has(language) ? 'rtl' : 'ltr';
+
   return `
     <!DOCTYPE html>
-    <html>
+    <html lang="${language}" dir="${dir}">
     <head>
-      <title>${title}</title>
+      <meta charset="utf-8">
+      <title>${escapeHTML(title)}</title>
       <style>
         body { font-family: Arial, sans-serif; margin: 20px; }
         h1 { text-align: center; margin-bottom: 10px; }
         .info { text-align: center; margin-bottom: 20px; color: #666; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: start; }
         th { background-color: #f2f2f2; font-weight: bold; }
         tr:nth-child(even) { background-color: #f9f9f9; }
         @media print {
@@ -187,22 +192,17 @@ function generatePrintHTML(data, title) {
       </style>
     </head>
     <body>
-      <h1>${title}</h1>
+      <h1>${escapeHTML(title)}</h1>
       <div class="info">
-        <p>Location: ${locationInfo}</p>
-        <p>Method: ${data.method || 'N/A'}</p>
-        ${data.total_days ? `<p>Total Days: ${data.total_days}</p>` : ''}
+        <p>${escapeHTML(fmt('cal_print_location', language, { location: locationInfo }))}</p>
+        <p>${escapeHTML(fmt('cal_print_method', language, { method: data.method || tr('cal_not_available', language) }))}</p>
+        ${data.total_days ? `<p>${escapeHTML(fmt('cal_print_total_days', language, { n: localDigits(data.total_days, language) }))}</p>` : ''}
       </div>
       <table>
         <thead>
           <tr>
-            <th>Date</th>
-            <th>Fajr</th>
-            <th>Sunrise</th>
-            <th>Dhuhr</th>
-            <th>Asr</th>
-            <th>Maghrib</th>
-            <th>Isha</th>
+            <th>${escapeHTML(tr('cal_col_date', language))}</th>
+            ${headerCells}
           </tr>
         </thead>
         <tbody>

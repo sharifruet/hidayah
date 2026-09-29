@@ -1,5 +1,6 @@
+import { useCallback, useState } from 'react';
 import { Image, Text, TouchableOpacity, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -7,11 +8,16 @@ import { Screen } from '../../../../../components/ui/Screen';
 import { Card } from '../../../../../components/ui/Card';
 import { booksService } from '../../../../../lib/services/books';
 import { useApp } from '../../../../../context/AppContext';
-import { tr } from '../../../../../data/translations';
+import { fmt, tr } from '../../../../../data/translations';
+import { getBookPosition, type BookPosition } from '../../../../../lib/saved';
+import { formatNumber, localDigits } from '../../../../../lib/format';
 
 export default function BookDetailScreen() {
   const { language } = useApp();
+  const [position, setPosition] = useState<BookPosition | null>(null);
   const { slug } = useLocalSearchParams<{ slug: string }>();
+  // Re-read on focus so returning from the reader shows the latest position.
+  useFocusEffect(useCallback(() => setPosition(getBookPosition(slug)), [slug]));
   const { data: book, isLoading } = useQuery({
     queryKey: ['book', slug],
     queryFn: () => booksService.getBook(slug),
@@ -67,12 +73,12 @@ export default function BookDetailScreen() {
             ) : null}
             {book.published_year ? (
               <View className="bg-ink-100 dark:bg-ink-800 px-2.5 py-1 rounded-full">
-                <Text className="font-body text-xs text-ink-500 dark:text-ink-400">{book.published_year}</Text>
+                <Text className="font-body text-xs text-ink-500 dark:text-ink-400">{localDigits(book.published_year, language)}</Text>
               </View>
             ) : null}
             {book.page_count ? (
               <View className="bg-ink-100 dark:bg-ink-800 px-2.5 py-1 rounded-full">
-                <Text className="font-body text-xs text-ink-500 dark:text-ink-400">{book.page_count} {tr('books_pages', language)}</Text>
+                <Text className="font-body text-xs text-ink-500 dark:text-ink-400">{formatNumber(book.page_count, language)} {tr('books_pages', language)}</Text>
               </View>
             ) : null}
           </View>
@@ -82,8 +88,15 @@ export default function BookDetailScreen() {
             className="bg-primary-600 rounded-xl py-3.5 items-center flex-row justify-center"
           >
             <Ionicons name="book" size={16} color="#fff" />
-            <Text className="font-body-semibold text-sm text-white ml-2">{tr('books_read_now', language)}</Text>
+            <Text className="font-body-semibold text-sm text-white ml-2">
+              {position ? tr('books_continue', language) : tr('books_read_now', language)}
+            </Text>
           </TouchableOpacity>
+          {position?.chapterTitle || position?.page ? (
+            <Text className="font-body text-xs text-ink-400 text-center mt-2" numberOfLines={1}>
+              {position.chapterTitle ?? fmt('books_page', language, { n: position.page ?? 1 })}
+            </Text>
+          ) : null}
         </>
       ) : null}
     </Screen>

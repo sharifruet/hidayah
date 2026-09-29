@@ -1,4 +1,5 @@
 import pool from '../config/database.js';
+import { bengaliRegionNames } from '../utils/placeNames.js';
 
 /**
  * Calculate relevance score for a location match
@@ -129,10 +130,12 @@ export async function searchLocationsService(query, limit = 10, district = null,
     .slice(0, limit) // Limit results
     .map(location => ({
       name: location.name,
+      ...(location.name_bengali && { name_bengali: location.name_bengali }),
       latitude: parseFloat(location.latitude),
       longitude: parseFloat(location.longitude),
       district: location.district,
       division: location.division,
+      ...bengaliRegionNames(location),
       type: location.type,
       ...(location.population && { population: location.population }),
       ...(location.altitude && { altitude: location.altitude }),

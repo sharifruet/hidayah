@@ -1,4 +1,5 @@
 import apiClient from '../api';
+import { localISODate } from '../dates';
 
 export interface PrayerTimesResponse {
   date: string;
@@ -120,7 +121,7 @@ export async function searchLocations(query: string, limit = 10) {
 export async function getLocationByCoordinates(lat: number, lng: number) {
   try {
     const response: any = await apiClient.get('/prayer-times', {
-      params: { latitude: lat, longitude: lng, date: new Date().toISOString().split('T')[0] },
+      params: { latitude: lat, longitude: lng, date: localISODate() },
     });
     return {
       latitude: lat,

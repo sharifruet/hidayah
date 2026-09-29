@@ -1,10 +1,13 @@
 import { Text, TouchableOpacity, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { localISODate } from '../../lib/dates';
+import { useApp } from '../../context/AppContext';
+import { tr } from '../../data/translations';
+import { formatDate, localDigits } from '../../lib/format';
 
-const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 function toISO(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  return localISODate(d);
 }
 
 /** A single navigable month grid for picking a start/end date range by tapping two days. */
@@ -45,7 +48,9 @@ export function RangePickerGrid({
     onNavigate(y, m);
   }
 
-  const monthLabel = firstOfMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const { language } = useApp();
+  const weekdays = tr('calendar_weekdays_short', language).split(',');
+  const monthLabel = formatDate(firstOfMonth, language, { month: 'long', year: 'numeric' });
 
   return (
     <View>
@@ -60,7 +65,7 @@ export function RangePickerGrid({
       </View>
 
       <View className="flex-row mb-1">
-        {WEEKDAYS.map((w, i) => (
+        {weekdays.map((w, i) => (
           <View key={i} className="flex-1 items-center">
             <Text className="font-body-medium text-[10px] text-ink-400">{w}</Text>
           </View>
@@ -91,7 +96,7 @@ export function RangePickerGrid({
                     isStart || isEnd ? 'text-white' : 'text-ink-900 dark:text-white'
                   }`}
                 >
-                  {date.getDate()}
+                  {localDigits(date.getDate(), language)}
                 </Text>
               </View>
             </TouchableOpacity>

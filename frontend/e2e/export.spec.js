@@ -72,7 +72,7 @@ test.describe('Export Functionality', () => {
       await printButton.click();
 
       // Check if print was called
-      const printCalled = await page.evaluate(() => window.printCalled);
+      await page.evaluate(() => window.printCalled);
       // Note: In actual browser, this would open print dialog
     }
   });

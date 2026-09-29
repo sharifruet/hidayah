@@ -60,11 +60,56 @@
       [
         "expo-notifications",
         {
-          "color": "#15805a"
+          "color": "#15805a",
+          "sounds": [
+            "./assets/sounds/adhan_makkah.wav",
+            "./assets/sounds/adhan_fajr.wav"
+          ]
         }
       ],
       "expo-asset",
-      "expo-sharing"
+      "expo-sharing",
+      "expo-background-task",
+      [
+        "expo-widgets",
+        {
+          "groupIdentifier": "group.com.hidayah.app",
+          "widgets": [
+            {
+              "name": "NextPrayer",
+              "displayName": "Next Prayer",
+              "description": "The next prayer, its time and a live countdown.",
+              "ios": {
+                "supportedFamilies": [
+                  "systemSmall",
+                  "systemMedium",
+                  "accessoryRectangular",
+                  "accessoryInline"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "NextPrayer",
+              "label": "Next Prayer",
+              "description": "The next prayer and time left",
+              "minWidth": "180dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

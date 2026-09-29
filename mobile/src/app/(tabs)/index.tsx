@@ -1,8 +1,6 @@
-import { useEffect } from 'react';
-import { Text, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { TouchableOpacity } from 'react-native';
 
 import { Screen } from '../../components/ui/Screen';
 import { SectionHeader } from '../../components/ui/SectionHeader';
@@ -14,16 +12,12 @@ import { QuickActions } from '../../components/home/QuickActions';
 import { RamadanBanner } from '../../components/home/RamadanBanner';
 import { useApp } from '../../context/AppContext';
 import { usePrayerTimes } from '../../hooks/usePrayerTimes';
-import { gregorianToHijri } from '../../lib/hijri';
-import {
-  scheduleUpcomingPrayerNotifications,
-  scheduleUpcomingPrayerCheckIns,
-  scheduleRamadanReminders,
-} from '../../lib/notifications';
-import { tr } from '../../data/translations';
-import type { LanguageCode } from '../../lib/constants';
-
-const RAMADAN_MONTH = 9;
+import { MyMasjidCard } from '../../components/home/MyMasjidCard';
+import { UpcomingDaysCard } from '../../components/home/UpcomingDaysCard';
+import { formatHijriDate, gregorianToHijri } from '../../lib/hijri';
+import { activeForbiddenWindow } from '../../lib/forbiddenTimes';
+import { fmt, tr } from '../../data/translations';
+import { formatDate, formatTime } from '../../lib/format';
 
 function greetingKey(hour: number): string {
   if (hour < 12) return 'home_greeting_morning';
@@ -31,39 +25,12 @@ function greetingKey(hour: number): string {
   return 'home_greeting_evening';
 }
 
-const LOCALE_MAP: Record<LanguageCode, string> = { en: 'en-US', bn: 'bn-BD', ur: 'ur-PK', tr: 'tr-TR', id: 'id-ID' };
-
-const tomorrowISO = (() => {
-  const d = new Date();
-  d.setDate(d.getDate() + 1);
-  return d.toISOString().slice(0, 10);
-})();
-
 export default function HomeScreen() {
-  const { location, language, notificationsEnabled, prayerCheckInEnabled, ramadanRemindersEnabled } = useApp();
+  const { location, language, hijriOffset, timeFormat } = useApp();
   const { data } = usePrayerTimes();
-  const { data: tomorrowData } = usePrayerTimes(tomorrowISO);
   const today = new Date();
-  const hijri = gregorianToHijri(today);
-  const isRamadan = hijri.month === RAMADAN_MONTH;
-
-  useEffect(() => {
-    if (notificationsEnabled && data?.times) {
-      scheduleUpcomingPrayerNotifications(data.times, tomorrowData?.times).catch(() => {});
-    }
-  }, [notificationsEnabled, data?.times, tomorrowData?.times]);
-
-  useEffect(() => {
-    if (prayerCheckInEnabled && data?.times) {
-      scheduleUpcomingPrayerCheckIns(data.times, tomorrowData?.times).catch(() => {});
-    }
-  }, [prayerCheckInEnabled, data?.times, tomorrowData?.times]);
-
-  useEffect(() => {
-    if (ramadanRemindersEnabled && isRamadan && data?.times) {
-      scheduleRamadanReminders(data.times, tomorrowData?.times).catch(() => {});
-    }
-  }, [ramadanRemindersEnabled, isRamadan, data?.times, tomorrowData?.times]);
+  const hijri = gregorianToHijri(today, hijriOffset);
+  const forbiddenNow = activeForbiddenWindow(data?.times, today);
 
   return (
     <Screen>
@@ -71,10 +38,10 @@ export default function HomeScreen() {
         <View>
           <Text className="font-body text-sm text-ink-500 dark:text-ink-400">{tr(greetingKey(today.getHours()), language)}</Text>
           <Text className="font-body-bold text-2xl text-ink-900 dark:text-white mt-0.5">
-            {hijri.day} {hijri.monthNameEn} {hijri.year} AH
+            {formatHijriDate(hijri, language)}
           </Text>
           <Text className="font-body text-xs text-ink-400 mt-0.5">
-            {today.toLocaleDateString(LOCALE_MAP[language], { weekday: 'long', month: 'long', day: 'numeric' })}
+            {formatDate(today, language, { weekday: 'long', month: 'long', day: 'numeric' })}
           </Text>
         </View>
         <TouchableOpacity
@@ -93,12 +60,30 @@ export default function HomeScreen() {
         <NextPrayerHero times={data?.times} locationName={location.name} />
       </View>
 
+      {forbiddenNow ? (
+        <View className="flex-row items-center bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-900 rounded-xl px-3 py-2 mb-4">
+          <Ionicons name="ban-outline" size={14} color="#e11d48" />
+          <Text className="font-body-medium text-xs text-rose-700 dark:text-rose-300 ml-2 flex-1">
+            {fmt('forbidden_now', language, { end: formatTime(forbiddenNow.end, language, timeFormat) })}
+          </Text>
+        </View>
+      ) : null}
+
       <View className="mb-4">
         <PrayerStrip times={data?.times} />
       </View>
 
+      <View className="mb-4">
+        <MyMasjidCard />
+      </View>
+
       <View className="mb-6">
         <PrayerTrackerRow />
+      </View>
+
+      <SectionHeader title={tr('home_upcoming_days', language)} />
+      <View className="mb-6">
+        <UpcomingDaysCard />
       </View>
 
       <SectionHeader title={tr('home_daily_ayah', language)} />

@@ -5,6 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { getDailyAyah } from '../../data/dailyAyahs';
 import { tr } from '../../data/translations';
 import type { LanguageCode } from '../../lib/constants';
+import { localDigits } from '../../lib/format';
 
 export function DailyAyahCard({ language }: { language: LanguageCode }) {
   const ayah = getDailyAyah();
@@ -26,7 +27,7 @@ export function DailyAyahCard({ language }: { language: LanguageCode }) {
       <Text className="font-body text-sm leading-relaxed text-ink-200 mb-3">{translation}</Text>
 
       <View className="flex-row items-center justify-between">
-        <Text className="font-body text-xs text-ink-400">{ayah.ref}</Text>
+        <Text className="font-body text-xs text-ink-400">{localDigits(ayah.ref, language)}</Text>
         <TouchableOpacity
           onPress={() => router.push(`/quran/${ayah.surah}/${ayah.ayah}` as never)}
           className="bg-white/10 px-3 py-1.5 rounded-lg"

@@ -10,7 +10,10 @@ import { useApp } from '../../../context/AppContext';
 import { usePrayerTimes } from '../../../hooks/usePrayerTimes';
 import { getCurrentPrayer } from '../../../lib/prayerMath';
 import type { PrayerKey } from '../../../lib/constants';
-import { tr } from '../../../data/translations';
+import { addDays, localISODate, parseLocalISODate } from '../../../lib/dates';
+import { activeForbiddenWindow, forbiddenWindows } from '../../../lib/forbiddenTimes';
+import { fmt, tr } from '../../../data/translations';
+import { formatDate, formatTime } from '../../../lib/format';
 
 const ROWS: PrayerKey[] = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'sunset', 'isha'];
 const ROW_KEYS: Record<PrayerKey, string> = {
@@ -33,26 +36,26 @@ const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   isha: 'moon',
 };
 
-function addDays(dateStr: string, delta: number): string {
-  const d = new Date(dateStr);
-  d.setDate(d.getDate() + delta);
-  return d.toISOString().slice(0, 10);
+function shiftDate(dateStr: string, delta: number): string {
+  return localISODate(addDays(parseLocalISODate(dateStr), delta));
 }
 
 export default function PrayerIndexScreen() {
-  const { location, language } = useApp();
+  const { location, language, timeFormat } = useApp();
   const params = useLocalSearchParams<{ date?: string }>();
-  const [date, setDate] = useState(() => params.date ?? new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => params.date ?? localISODate());
   const [pickerVisible, setPickerVisible] = useState(false);
   const { data, isLoading, isError } = usePrayerTimes(date);
-  const isToday = date === new Date().toISOString().slice(0, 10);
+  const isToday = date === localISODate();
   const info = isToday ? getCurrentPrayer(data?.times) : null;
+  const forbidden = forbiddenWindows(data?.times);
+  const forbiddenNow = isToday ? activeForbiddenWindow(data?.times) : null;
 
   useEffect(() => {
     if (params.date) setDate(params.date);
   }, [params.date]);
 
-  const displayDate = new Date(date).toLocaleDateString('en-US', {
+  const displayDate = formatDate(parseLocalISODate(date), language, {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
@@ -77,13 +80,13 @@ export default function PrayerIndexScreen() {
       </TouchableOpacity>
 
       <View className="flex-row items-center justify-between mb-4">
-        <TouchableOpacity onPress={() => setDate((d) => addDays(d, -1))} className="p-2">
+        <TouchableOpacity onPress={() => setDate((d) => shiftDate(d, -1))} className="p-2">
           <Ionicons name="chevron-back" size={20} color="#5b6579" />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => setDate(new Date().toISOString().slice(0, 10))}>
+        <TouchableOpacity onPress={() => setDate(localISODate())}>
           <Text className="font-body-semibold text-sm text-ink-900 dark:text-white">{displayDate}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => setDate((d) => addDays(d, 1))} className="p-2">
+        <TouchableOpacity onPress={() => setDate((d) => shiftDate(d, 1))} className="p-2">
           <Ionicons name="chevron-forward" size={20} color="#5b6579" />
         </TouchableOpacity>
       </View>
@@ -119,12 +122,50 @@ export default function PrayerIndexScreen() {
                   isCurrent ? 'text-primary-700 dark:text-primary-300' : 'text-ink-900 dark:text-white'
                 }`}
               >
-                {isLoading ? '--:--' : data?.times[name] ?? '--:--'}
+                {isLoading ? '--:--' : formatTime(data?.times[name], language, timeFormat)}
               </Text>
             </View>
           );
         })}
       </Card>
+
+      {forbidden.length ? (
+        <Card className="p-4 mb-4">
+          <View className="flex-row items-center mb-2">
+            <Ionicons name="ban-outline" size={16} color="#e11d48" />
+            <Text className="font-body-semibold text-sm text-ink-900 dark:text-white ml-2">{tr('forbidden_title', language)}</Text>
+          </View>
+          {forbiddenNow ? (
+            <View className="bg-rose-50 dark:bg-rose-900/20 rounded-lg px-3 py-2 mb-2">
+              <Text className="font-body-medium text-xs text-rose-700 dark:text-rose-300">
+                {fmt('forbidden_now', language, { end: formatTime(forbiddenNow.end, language, timeFormat) })}
+              </Text>
+            </View>
+          ) : null}
+          <View className="flex-row">
+            {forbidden.map((w) => (
+              <View
+                key={w.key}
+                className={`flex-1 items-center py-2 mx-0.5 rounded-lg ${forbiddenNow?.key === w.key ? 'bg-rose-50 dark:bg-rose-900/20' : 'bg-ink-50 dark:bg-ink-800'}`}
+              >
+                <Text className="font-body text-[11px] text-ink-500 dark:text-ink-400">{tr(`forbidden_${w.key}`, language)}</Text>
+                <Text className="font-body-semibold text-xs text-ink-900 dark:text-white mt-0.5">
+                  {formatTime(w.start, language, timeFormat, { withPeriod: false })}–{formatTime(w.end, language, timeFormat, { withPeriod: false })}
+                </Text>
+              </View>
+            ))}
+          </View>
+          <Text className="font-body text-[10px] text-ink-400 mt-2">{tr('forbidden_note', language)}</Text>
+        </Card>
+      ) : null}
+
+      <TouchableOpacity
+        onPress={() => router.push('/prayer/ramadan' as never)}
+        className="flex-row items-center justify-center bg-gold-500/10 border border-gold-500/30 rounded-xl py-3 mb-3"
+      >
+        <Ionicons name="moon-outline" size={16} color="#c99a45" />
+        <Text className="font-body-medium text-sm text-gold-600 dark:text-gold-400 ml-2">{tr('ramadan_title', language)}</Text>
+      </TouchableOpacity>
 
       <View className="flex-row gap-3">
         <TouchableOpacity

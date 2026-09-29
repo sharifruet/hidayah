@@ -6,6 +6,16 @@
  * RTL languages: ur
  */
 
+import { featureStrings } from './featureStrings.js';
+import { commonStrings } from './strings/common.js';
+import { quranReaderStrings } from './strings/quranReader.js';
+import { quranBrowseStrings } from './strings/quranBrowse.js';
+import { calendarStrings } from './strings/calendar.js';
+import { prayerStrings } from './strings/prayer.js';
+import { contentStrings } from './strings/content.js';
+import { savedStrings } from './strings/saved.js';
+import { syncStrings } from './strings/sync.js';
+
 export const RTL_LANGUAGES = new Set(['ur']);
 
 export const LANGUAGE_LABELS = {
@@ -71,7 +81,7 @@ const t = {
     en: "Du'a",
     bn: 'দু\'আ',
     ur: 'دعا',
-    tr: "Du'a",
+    tr: 'Dua',
     id: 'Doa',
   },
   nav_settings: {
@@ -153,7 +163,7 @@ const t = {
     bn: 'প্রতিটি পদ্ধতি কীভাবে ফজর, ইশা এবং আসর নির্ধারণ করে তা তুলনা করুন এবং আপনি যেটি অনুসরণ করেন তা বেছে নিন।',
     ur: 'موازنہ کریں کہ ہر طریقہ فجر، عشاء اور عصر کا تعین کیسے کرتا ہے، اور وہ طریقہ منتخب کریں جس کی آپ پیروی کرتے ہیں۔',
     tr: 'Her yöntemin İmsak, Yatsı ve İkindi vakitlerini nasıl tanımladığını karşılaştırın ve takip ettiğiniz yöntemi seçin.',
-    id: 'Bandingkan bagaimana setiap metode menentukan Subuh, Isya, dan Ashar, lalu pilih yang Anda ikuti.',
+    id: 'Bandingkan bagaimana setiap metode menentukan Subuh, Isya, dan Asar, lalu pilih yang Anda ikuti.',
   },
   methods_group_organizational: {
     en: 'Organizational Methods',
@@ -202,14 +212,14 @@ const t = {
     bn: 'মিনিট মাগরিবের পর',
     ur: 'منٹ مغرب کے بعد',
     tr: 'dakika Akşam\'dan sonra',
-    id: 'menit setelah Maghrib',
+    id: 'menit setelah Magrib',
   },
   methods_asr_method: {
     en: 'Asr (Jurisprudence)',
     bn: 'আসর (ফিকহ)',
     ur: 'عصر (فقہ)',
     tr: 'İkindi (Fıkıh)',
-    id: 'Ashar (Fikih)',
+    id: 'Asar (Fikih)',
   },
   methods_asr_standard: {
     en: 'Single shadow — Shafi, Maliki, Hanbali',
@@ -244,7 +254,7 @@ const t = {
     bn: 'মাগরিব',
     ur: 'مغرب',
     tr: 'Akşam',
-    id: 'Maghrib',
+    id: 'Magrib',
   },
   methods_maghrib_after_sunset: {
     en: 'min after sunset',
@@ -258,7 +268,7 @@ const t = {
     bn: 'ডিফল্ট',
     ur: 'پہلے سے طے شدہ',
     tr: 'Varsayılan',
-    id: 'Default',
+    id: 'Bawaan',
   },
   methods_current_badge: {
     en: 'Currently Selected',
@@ -352,12 +362,12 @@ const t = {
   masjids_none_nearby: { en: 'No masjids found in this radius yet. Try a larger radius, or be the first to add one.', bn: 'এই সীমার মধ্যে এখনো কোনো মসজিদ পাওয়া যায়নি। বড় সীমা চেষ্টা করুন, অথবা প্রথম হয়ে একটি যোগ করুন।', ur: 'اس دائرے میں ابھی کوئی مسجد نہیں ملی۔ بڑا دائرہ آزمائیں، یا پہلے شخص بنیں جو ایک شامل کرے۔', tr: 'Bu mesafede henüz cami bulunamadı. Daha geniş bir mesafe deneyin veya ilk ekleyen siz olun.', id: 'Belum ada masjid dalam radius ini. Coba radius lebih besar, atau jadilah yang pertama menambahkannya.' },
   masjids_none_search: { en: 'No masjids match your search.', bn: 'আপনার অনুসন্ধানের সাথে কোনো মসজিদ মেলেনি।', ur: 'آپ کی تلاش سے کوئی مسجد میل نہیں کھاتی۔', tr: 'Aramanızla eşleşen cami yok.', id: 'Tidak ada masjid yang cocok dengan pencarian Anda.' },
   masjids_load_error: { en: "Couldn't load masjids.", bn: 'মসজিদ লোড করা যায়নি।', ur: 'مساجد لوڈ نہیں ہو سکیں۔', tr: 'Camiler yüklenemedi.', id: 'Tidak dapat memuat masjid.' },
-  masjids_away: { en: 'away', bn: 'দূরে', ur: 'دور', tr: 'uzakta', id: 'jauhnya' },
+  masjids_away: { en: 'away', bn: 'দূরে', ur: 'دور', tr: 'uzakta', id: 'dari Anda' },
   masjids_geo_error: { en: "Couldn't get your location. Showing results around your saved location instead.", bn: 'আপনার অবস্থান পাওয়া যায়নি। পরিবর্তে সংরক্ষিত অবস্থানের আশেপাশের ফলাফল দেখানো হচ্ছে।', ur: 'آپ کا مقام حاصل نہیں ہو سکا۔ اس کے بجائے محفوظ شدہ مقام کے ارد گرد نتائج دکھائے جا رہے ہیں۔', tr: 'Konumunuz alınamadı. Bunun yerine kayıtlı konumunuzun çevresi gösteriliyor.', id: 'Tidak dapat memperoleh lokasi Anda. Menampilkan hasil di sekitar lokasi tersimpan.' },
 
   masjid_jamah_times: { en: 'Jamah Times', bn: 'জামাতের সময়', ur: 'جماعت کے اوقات', tr: 'Cemaat Vakitleri', id: 'Waktu Jamaah' },
   masjid_jamah: { en: 'Jamah', bn: 'জামাত', ur: 'جماعت', tr: 'Cemaat', id: 'Jamaah' },
-  masjid_adhan: { en: 'Adhan', bn: 'আযান', ur: 'اذان', tr: 'Ezan', id: 'Adzan' },
+  masjid_adhan: { en: 'Adhan', bn: 'আযান', ur: 'اذان', tr: 'Ezan', id: 'Azan' },
   masjid_prayer: { en: 'Prayer', bn: 'সালাত', ur: 'نماز', tr: 'Namaz', id: 'Shalat' },
   masjid_jumuah: { en: "Jumu'ah", bn: 'জুমু\'আ', ur: 'جمعہ', tr: 'Cuma', id: 'Jumat' },
   masjid_last_updated: { en: 'Last updated', bn: 'সর্বশেষ হালনাগাদ', ur: 'آخری اپ ڈیٹ', tr: 'Son güncelleme', id: 'Terakhir diperbarui' },
@@ -373,7 +383,7 @@ const t = {
   masjid_open_in_maps: { en: 'Open in Google Maps', bn: 'গুগল ম্যাপে খুলুন', ur: 'گوگل میپس میں کھولیں', tr: "Google Haritalar'da aç", id: 'Buka di Google Maps' },
   masjid_not_found: { en: 'Masjid not found.', bn: 'মসজিদ পাওয়া যায়নি।', ur: 'مسجد نہیں ملی۔', tr: 'Cami bulunamadı.', id: 'Masjid tidak ditemukan.' },
   masjid_back_to_list: { en: 'Back to masjids', bn: 'মসজিদ তালিকায় ফিরুন', ur: 'مساجد کی فہرست پر واپس', tr: 'Camilere dön', id: 'Kembali ke daftar masjid' },
-  masjid_today_adhan_note: { en: "Adhan times are calculated for this masjid's coordinates using your selected method.", bn: 'আযানের সময় আপনার নির্বাচিত পদ্ধতি অনুযায়ী এই মসজিদের স্থানাঙ্কের জন্য গণনা করা।', ur: 'اذان کے اوقات آپ کے منتخب کردہ طریقہ کے مطابق اس مسجد کے محل وقوع کے لیے شمار کیے گئے ہیں۔', tr: 'Ezan vakitleri, seçtiğiniz yönteme göre bu caminin koordinatları için hesaplanmıştır.', id: 'Waktu adzan dihitung untuk koordinat masjid ini menggunakan metode yang Anda pilih.' },
+  masjid_today_adhan_note: { en: "Adhan times are calculated for this masjid's coordinates using your selected method.", bn: 'আযানের সময় আপনার নির্বাচিত পদ্ধতি অনুযায়ী এই মসজিদের স্থানাঙ্কের জন্য গণনা করা।', ur: 'اذان کے اوقات آپ کے منتخب کردہ طریقہ کے مطابق اس مسجد کے محل وقوع کے لیے شمار کیے گئے ہیں۔', tr: 'Ezan vakitleri, seçtiğiniz yönteme göre bu caminin koordinatları için hesaplanmıştır.', id: 'Waktu azan dihitung untuk koordinat masjid ini menggunakan metode yang Anda pilih.' },
 
   masjid_new_title: { en: 'Add a Masjid', bn: 'মসজিদ যোগ করুন', ur: 'مسجد شامل کریں', tr: 'Cami Ekle', id: 'Tambah Masjid' },
   masjid_new_subtitle: { en: 'Help others find this masjid. Tap the map or use your location to set the exact spot.', bn: 'অন্যদের এই মসজিদ খুঁজে পেতে সাহায্য করুন। সঠিক স্থান নির্ধারণে মানচিত্রে ট্যাপ করুন বা আপনার অবস্থান ব্যবহার করুন।', ur: 'دوسروں کو یہ مسجد تلاش کرنے میں مدد کریں۔ صحیح جگہ متعین کرنے کے لیے نقشے پر ٹیپ کریں یا اپنا مقام استعمال کریں۔', tr: 'Başkalarının bu camiyi bulmasına yardım edin. Tam konumu belirlemek için haritaya dokunun veya konumunuzu kullanın.', id: 'Bantu orang lain menemukan masjid ini. Ketuk peta atau gunakan lokasi Anda untuk menandai titik yang tepat.' },
@@ -381,7 +391,7 @@ const t = {
   masjid_field_name_bn: { en: 'Name in Bangla', bn: 'বাংলায় নাম', ur: 'بنگالی میں نام', tr: 'Bengalce adı', id: 'Nama dalam bahasa Bengali' },
   masjid_field_address: { en: 'Address / landmark', bn: 'ঠিকানা / ল্যান্ডমার্ক', ur: 'پتہ / نشانی', tr: 'Adres / işaret noktası', id: 'Alamat / penanda' },
   masjid_field_city: { en: 'City / area', bn: 'শহর / এলাকা', ur: 'شہر / علاقہ', tr: 'Şehir / bölge', id: 'Kota / area' },
-  masjid_field_district: { en: 'District', bn: 'জেলা', ur: 'ضلع', tr: 'İlçe', id: 'Kabupaten' },
+  masjid_field_district: { en: 'District', bn: 'জেলা', ur: 'ضلع', tr: 'İl', id: 'Kabupaten' },
   masjid_field_phone: { en: 'Phone (optional)', bn: 'ফোন (ঐচ্ছিক)', ur: 'فون (اختیاری)', tr: 'Telefon (isteğe bağlı)', id: 'Telepon (opsional)' },
   masjid_field_description: { en: 'Notes (optional)', bn: 'নোট (ঐচ্ছিক)', ur: 'نوٹس (اختیاری)', tr: 'Notlar (isteğe bağlı)', id: 'Catatan (opsional)' },
   masjid_field_coords: { en: 'Location', bn: 'অবস্থান', ur: 'مقام', tr: 'Konum', id: 'Lokasi' },
@@ -455,6 +465,20 @@ const t = {
   },
 };
 
+// Feature/area modules are merged into the one table. Later modules must not redefine keys.
+Object.assign(
+  t,
+  featureStrings,
+  commonStrings,
+  quranReaderStrings,
+  quranBrowseStrings,
+  calendarStrings,
+  prayerStrings,
+  contentStrings,
+  savedStrings,
+  syncStrings
+);
+
 /**
  * Returns a translated string for the given key and language.
  * Falls back to English if the language is not available.
@@ -463,6 +487,11 @@ export function tr(key, language = 'en') {
   const entry = t[key];
   if (!entry) return key;
   return entry[language] ?? entry.en ?? key;
+}
+
+/** `tr` with `{name}` placeholders filled from `vars`. */
+export function fmt(key, language, vars = {}) {
+  return tr(key, language).replace(/\{(\w+)\}/g, (m, name) => (name in vars ? String(vars[name]) : m));
 }
 
 export default t;

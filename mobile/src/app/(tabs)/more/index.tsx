@@ -6,6 +6,7 @@ import { Screen } from '../../../components/ui/Screen';
 import { Card } from '../../../components/ui/Card';
 import { useApp } from '../../../context/AppContext';
 import { tr } from '../../../data/translations';
+import { localDigits } from '../../../lib/format';
 
 interface MenuItem {
   labelKey: string;
@@ -15,6 +16,10 @@ interface MenuItem {
 }
 
 const ITEMS: MenuItem[] = [
+  { labelKey: 'ramadan_title', subKey: 'ramadan_menu_sub', icon: 'moon-outline', href: '/prayer/ramadan' as Href },
+  { labelKey: 'islamic_days_title', subKey: 'islamic_days_menu_sub', icon: 'star-outline', href: '/more/islamic-days' as Href },
+  { labelKey: 'zakat_title', subKey: 'zakat_menu_sub', icon: 'calculator-outline', href: '/more/zakat' as Href },
+  { labelKey: 'names_title', subKey: 'names_menu_sub', icon: 'sparkles-outline', href: '/more/names' as Href },
   { labelKey: 'tracker_title', subKey: 'tracker_menu_sub', icon: 'checkmark-circle-outline', href: '/more/prayer-tracker' as Href },
   { labelKey: 'qada_title', subKey: 'qada_menu_sub', icon: 'time-outline', href: '/more/qada' as Href },
   { labelKey: 'tasbih_title', subKey: 'tasbih_menu_sub', icon: 'radio-button-on-outline', href: '/more/tasbih' as Href },
@@ -25,6 +30,7 @@ const ITEMS: MenuItem[] = [
   { labelKey: 'more_masjids', subKey: 'more_masjids_sub', icon: 'business-outline', href: '/more/masjids' as Href },
   { labelKey: 'nav_calendar', subKey: 'more_calendar_sub', icon: 'calendar-outline', href: '/prayer/calendar' as Href },
   { labelKey: 'methods_title', subKey: 'more_methods_sub', icon: 'options-outline', href: '/prayer/methods' as Href },
+  { labelKey: 'sync_title', subKey: 'sync_menu_sub', icon: 'cloud-outline', href: '/more/sync' as Href },
   { labelKey: 'nav_settings', subKey: 'more_settings_sub', icon: 'settings-outline', href: '/more/settings' as Href },
 ];
 
@@ -55,7 +61,9 @@ export default function MoreScreen() {
         ))}
       </Card>
 
-      <Text className="font-body text-xs text-ink-300 dark:text-ink-600 text-center mt-8">Hidayah · v1.0.0</Text>
+      <Text className="font-body text-xs text-ink-300 dark:text-ink-600 text-center mt-8">
+        {tr('app_name', language)} · v{localDigits('1.0.0', language)}
+      </Text>
     </Screen>
   );
 }

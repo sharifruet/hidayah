@@ -3,10 +3,13 @@ import { getYearlyCalendar } from '../../services/prayerTimesService.js';
 import { useApp } from '../../context/AppContext.jsx';
 import Loading from '../common/Loading.jsx';
 import ErrorMessage from '../common/ErrorMessage.jsx';
-import { format, startOfYear, endOfYear, eachMonthOfInterval } from 'date-fns';
+import { startOfYear, endOfYear, eachMonthOfInterval } from 'date-fns';
+import { tr, fmt } from '../../i18n/translations.js';
+import { formatDate, formatTime, localDigits } from '../../utils/format.js';
+import { placeName } from '../../utils/place.js';
 
 export default function YearlyCalendar({ year, format: viewFormat = 'summary' }) {
-  const { location, method, language } = useApp();
+  const { location, method, language, timeFormat } = useApp();
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['yearly-calendar', location.lat, location.lng, year, method, viewFormat],
     queryFn: () => getYearlyCalendar(location.lat, location.lng, year, method, viewFormat, true),
@@ -14,7 +17,7 @@ export default function YearlyCalendar({ year, format: viewFormat = 'summary' })
   });
 
   if (isLoading) {
-    return <Loading message="Loading yearly calendar..." />;
+    return <Loading message={tr('cal_loading', language)} />;
   }
 
   if (error) {
@@ -22,16 +25,12 @@ export default function YearlyCalendar({ year, format: viewFormat = 'summary' })
   }
 
   if (!data?.days) {
-    return <ErrorMessage error="No calendar data available" />;
+    return <ErrorMessage error={tr('cal_no_data', language)} onRetry={refetch} />;
   }
 
   const yearStart = startOfYear(new Date(year, 0, 1));
   const yearEnd = endOfYear(new Date(year, 11, 31));
   const months = eachMonthOfInterval({ start: yearStart, end: yearEnd });
-
-  const monthNames = language === 'bn'
-    ? ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর']
-    : ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
   // Group days by month
   const daysByMonth = {};
@@ -46,16 +45,16 @@ export default function YearlyCalendar({ year, format: viewFormat = 'summary' })
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="mb-4">
-        <h2 className="text-2xl font-bold text-gray-800">{year}</h2>
+        <h2 className="text-2xl font-bold text-gray-800">{localDigits(year, language)}</h2>
         <p className="text-sm text-gray-600">
-          {location.name || `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`} • {method}
+          {placeName(location, language) || localDigits(`${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`, language)} • {method}
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {months.map((month, index) => {
           const monthDays = daysByMonth[index] || [];
-          const monthName = monthNames[index];
+          const monthName = formatDate(month, language, { month: 'long' });
 
           return (
             <div key={index} className="border rounded-lg p-4">
@@ -64,13 +63,14 @@ export default function YearlyCalendar({ year, format: viewFormat = 'summary' })
                 {viewFormat === 'summary' ? (
                   monthDays.slice(0, 5).map((day, dayIndex) => (
                     <div key={dayIndex} className="text-sm text-gray-600 border-b pb-1">
-                      <span className="font-medium">{format(new Date(day.date), 'd')}:</span>
-                      {' '}Fajr: {day.fajr}, Maghrib: {day.maghrib}
+                      <span className="font-medium">{formatDate(day.date, language, { day: 'numeric' })}:</span>
+                      {' '}{tr('prayer_fajr', language)}: {formatTime(day.fajr, language, timeFormat)},{' '}
+                      {tr('prayer_maghrib', language)}: {formatTime(day.maghrib, language, timeFormat)}
                     </div>
                   ))
                 ) : (
                   <div className="text-sm text-gray-500">
-                    {monthDays.length} days with full details
+                    {fmt('cal_days_full_details', language, { n: localDigits(monthDays.length, language) })}
                   </div>
                 )}
               </div>

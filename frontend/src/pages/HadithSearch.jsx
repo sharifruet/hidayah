@@ -1,16 +1,18 @@
 import { useState, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
-import { fetchHadithSearch } from '../services/hadithService.js';
+import { fetchHadithSearch, hadithLanguageFor } from '../services/hadithService.js';
 import Loading from '../components/common/Loading.jsx';
 import ErrorMessage from '../components/common/ErrorMessage.jsx';
+import { fmt, tr, LANGUAGE_LABELS } from '../i18n/translations.js';
+import { localDigits } from '../utils/format.js';
 
 export default function HadithSearch() {
   const { language: appLanguage } = useApp();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [query, setQuery] = useState(searchParams.get('q') || '');
-  const [searchLang, setSearchLang] = useState(searchParams.get('language') || 'en');
+  const [searchLang, setSearchLang] = useState(searchParams.get('language') || hadithLanguageFor(appLanguage));
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -25,7 +27,7 @@ export default function HadithSearch() {
       setResults(data.data);
       setSearchParams({ q: q.trim(), language: lang });
     } catch (err) {
-      setError(err?.message || 'Search failed');
+      setError(err);
     } finally {
       setLoading(false);
     }
@@ -47,13 +49,13 @@ export default function HadithSearch() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center gap-3 mb-6">
-          <Link to="/hadith" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" aria-label="Back">
+          <Link to="/hadith" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" aria-label={tr('qb_back', appLanguage)}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </Link>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {appLanguage === 'bn' ? 'হাদিস অনুসন্ধান' : 'Search Hadith'}
+            {tr('ct_hadith_search_title', appLanguage)}
           </h1>
         </div>
 
@@ -63,9 +65,9 @@ export default function HadithSearch() {
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={appLanguage === 'bn' ? 'শব্দ বা বাক্যাংশ লিখুন...' : 'Enter a word or phrase...'}
+              placeholder={tr('qb_search_ph', appLanguage)}
               className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-              aria-label="Search query"
+              aria-label={tr('qb_search_query_aria', appLanguage)}
               minLength={2}
               maxLength={200}
             />
@@ -74,7 +76,7 @@ export default function HadithSearch() {
               disabled={loading || query.trim().length < 2}
               className="px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium"
             >
-              {appLanguage === 'bn' ? 'খুঁজুন' : 'Search'}
+              {tr('qb_search_btn', appLanguage)}
             </button>
           </div>
 
@@ -82,35 +84,36 @@ export default function HadithSearch() {
             value={searchLang}
             onChange={(e) => setSearchLang(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
-            aria-label="Language to search in"
+            aria-label={tr('ct_search_lang_aria', appLanguage)}
           >
-            <option value="en">English</option>
-            <option value="bn">বাংলা</option>
+            <option value="en">{LANGUAGE_LABELS.en}</option>
+            <option value="bn">{LANGUAGE_LABELS.bn}</option>
           </select>
         </form>
 
-        {loading && <Loading message={appLanguage === 'bn' ? 'অনুসন্ধান করা হচ্ছে...' : 'Searching...'} />}
+        {loading && <Loading message={tr('qb_searching', appLanguage)} />}
         {error && <ErrorMessage error={error} onRetry={() => doSearch(query, searchLang, page)} />}
 
         {results && !loading && (
           <>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              {appLanguage === 'bn'
-                ? `${results.total}টি ফলাফল`
-                : `${results.total} results`}
+              {fmt('qb_results_count', appLanguage, { count: localDigits(results.total, appLanguage) })}
               {results.total > 0 &&
-                ` (${appLanguage === 'bn' ? 'পৃষ্ঠা' : 'page'} ${results.page} ${appLanguage === 'bn' ? 'এর' : 'of'} ${results.total_pages})`}
+                ` (${fmt('ct_page_of', appLanguage, {
+                  page: localDigits(results.page, appLanguage),
+                  total: localDigits(results.total_pages, appLanguage),
+                })})`}
             </p>
 
             <div className="space-y-3">
               {results.matches.map((match) => (
                 <Link
                   key={`${match.collection_slug}-${match.hadithnumber}`}
-                  to={`/hadith/${match.collection_slug}/${match.book_number}`}
+                  to={`/hadith/${match.collection_slug}/${match.book_number}#h-${match.hadithnumber}`}
                   className="block bg-white dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm px-4 py-4 hover:border-green-300 hover:shadow-md transition-all"
                 >
                   <span className="text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded">
-                    {match.collection_name} — {match.hadithnumber}
+                    {match.collection_name} — {localDigits(match.hadithnumber, appLanguage)}
                   </span>
                   <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-3 mt-2">{match.text}</p>
                 </Link>
@@ -124,24 +127,24 @@ export default function HadithSearch() {
                   disabled={page <= 1}
                   className="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
-                  {appLanguage === 'bn' ? 'আগের' : 'Prev'}
+                  {tr('qb_prev', appLanguage)}
                 </button>
                 <span className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
-                  {page} / {results.total_pages}
+                  {localDigits(`${page} / ${results.total_pages}`, appLanguage)}
                 </span>
                 <button
                   onClick={() => handlePage(page + 1)}
                   disabled={page >= results.total_pages}
                   className="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
-                  {appLanguage === 'bn' ? 'পরের' : 'Next'}
+                  {tr('qb_next', appLanguage)}
                 </button>
               </div>
             )}
 
             {results.matches.length === 0 && (
               <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                {appLanguage === 'bn' ? 'কোনো ফলাফল পাওয়া যায়নি' : 'No results found'}
+                {tr('qb_no_results', appLanguage)}
               </div>
             )}
           </>

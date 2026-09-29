@@ -2,10 +2,12 @@ import { useState, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useApp } from '../context/AppContext.jsx';
-import { tr } from '../i18n/translations.js';
+import { fmt, tr } from '../i18n/translations.js';
+import { localDigits } from '../utils/format.js';
 import { getNearbyMasjids, searchMasjids } from '../services/masjidService.js';
 import MasjidMap from '../components/masjid/MasjidMap.jsx';
 import MasjidCard from '../components/masjid/MasjidCard.jsx';
+import ErrorMessage from '../components/common/ErrorMessage.jsx';
 
 const RADIUS_OPTIONS = [1, 2, 5, 10, 25];
 
@@ -49,7 +51,7 @@ export default function Masjids() {
 
   const isSearch = q.length > 0;
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['masjids', isSearch ? 'search' : 'nearby', origin.lat, origin.lng, radius, q],
     queryFn: () =>
       isSearch
@@ -117,7 +119,7 @@ export default function Masjids() {
                         : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600'
                     } disabled:opacity-50`}
                   >
-                    {r} km
+                    {fmt('pr_distance_km', language, { n: localDigits(r, language) })}
                   </button>
                 ))}
               </div>
@@ -165,7 +167,7 @@ export default function Masjids() {
             )}
 
             {isError && (
-              <p className="text-sm text-red-600 dark:text-red-400">{tr('masjids_load_error', language)}</p>
+              <ErrorMessage variant="inline" error={tr('masjids_load_error', language)} onRetry={refetch} />
             )}
 
             {!isLoading && !isError && masjids.length === 0 && (

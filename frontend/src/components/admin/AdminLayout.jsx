@@ -31,10 +31,7 @@ export default function AdminLayout({ children }) {
       <aside className="w-56 flex-shrink-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
         {/* Brand */}
         <div className="flex items-center gap-2.5 px-4 py-5 border-b border-gray-200 dark:border-gray-700">
-          <span className="flex items-center justify-center w-8 h-8 rounded-lg dark:bg-white overflow-hidden">
-            <img src="/icons/logo.png" alt="" className="w-full h-full object-contain mix-blend-multiply"
-              style={{ filter: 'hue-rotate(122deg) saturate(1.4) brightness(0.72)' }} />
-          </span>
+          <img src="/icons/icon-192.png" alt="" className="w-8 h-8 rounded-lg" />
           <div>
             <p className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-none">Hidayah</p>
             <p className="text-[10px] text-gray-400 leading-none mt-0.5">Admin Panel</p>

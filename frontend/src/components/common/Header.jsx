@@ -7,6 +7,7 @@ export default function Header() {
   const { language, setLanguage, supportedLanguages, isRTL, darkMode, toggleDarkMode } = useApp();
   const routerLocation = useRouterLocation();
   const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const isActive = (path) => routerLocation.pathname === path;
 
@@ -21,6 +22,16 @@ export default function Header() {
     { path: '/settings',       key: 'nav_settings' },
   ];
 
+  const moreLinks = [
+    { path: '/ramadan',      key: 'ramadan_title' },
+    { path: '/islamic-days', key: 'islamic_days_title' },
+    { path: '/calendar',     key: 'nav_calendar' },
+    { path: '/zakat',        key: 'zakat_title' },
+    { path: '/names',        key: 'names_title' },
+    { path: '/bookmarks',    key: 'sv_title' },
+    { path: '/sync',         key: 'sync_title' },
+  ];
+
   return (
     <header className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -28,16 +39,12 @@ export default function Header() {
           {/* Logo */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center gap-2">
-              {/* Logo mark — mix-blend-mode:multiply knocks out the white background;
-                  dark mode wrapper restores a white surface for the blend to work on */}
-              <span className="flex items-center justify-center w-8 h-8 rounded-md dark:bg-white dark:p-0.5 overflow-hidden flex-shrink-0">
-                <img
-                  src="/icons/logo.png"
-                  alt="Hidayah logo"
-                  className="w-full h-full object-contain mix-blend-multiply"
-                  style={{ filter: 'hue-rotate(122deg) saturate(1.4) brightness(0.72)' }}
-                />
-              </span>
+              {/* App icon (same artwork as the PWA/app icons) */}
+              <img
+                src="/icons/icon-192.png"
+                alt={tr('ct_logo_alt', language)}
+                className="w-8 h-8 rounded-lg flex-shrink-0"
+              />
               <h1 className="text-xl font-bold text-primary-600 dark:text-green-400">
                 {tr('app_name', language)}
               </h1>
@@ -60,11 +67,51 @@ export default function Header() {
               </Link>
             ))}
 
+            {/* More (secondary pages) */}
+            <div className="relative">
+              <button
+                onClick={() => setMoreOpen((v) => !v)}
+                onBlur={() => setTimeout(() => setMoreOpen(false), 150)}
+                className={`flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium ${
+                  moreLinks.some((l) => routerLocation.pathname.startsWith(l.path))
+                    ? 'bg-primary-100 text-primary-700 dark:bg-green-900/30 dark:text-green-400'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
+                aria-expanded={moreOpen}
+                aria-haspopup="menu"
+              >
+                {tr('nav_more', language)}
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+              {moreOpen && (
+                <ul
+                  role="menu"
+                  className={`absolute top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 z-50 min-w-[190px] ${isRTL ? 'left-0' : 'right-0'}`}
+                >
+                  {moreLinks.map(({ path, key }) => (
+                    <li key={path} role="none">
+                      <Link
+                        role="menuitem"
+                        to={path}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => setMoreOpen(false)}
+                        className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                      >
+                        {tr(key, language)}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
             {/* Dark mode toggle */}
             <button
               onClick={toggleDarkMode}
               className="p-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              aria-label={tr(darkMode ? 'ct_switch_to_light' : 'ct_switch_to_dark', language)}
             >
               {darkMode ? (
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -83,7 +130,7 @@ export default function Header() {
                 onClick={() => setLangMenuOpen((v) => !v)}
                 onBlur={() => setTimeout(() => setLangMenuOpen(false), 150)}
                 className="flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-                aria-label="Change language"
+                aria-label={tr('ct_change_language', language)}
                 aria-expanded={langMenuOpen}
                 aria-haspopup="listbox"
               >
@@ -99,14 +146,14 @@ export default function Header() {
               {langMenuOpen && (
                 <ul
                   role="listbox"
-                  aria-label="Select language"
+                  aria-label={tr('ct_select_language', language)}
                   className={`absolute top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg py-1 z-50 min-w-[140px] ${isRTL ? 'left-0' : 'right-0'}`}
                 >
                   {supportedLanguages.map((lang) => (
                     <li key={lang} role="option" aria-selected={lang === language}>
                       <button
                         onClick={() => { setLanguage(lang); setLangMenuOpen(false); }}
-                        className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                        className={`w-full text-start px-4 py-2 text-sm flex items-center justify-between gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 ${
                           lang === language ? 'text-primary-700 dark:text-green-400 font-medium' : 'text-gray-700 dark:text-gray-300'
                         }`}
                         dir={lang === 'ur' ? 'rtl' : 'ltr'}

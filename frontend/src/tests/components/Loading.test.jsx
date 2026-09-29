@@ -5,7 +5,7 @@ import Loading from '../../components/common/Loading.jsx';
 describe('Loading Component', () => {
   it('should render loading spinner', () => {
     render(<Loading />);
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.getByText('Loading…')).toBeInTheDocument();
   });
 
   it('should display custom message', () => {

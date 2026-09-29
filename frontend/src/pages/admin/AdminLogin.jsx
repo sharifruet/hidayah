@@ -29,14 +29,7 @@ export default function AdminLogin() {
       <div className="w-full max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <span className="flex items-center justify-center w-12 h-12 rounded-xl dark:bg-white overflow-hidden mb-3">
-            <img
-              src="/icons/logo.png"
-              alt="Hidayah"
-              className="w-full h-full object-contain mix-blend-multiply"
-              style={{ filter: 'hue-rotate(122deg) saturate(1.4) brightness(0.72)' }}
-            />
-          </span>
+          <img src="/icons/icon-192.png" alt="Hidayah" className="w-12 h-12 rounded-xl mb-3" />
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Hidayah Admin</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Sign in to manage content</p>
         </div>

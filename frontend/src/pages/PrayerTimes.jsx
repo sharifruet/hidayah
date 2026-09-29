@@ -5,26 +5,35 @@ import { useLocation } from '../hooks/useLocation.js';
 import LocationMap from '../components/map/LocationMap.jsx';
 import LocationSearch from '../components/location/LocationSearch.jsx';
 import PrayerTimesCard from '../components/prayer/PrayerTimesCard.jsx';
+import ForbiddenTimesCard from '../components/prayer/ForbiddenTimesCard.jsx';
+import { usePrayerTimes } from '../hooks/usePrayerTimes.js';
 import { format } from 'date-fns';
 import { tr } from '../i18n/translations.js';
+import { placeName, placeRegion, toAppLocation } from '../utils/place.js';
 
 export default function PrayerTimes() {
-  const { location, updateLocation, updateMethod, language } = useApp();
-  const { getByCoordinates, getCurrentLocation, loading: locationLoading } = useLocation();
+  const { location, method, updateLocation, updateMethod, language } = useApp();
+  const { getByCoordinates, getCurrentLocation, loading: locationLoading, error: locationError } = useLocation();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [mapCenter, setMapCenter] = useState([location.lat, location.lng]);
+  const { data: dayData } = usePrayerTimes(location.lat, location.lng, selectedDate, method);
+  const isToday = selectedDate.toDateString() === new Date().toDateString();
+
+  const applyLocation = (locationData) => {
+    if (!locationData) return;
+    updateLocation(toAppLocation(locationData));
+    setMapCenter([locationData.latitude, locationData.longitude]);
+  };
 
   const handleMapClick = async (lat, lng) => {
-    const locationData = await getByCoordinates(lat, lng);
-    if (locationData) {
-      updateLocation({
-        lat: locationData.latitude,
-        lng: locationData.longitude,
-        name: locationData.name,
-        district: locationData.district,
-        division: locationData.division
-      });
-      setMapCenter([locationData.latitude, locationData.longitude]);
+    applyLocation(await getByCoordinates(lat, lng));
+  };
+
+  const handleUseCurrentLocation = async () => {
+    try {
+      applyLocation(await getCurrentLocation());
+    } catch {
+      // the hook exposes a localized `error`, shown below the button
     }
   };
 
@@ -40,10 +49,10 @@ export default function PrayerTimes() {
         {/* Page header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            {language === 'bn' ? 'সালাতের সময়' : 'Prayer Times'}
+            {tr('pr_title', language)}
           </h1>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
-            {language === 'bn' ? 'অবস্থান এবং তারিখ নির্বাচন করুন' : 'Select a location and date to view prayer times'}
+            {tr('pr_subtitle', language)}
           </p>
         </div>
 
@@ -51,25 +60,23 @@ export default function PrayerTimes() {
         <div className="mb-6">
           <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
-              {language === 'bn' ? 'মাসিক বা তারিখ অনুযায়ী দেখুন' : 'View by month or date range'}
+              {tr('pr_calendar_card_title', language)}
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-              {language === 'bn'
-                ? 'সম্পূর্ণ মাস বা নির্দিষ্ট তারিখ পরিসীমার সালাতের সময় ক্যালেন্ডার আকারে দেখতে ক্যালেন্ডার পেজে যান।'
-                : 'To see prayer times for a full month or a custom date range, open the calendar view.'}
+              {tr('pr_calendar_card_body', language)}
             </p>
             <div className="flex flex-wrap gap-2">
               <Link
                 to={`/calendar?view=monthly&year=${selectedDate.getFullYear()}&month=${selectedDate.getMonth() + 1}`}
                 className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md bg-primary-600 text-white hover:bg-primary-700"
               >
-                {language === 'bn' ? 'এই মাসের ক্যালেন্ডার' : "This month's calendar"}
+                {tr('pr_this_month_calendar', language)}
               </Link>
               <Link
                 to={`/calendar?view=date-range&startDate=${format(selectedDate, 'yyyy-MM-dd')}&endDate=${format(selectedDate, 'yyyy-MM-dd')}`}
                 className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600"
               >
-                {language === 'bn' ? 'এই তারিখের জন্য ক্যালেন্ডার' : 'Calendar for this date'}
+                {tr('pr_calendar_for_date', language)}
               </Link>
             </div>
           </div>
@@ -102,10 +109,11 @@ export default function PrayerTimes() {
           {/* Left column — controls + map */}
           <div>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {language === 'bn' ? 'তারিখ নির্বাচন করুন' : 'Select Date'}
+              <label htmlFor="prayer-date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {tr('pr_select_date', language)}
               </label>
               <input
+                id="prayer-date"
                 type="date"
                 value={format(selectedDate, 'yyyy-MM-dd')}
                 onChange={(e) => setSelectedDate(new Date(e.target.value))}
@@ -122,15 +130,15 @@ export default function PrayerTimes() {
 
             <div className="mb-4">
               <button
-                onClick={getCurrentLocation}
+                onClick={handleUseCurrentLocation}
                 disabled={locationLoading}
                 className="w-full px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
               >
-                {locationLoading
-                  ? (language === 'bn' ? 'অবস্থান পাওয়া হচ্ছে...' : 'Getting location...')
-                  : (language === 'bn' ? 'বর্তমান অবস্থান ব্যবহার করুন' : 'Use Current Location')
-                }
+                {locationLoading ? tr('pr_getting_location', language) : tr('pr_use_current_location', language)}
               </button>
+              {locationError && (
+                <p role="alert" className="mt-2 text-sm text-red-600 dark:text-red-400">{locationError}</p>
+              )}
             </div>
 
             <LocationMap
@@ -140,11 +148,11 @@ export default function PrayerTimes() {
               height="400px"
             />
 
-            {location.name && (
+            {placeName(location, language) && (
               <div className="mt-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-100 dark:border-gray-700">
-                <p className="font-semibold text-gray-900 dark:text-gray-100">{location.name}</p>
-                {location.district && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{location.district}, {location.division}</p>
+                <p className="font-semibold text-gray-900 dark:text-gray-100">{placeName(location, language)}</p>
+                {placeRegion(location, language) && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{placeRegion(location, language)}</p>
                 )}
               </div>
             )}
@@ -156,6 +164,9 @@ export default function PrayerTimes() {
               date={selectedDate}
               onMethodChange={updateMethod}
             />
+            <div className="mt-6">
+              <ForbiddenTimesCard times={dayData?.times} isToday={isToday} />
+            </div>
           </div>
         </div>
       </div>

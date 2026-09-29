@@ -397,8 +397,12 @@ async function quranComFetch(path) {
   return res.json();
 }
 
-export async function getWordByWord(surahNumber) {
-  const cacheKey = `words-${surahNumber}`;
+// Word-gloss languages quran.com serves; anything else falls back to English.
+const WBW_LANGUAGES = ['en', 'bn', 'ur', 'id', 'tr'];
+
+export async function getWordByWord(surahNumber, lang = 'en') {
+  if (!WBW_LANGUAGES.includes(lang)) lang = 'en';
+  const cacheKey = `words-${surahNumber}-${lang}`;
   const cached = getCache(cacheKey);
   if (cached) return cached;
 
@@ -409,7 +413,7 @@ export async function getWordByWord(surahNumber) {
     do {
       const json = await quranComFetch(
         `/verses/by_chapter/${surahNumber}` +
-        `?words=true&word_fields=text_uthmani,transliteration,translation&per_page=50&page=${page}`
+        `?words=true&word_fields=text_uthmani,transliteration,translation&language=${lang}&per_page=50&page=${page}`
       );
       for (const verse of json.verses || []) {
         result[verse.verse_number] = (verse.words || [])

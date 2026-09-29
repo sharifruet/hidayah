@@ -8,11 +8,12 @@ import { Screen } from '../../../../components/ui/Screen';
 import { booksService, type Book } from '../../../../lib/services/books';
 import { useApp } from '../../../../context/AppContext';
 import { tr } from '../../../../data/translations';
+import { ErrorState } from '../../../../components/ui/ErrorState';
 
 export default function BooksListScreen() {
   const { language } = useApp();
   const [q, setQ] = useState('');
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, error, refetch, isRefetching } = useQuery({
     queryKey: ['books', q],
     queryFn: () => booksService.listBooks({ q: q || undefined, limit: 50 }),
     staleTime: 24 * 60 * 60 * 1000,
@@ -43,7 +44,7 @@ export default function BooksListScreen() {
       </View>
 
       {isError && books.length === 0 ? (
-        <Text className="font-body text-sm text-red-500 px-4 mb-2">{tr('books_load_error', language)}</Text>
+        <ErrorState error={error} onRetry={refetch} retrying={isRefetching} />
       ) : null}
       {isLoading && books.length === 0 ? (
         <Text className="font-body text-sm text-ink-400 px-4">{tr('loading', language)}</Text>
@@ -71,7 +72,7 @@ export default function BooksListScreen() {
               <View className="flex-row items-center mt-1.5">
                 <View className="bg-ink-100 dark:bg-ink-800 px-2 py-0.5 rounded-full">
                   <Text className="font-body-medium text-[10px] text-ink-500 dark:text-ink-400 uppercase">
-                    {item.content_type}
+                    {['pdf', 'epub', 'text', 'embed'].includes(item.content_type) ? tr(`books_type_${item.content_type}`, language) : item.content_type}
                   </Text>
                 </View>
               </View>

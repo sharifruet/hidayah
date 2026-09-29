@@ -1,11 +1,22 @@
 import { API_BASE_URL, API_VERSION } from '../utils/constants.js';
 const API_BASE = `${API_BASE_URL}/${API_VERSION}`;
 
+function apiError(message, code, status) {
+  return Object.assign(new Error(message), { code, status });
+}
+
+// Rejects with the same `{ message, code, status }` shape as `services/api.js`, so
+// `ErrorMessage` can tell "not found" / network / server errors apart.
 async function get(path) {
-  const res = await fetch(`${API_BASE}/books${path}`);
+  let res;
+  try {
+    res = await fetch(`${API_BASE}/books${path}`);
+  } catch {
+    throw apiError('Network error', 'NETWORK_ERROR', 0);
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error?.message || `HTTP ${res.status}`);
+    throw apiError(err?.error?.message || `HTTP ${res.status}`, err?.error?.code || 'UNKNOWN_ERROR', res.status);
   }
   return res.json();
 }

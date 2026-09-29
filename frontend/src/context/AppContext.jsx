@@ -2,6 +2,9 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 import { DEFAULT_LOCATION, DEFAULT_METHOD } from '../utils/constants.js';
 import { RTL_LANGUAGES } from '../i18n/translations.js';
 import { getLocationByCoordinates } from '../services/locationService.js';
+import { HIJRI_OFFSET_KEY, getHijriOffset } from '../utils/hijri.js';
+import { TIME_FORMAT_KEY, getTimeFormat } from '../utils/format.js';
+import { toAppLocation } from '../utils/place.js';
 
 const AppContext = createContext(null);
 
@@ -9,6 +12,15 @@ const SUPPORTED_LANGUAGES = ['en', 'bn', 'ur', 'tr', 'id'];
 
 const LOCATION_KEY = 'app_location';
 const METHOD_KEY = 'app_method';
+const MY_MASJID_KEY = 'app_my_masjid';
+
+function loadMyMasjid() {
+  try {
+    return JSON.parse(localStorage.getItem(MY_MASJID_KEY)) || null;
+  } catch {
+    return null;
+  }
+}
 
 function loadPersistedMethod() {
   try {
@@ -46,18 +58,15 @@ function loadPersistedDarkMode() {
 export function AppProvider({ children }) {
   const [location, setLocation] = useState(() => {
     const saved = loadPersistedLocation();
-    return saved ?? {
-      lat: DEFAULT_LOCATION.lat,
-      lng: DEFAULT_LOCATION.lng,
-      name: DEFAULT_LOCATION.name,
-      district: DEFAULT_LOCATION.district,
-      division: DEFAULT_LOCATION.division,
-    };
+    return saved ?? { ...DEFAULT_LOCATION };
   });
 
   const [method, setMethod]          = useState(loadPersistedMethod);
   const [language, setLanguageState] = useState(loadPersistedLanguage);
   const [darkMode, setDarkModeState]  = useState(loadPersistedDarkMode);
+  const [hijriOffset, setHijriOffsetState] = useState(getHijriOffset);
+  const [myMasjid, setMyMasjidState] = useState(loadMyMasjid);
+  const [timeFormat, setTimeFormatState] = useState(getTimeFormat);
 
   const isRTL = RTL_LANGUAGES.has(language);
 
@@ -93,13 +102,7 @@ export function AppProvider({ children }) {
         try {
           const { latitude, longitude } = position.coords;
           const data = await getLocationByCoordinates(latitude, longitude);
-          updateLocation({
-            lat: data.latitude,
-            lng: data.longitude,
-            name: data.name || DEFAULT_LOCATION.name,
-            district: data.district || '',
-            division: data.division || '',
-          });
+          updateLocation({ ...toAppLocation(data), name: data.name || DEFAULT_LOCATION.name });
         } catch {
           // silently keep Dhaka default
         }
@@ -136,17 +139,45 @@ export function AppProvider({ children }) {
     });
   }, []);
 
+  /** Moon-sighting adjustment (-2…2 days) applied to every Hijri date. */
+  const setHijriOffset = useCallback((days) => {
+    const clamped = Math.max(-2, Math.min(2, Math.round(days)));
+    setHijriOffsetState(clamped);
+    try { localStorage.setItem(HIJRI_OFFSET_KEY, String(clamped)); } catch {}
+  }, []);
+
+  /** { id, name, name_bn, jamah } of the user's masjid, or null to clear. */
+  const setMyMasjid = useCallback((masjid) => {
+    setMyMasjidState(masjid);
+    try {
+      if (masjid) localStorage.setItem(MY_MASJID_KEY, JSON.stringify(masjid));
+      else localStorage.removeItem(MY_MASJID_KEY);
+    } catch {}
+  }, []);
+
+  /** '12h' (default) or '24h' for every displayed time. */
+  const setTimeFormat = useCallback((format) => {
+    setTimeFormatState(format);
+    try { localStorage.setItem(TIME_FORMAT_KEY, format); } catch {}
+  }, []);
+
   const value = {
     location,
     method,
     language,
     isRTL,
     darkMode,
+    hijriOffset,
+    myMasjid,
+    timeFormat,
     updateLocation,
     updateMethod,
     setLanguage,
     toggleLanguage,
     toggleDarkMode,
+    setHijriOffset,
+    setMyMasjid,
+    setTimeFormat,
     supportedLanguages: SUPPORTED_LANGUAGES,
   };
 
@@ -161,4 +192,17 @@ export function useApp() {
   const context = useContext(AppContext);
   if (!context) throw new Error('useApp must be used within AppProvider');
   return context;
+}
+
+/**
+ * Like `useApp`, but returns `{ language: 'en', timeFormat: '12h' }` defaults outside an
+ * `AppProvider` instead of throwing — for leaf components (ErrorMessage, Loading) that are
+ * also rendered standalone (tests, error boundaries).
+ */
+export function useAppLocale() {
+  const context = useContext(AppContext);
+  return {
+    language: context?.language ?? 'en',
+    timeFormat: context?.timeFormat ?? '12h',
+  };
 }

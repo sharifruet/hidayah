@@ -1,5 +1,9 @@
 import { Link } from 'react-router-dom';
 import { getReadSurahs } from '../../services/progressService.js';
+import { tr, fmt } from '../../i18n/translations.js';
+import { localDigits } from '../../utils/format.js';
+
+const REVELATION_KEYS = { Meccan: 'qb_meccan', Medinan: 'qb_medinan' };
 
 export default function SurahList({ surahs, language, searchTerm = '' }) {
   const readSurahs = getReadSurahs();
@@ -17,7 +21,7 @@ export default function SurahList({ surahs, language, searchTerm = '' }) {
   if (filtered.length === 0) {
     return (
       <p className="p-6 text-center text-gray-500 dark:text-gray-400">
-        {language === 'bn' ? 'কোনো সুরা পাওয়া যায়নি' : 'No surahs found'}
+        {tr('qb_no_surahs', language)}
       </p>
     );
   }
@@ -42,21 +46,23 @@ export default function SurahList({ surahs, language, searchTerm = '' }) {
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
-              ) : surah.number}
+              ) : localDigits(surah.number, language)}
             </span>
 
-            <div className="ml-3 flex-1 min-w-0">
+            <div className="ms-3 flex-1 min-w-0">
               <span className="font-medium text-gray-900 dark:text-gray-100 block truncate">
                 {surah.name_en}
               </span>
               <span className="text-xs text-gray-500 dark:text-gray-400">
-                {surah.name_en_trans} · {surah.ayah_count}{' '}
-                {language === 'bn' ? 'আয়াত' : 'ayahs'} ·{' '}
-                {surah.revelation_type}
+                {surah.name_en_trans} ·{' '}
+                {fmt('qb_ayah_count', language, { count: localDigits(surah.ayah_count, language) })} ·{' '}
+                {REVELATION_KEYS[surah.revelation_type]
+                  ? tr(REVELATION_KEYS[surah.revelation_type], language)
+                  : surah.revelation_type}
               </span>
             </div>
 
-            <span className="text-3xl font-arabic text-gray-700 dark:text-gray-300 ml-2 leading-none flex-shrink-0">
+            <span className="text-3xl font-arabic text-gray-700 dark:text-gray-300 ms-2 leading-none flex-shrink-0">
               {surah.name_ar}
             </span>
           </Link>

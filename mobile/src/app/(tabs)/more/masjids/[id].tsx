@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Linking, Text, TouchableOpacity, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -9,18 +9,22 @@ import { Screen } from '../../../../components/ui/Screen';
 import { Card } from '../../../../components/ui/Card';
 import { JamahTimesFields } from '../../../../components/masjid/JamahTimesFields';
 import { useApp } from '../../../../context/AppContext';
-import { tr } from '../../../../data/translations';
+import { fmt, tr } from '../../../../data/translations';
+import { formatTime, localDigits } from '../../../../lib/format';
 import { masjidsService, JAMAH_PRAYERS, type Masjid } from '../../../../lib/services/masjids';
-import { getPrayerTimes } from '../../../../lib/services/prayer';
+import { localPrayerTimes } from '../../../../lib/prayerCalc';
 import {
   absoluteTime, directionsUrl, formatDistance, jamahFormIsValid, jamahFormToUpdate,
   jamahToForm, minutesBetween, prayerLabel, relativeTime,
 } from '../../../../lib/masjid';
 import { Palette } from '../../../../constants/theme';
+import { myMasjidName, toMyMasjid } from '../../../../lib/myMasjid';
+import { ErrorState } from '../../../../components/ui/ErrorState';
+import { userErrorMessage } from '../../../../lib/errors';
 
 export default function MasjidDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { location, method, language } = useApp();
+  const { location, method, language, timeFormat, myMasjid, setMyMasjid } = useApp();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(jamahToForm());
@@ -30,18 +34,22 @@ export default function MasjidDetailScreen() {
   const coords = { lat: location.lat, lng: location.lng };
   const queryKey = ['masjid', id, coords.lat, coords.lng];
 
-  const { data: masjid, isLoading, isError, error } = useQuery({
+  const { data: masjid, isLoading, isError, error, refetch, isRefetching } = useQuery({
     queryKey,
     queryFn: () => masjidsService.get(id, coords),
   });
 
+  const isMine = !!masjid && myMasjid?.id === masjid.id;
+
+  // Keep the saved "my masjid" copy (used by jamah reminders) in step with what's shown.
+  useEffect(() => {
+    if (masjid && myMasjid?.id === masjid.id && JSON.stringify(masjid.jamah) !== JSON.stringify(myMasjid.jamah)) {
+      setMyMasjid(toMyMasjid(masjid));
+    }
+  }, [masjid, myMasjid, setMyMasjid]);
+
   const today = format(new Date(), 'yyyy-MM-dd');
-  const { data: prayerTimes } = useQuery({
-    queryKey: ['masjid-prayer-times', masjid?.latitude, masjid?.longitude, today, method],
-    queryFn: () => getPrayerTimes(masjid!.latitude, masjid!.longitude, today, method),
-    enabled: !!masjid,
-    staleTime: 60 * 60 * 1000,
-  });
+  const prayerTimes = masjid ? localPrayerTimes(masjid.latitude, masjid.longitude, today, method) : undefined;
 
   const mutation = useMutation({
     mutationFn: () => masjidsService.updateJamah(id, jamahFormToUpdate(form)),
@@ -80,15 +88,17 @@ export default function MasjidDetailScreen() {
           <Ionicons name="chevron-back" size={22} color="#5b6579" />
         </TouchableOpacity>
         <Text className="font-body-bold text-lg text-ink-900 dark:text-white flex-1" numberOfLines={1}>
-          {masjid ? (language === 'bn' && masjid.name_bn ? masjid.name_bn : masjid.name) : tr('more_masjids', language)}
+          {masjid ? myMasjidName(masjid, language) : tr('more_masjids', language)}
         </Text>
       </View>
 
       {isLoading ? <Text className="font-body text-sm text-ink-400">{tr('loading', language)}</Text> : null}
       {isError ? (
-        <Text className="font-body text-sm text-red-500">
-          {notFound ? tr('masjid_not_found', language) : tr('masjids_load_error', language)}
-        </Text>
+        notFound ? (
+          <Text className="font-body text-sm text-ink-500">{tr('masjid_not_found', language)}</Text>
+        ) : (
+          <ErrorState error={error} onRetry={refetch} retrying={isRefetching} />
+        )
       ) : null}
 
       {masjid ? (
@@ -110,8 +120,8 @@ export default function MasjidDetailScreen() {
                   </Text>
                 ) : null}
                 <Text className="font-body text-[11px] text-ink-300 dark:text-ink-600 mt-1">
-                  {masjid.latitude.toFixed(5)}, {masjid.longitude.toFixed(5)}
-                  {masjid.distance_km != null ? ` · ${formatDistance(masjid.distance_km)} ${tr('masjids_away', language)}` : ''}
+                  {localDigits(`${masjid.latitude.toFixed(5)}, ${masjid.longitude.toFixed(5)}`, language)}
+                  {masjid.distance_km != null ? ` · ${formatDistance(masjid.distance_km, language)} ${tr('masjids_away', language)}` : ''}
                 </Text>
               </View>
             </View>
@@ -138,8 +148,23 @@ export default function MasjidDetailScreen() {
               ) : null}
             </View>
 
+            <TouchableOpacity
+              onPress={() => setMyMasjid(isMine ? null : toMyMasjid(masjid))}
+              className={`flex-row items-center justify-center rounded-xl py-2.5 mt-2 border ${
+                isMine ? 'bg-gold-500/10 border-gold-500/40' : 'border-ink-200 dark:border-ink-700'
+              }`}
+            >
+              <Ionicons name={isMine ? 'star' : 'star-outline'} size={15} color={isMine ? '#c99a45' : Palette.ink[500]} />
+              <Text className={`font-body-semibold text-sm ml-2 ${isMine ? 'text-gold-600 dark:text-gold-400' : 'text-ink-700 dark:text-ink-200'}`}>
+                {isMine ? `${tr('my_masjid_is', language)} · ${tr('my_masjid_remove', language)}` : tr('my_masjid_set', language)}
+              </Text>
+            </TouchableOpacity>
+            {isMine ? (
+              <Text className="font-body text-[11px] text-ink-400 mt-1.5 text-center">{tr('my_masjid_reminders_hint', language)}</Text>
+            ) : null}
+
             <Text className="font-body text-[10px] text-ink-300 dark:text-ink-600 mt-3">
-              {tr('masjid_added_on', language)} {relativeTime(masjid.created_at)}
+              {tr('masjid_added_on', language)} {relativeTime(masjid.created_at, language)}
             </Text>
           </Card>
 
@@ -151,9 +176,9 @@ export default function MasjidDetailScreen() {
                 {masjid.jamah_updated_at ? (
                   <Text className="font-body text-xs text-ink-400 mt-0.5">
                     {tr('masjid_last_updated', language)}:{' '}
-                    <Text className="font-body-medium text-ink-600 dark:text-ink-300">{relativeTime(masjid.jamah_updated_at)}</Text>
+                    <Text className="font-body-medium text-ink-600 dark:text-ink-300">{relativeTime(masjid.jamah_updated_at, language)}</Text>
                     {'\n'}
-                    <Text className="text-ink-300 dark:text-ink-600">{absoluteTime(masjid.jamah_updated_at)}</Text>
+                    <Text className="text-ink-300 dark:text-ink-600">{absoluteTime(masjid.jamah_updated_at, language, timeFormat)}</Text>
                   </Text>
                 ) : null}
               </View>
@@ -180,7 +205,7 @@ export default function MasjidDetailScreen() {
                 {formError ? <Text className="font-body text-xs text-red-500 mb-2">{formError}</Text> : null}
                 {mutation.isError ? (
                   <Text className="font-body text-xs text-red-500 mb-2">
-                    {(mutation.error as { message?: string })?.message ?? tr('error_generic', language)}
+                    {userErrorMessage(mutation.error, language)}
                   </Text>
                 ) : null}
                 <View className="flex-row justify-end">
@@ -218,11 +243,11 @@ export default function MasjidDetailScreen() {
                   return (
                     <View key={p} className={`flex-row items-center py-2.5 border-b border-ink-50 dark:border-ink-800/60 ${jamah ? '' : 'opacity-40'}`}>
                       <Text className="flex-1 font-body-medium text-sm text-ink-900 dark:text-white">{prayerLabel(p, language)}</Text>
-                      <Text className="w-16 text-right font-body text-sm text-ink-400">{adhan ?? '—'}</Text>
+                      <Text className="w-16 text-right font-body text-sm text-ink-400">{adhan ? formatTime(adhan, language, timeFormat, { withPeriod: false }) : '—'}</Text>
                       <View className="w-24 flex-row items-baseline justify-end">
-                        <Text className="font-body-bold text-sm text-ink-900 dark:text-white">{jamah ?? '—'}</Text>
+                        <Text className="font-body-bold text-sm text-ink-900 dark:text-white">{jamah ? formatTime(jamah, language, timeFormat, { withPeriod: false }) : '—'}</Text>
                         {delta != null && delta >= 0 ? (
-                          <Text className="font-body text-[10px] text-ink-400 ml-1">+{delta}m</Text>
+                          <Text className="font-body text-[10px] text-ink-400 ml-1">+{fmt('minutes_abbr', language, { n: delta })}</Text>
                         ) : null}
                       </View>
                     </View>

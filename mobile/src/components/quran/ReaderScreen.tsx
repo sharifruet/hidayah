@@ -6,8 +6,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AyahRow } from './AyahRow';
 import { AudioPlayerBar } from './AudioPlayerBar';
-import { ReaderSettingsSheet, type ReaderSettings } from './ReaderSettingsSheet';
-import { fetchReciters, fetchSurahAyahs, findTranslation, splitBasmalah, type Ayah } from '../../lib/services/quran';
+import { ReaderSettingsSheet, migrateReaderSettings, type ReaderSettings } from './ReaderSettingsSheet';
+import {
+  fetchReciters, fetchSurahAyahs, fetchWordByWord, findTranslation, splitBasmalah, type Ayah,
+} from '../../lib/services/quran';
+import { ErrorState } from '../ui/ErrorState';
+import { localDigits } from '../../lib/format';
 import { loadReaderSettings, markSurahRead, saveLastRead, saveReaderSettings } from '../../lib/progress';
 import { useSurahPlayback } from '../../hooks/useSurahPlayback';
 import { cacheSurahAudio } from '../../lib/offlineAudio';
@@ -15,21 +19,15 @@ import { backOr } from '../../lib/navigation';
 import { useApp } from '../../context/AppContext';
 import { tr } from '../../data/translations';
 
-const DEFAULT_SETTINGS: ReaderSettings = {
-  showBengali: false,
-  hideTranslation: false,
-  memorisationMode: false,
-  repeatCount: 3,
-  playbackRate: 1,
-};
+// Word glosses quran.com serves; other UI languages get English.
+const WBW_LANGS = ['en', 'bn', 'ur', 'id', 'tr'];
 
 export function ReaderScreen({ surahNumber, initialAyah }: { surahNumber: number; initialAyah?: number }) {
   const { language } = useApp();
   const insets = useSafeAreaInsets();
-  const [settings, setSettings] = useState<ReaderSettings>(() => ({
-    ...DEFAULT_SETTINGS,
-    ...loadReaderSettings<ReaderSettings>(),
-  }));
+  const [settings, setSettings] = useState<ReaderSettings>(() =>
+    migrateReaderSettings(loadReaderSettings<ReaderSettings>(), language)
+  );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [audioCached, setAudioCached] = useState(false);
   const [revealedAyahs, setRevealedAyahs] = useState<Set<number>>(new Set());
@@ -37,11 +35,11 @@ export function ReaderScreen({ surahNumber, initialAyah }: { surahNumber: number
   const scrolledOnce = useRef(false);
 
   const translations = useMemo(
-    () => (settings.showBengali ? ['en.sahih', 'bn.bengali'] : ['en.sahih']),
-    [settings.showBengali]
+    () => (settings.translation === 'both' ? ['bn.bengali', 'en.sahih'] : settings.translation === 'bn' ? ['bn.bengali'] : ['en.sahih']),
+    [settings.translation]
   );
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, error, refetch, isRefetching } = useQuery({
     queryKey: ['surah-ayahs', surahNumber, translations.join(',')],
     queryFn: () => fetchSurahAyahs(surahNumber, { translations }),
     // Qur'an text doesn't change — once cached (on-device or in-memory), don't spend a
@@ -50,7 +48,17 @@ export function ReaderScreen({ surahNumber, initialAyah }: { surahNumber: number
   });
 
   const { data: recitersData } = useQuery({ queryKey: ['reciters'], queryFn: fetchReciters, staleTime: Infinity });
-  const reciter = recitersData?.data?.[0];
+  const reciters = recitersData?.data ?? [];
+  const reciter = reciters.find((r) => r.id === settings.reciterId) ?? reciters[0];
+
+  const wbwLang = WBW_LANGS.includes(language) ? language : 'en';
+  const { data: wordsData } = useQuery({
+    queryKey: ['quran-words', surahNumber, wbwLang],
+    queryFn: () => fetchWordByWord(surahNumber, wbwLang),
+    enabled: settings.wordByWord,
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+  const words = settings.wordByWord ? wordsData?.data : undefined;
 
   const surahMeta = data?.data.surah;
   const ayahs = data?.data.ayahs ?? [];
@@ -122,11 +130,11 @@ export function ReaderScreen({ surahNumber, initialAyah }: { surahNumber: number
           </TouchableOpacity>
           <View>
             <Text className="font-body-bold text-lg text-ink-900 dark:text-white">
-              {surahMeta?.name_en ?? `${tr('quran_surah_tab', language)} ${surahNumber}`}
+              {surahMeta?.name_en ?? `${tr('quran_surah_tab', language)} ${localDigits(surahNumber, language)}`}
             </Text>
             {surahMeta ? (
               <Text className="font-body text-xs text-ink-400">
-                {surahMeta.name_en_trans} · {surahMeta.ayah_count} {tr('quran_ayahs', language)}
+                {surahMeta.name_en_trans} · {localDigits(surahMeta.ayah_count, language)} {tr('quran_ayahs', language)}
               </Text>
             ) : null}
           </View>
@@ -140,9 +148,7 @@ export function ReaderScreen({ surahNumber, initialAyah }: { surahNumber: number
         </TouchableOpacity>
       </View>
 
-      {isError && ayahs.length === 0 ? (
-        <Text className="font-body text-sm text-red-500 px-4">{tr('error_generic', language)}</Text>
-      ) : null}
+      {isError && ayahs.length === 0 ? <ErrorState error={error} onRetry={refetch} retrying={isRefetching} /> : null}
       {isLoading && ayahs.length === 0 ? (
         <Text className="font-body text-sm text-ink-400 px-4">{tr('quran_loading', language)}</Text>
       ) : null}
@@ -166,9 +172,14 @@ export function ReaderScreen({ surahNumber, initialAyah }: { surahNumber: number
               surahName: surahMeta?.name_en ?? '',
               text_ar: text,
               basmalah,
-              translation: findTranslation(item, 'en.sahih'),
-              translationBn: settings.showBengali ? findTranslation(item, 'bn.bengali') : undefined,
+              // Primary translation first; with "both", Bangla leads and English follows.
+              translation: findTranslation(item, translations[0]),
+              translationBn: translations[1] ? findTranslation(item, translations[1]) : undefined,
+              words: words?.[String(item.number)],
             }}
+            arabicSize={settings.arabicSize}
+            translationSize={settings.translationSize}
+            tafsirEdition={settings.tafsir}
             isPlaying={player.currentAyah === item.number && player.isPlaying}
             hideTranslation={settings.hideTranslation}
             onPlay={() => player.playAyah(item.number)}
@@ -186,6 +197,7 @@ export function ReaderScreen({ surahNumber, initialAyah }: { surahNumber: number
       <ReaderSettingsSheet
         visible={settingsOpen}
         settings={settings}
+        reciters={reciters}
         onChange={setSettings}
         onClose={() => setSettingsOpen(false)}
       />

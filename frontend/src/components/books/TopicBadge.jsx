@@ -1,3 +1,6 @@
+import { useApp } from '../../context/AppContext.jsx';
+import { topicLabel } from './labels.js';
+
 // Static map avoids Tailwind JIT purging dynamic class strings
 const TOPIC_CLASSES = {
   hadith:       'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300',
@@ -14,10 +17,11 @@ const TOPIC_CLASSES = {
 const DEFAULT_CLASSES = 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
 
 export default function TopicBadge({ topic }) {
+  const { language } = useApp();
   const classes = TOPIC_CLASSES[topic] || DEFAULT_CLASSES;
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize ${classes}`}>
-      {topic}
+      {topicLabel(topic, language)}
     </span>
   );
 }

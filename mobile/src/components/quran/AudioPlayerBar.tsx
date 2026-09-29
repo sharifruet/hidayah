@@ -3,7 +3,8 @@ import { Modal, Text, TouchableOpacity, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { tr } from '../../data/translations';
+import { fmt, tr } from '../../data/translations';
+import { localDigits } from '../../lib/format';
 import type { LanguageCode } from '../../lib/constants';
 
 const RATES = [0.75, 1, 1.25, 1.5, 2];
@@ -46,7 +47,7 @@ export function AudioPlayerBar({
 
   const sleepLabel =
     player.sleepRemaining > 0
-      ? `${Math.floor(player.sleepRemaining / 60)}:${String(player.sleepRemaining % 60).padStart(2, '0')}`
+      ? localDigits(`${Math.floor(player.sleepRemaining / 60)}:${String(player.sleepRemaining % 60).padStart(2, '0')}`, language)
       : null;
 
   return (
@@ -62,19 +63,19 @@ export function AudioPlayerBar({
         <View className="flex-row items-center justify-between mb-2.5">
           <View className="flex-1 flex-row items-center flex-wrap">
             <Text className="font-body-medium text-xs text-ink-700 dark:text-ink-300" numberOfLines={1}>
-              {surahName} · {tr('quran_ayah', language)} {player.currentAyah}
+              {surahName} · {tr('quran_ayah', language)} {localDigits(player.currentAyah, language)}
             </Text>
             {player.repeat > 1 ? (
               <View className="ml-2 bg-primary-50 dark:bg-primary-900/30 px-1.5 py-0.5 rounded-full">
                 <Text className="font-body-medium text-[10px] text-primary-700 dark:text-primary-400">
-                  {player.loopCount}/{player.repeat}
+                  {localDigits(`${player.loopCount}/${player.repeat}`, language)}
                 </Text>
               </View>
             ) : null}
           </View>
 
           <TouchableOpacity onPress={() => setSpeedPickerOpen(true)} className="px-2 py-1">
-            <Text className="font-body-medium text-xs text-ink-500 dark:text-ink-400">{player.rate}×</Text>
+            <Text className="font-body-medium text-xs text-ink-500 dark:text-ink-400">{localDigits(player.rate, language)}×</Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => setSleepPickerOpen(true)} className="px-2 py-1 flex-row items-center">
@@ -125,7 +126,7 @@ export function AudioPlayerBar({
                     }`}
                   >
                     <Text className={`font-body-medium text-xs ${player.rate === r ? 'text-white' : 'text-ink-600 dark:text-ink-300'}`}>
-                      {r}×
+                      {localDigits(r, language)}×
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -166,7 +167,7 @@ export function AudioPlayerBar({
                     }`}
                   >
                     <Text className={`font-body-medium text-xs ${player.sleepMinutes === m ? 'text-white' : 'text-ink-600 dark:text-ink-300'}`}>
-                      {m}m
+                      {fmt('minutes_abbr', language, { n: m })}
                     </Text>
                   </TouchableOpacity>
                 ))}

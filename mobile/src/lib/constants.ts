@@ -27,17 +27,12 @@ export const DEFAULT_METHOD = 'karachi';
 
 export type PrayerKey = 'fajr' | 'sunrise' | 'dhuhr' | 'asr' | 'maghrib' | 'sunset' | 'isha';
 
-export const PRAYER_LABELS: Record<PrayerKey, string> = {
-  fajr: 'Fajr',
-  sunrise: 'Sunrise',
-  dhuhr: 'Dhuhr',
-  asr: 'Asr',
-  maghrib: 'Maghrib',
-  sunset: 'Sunset',
-  isha: 'Isha',
-};
+// Display names: `tr(`prayer_${key}`, language)`.
 
 export const KAABA_COORDS = { lat: 21.4225, lng: 39.8262 };
 
 export const SUPPORTED_LANGUAGES = ['en', 'bn', 'ur', 'tr', 'id'] as const;
 export type LanguageCode = (typeof SUPPORTED_LANGUAGES)[number];
+
+/** Intl locale per UI language, for date formatting. */
+export const LOCALE_MAP: Record<LanguageCode, string> = { en: 'en-US', bn: 'bn-BD', ur: 'ur-PK', tr: 'tr-TR', id: 'id-ID' };

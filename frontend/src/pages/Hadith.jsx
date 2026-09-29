@@ -4,6 +4,8 @@ import { useApp } from '../context/AppContext.jsx';
 import { fetchCollections } from '../services/hadithService.js';
 import Loading from '../components/common/Loading.jsx';
 import ErrorMessage from '../components/common/ErrorMessage.jsx';
+import { fmt, tr } from '../i18n/translations.js';
+import { localDigits } from '../utils/format.js';
 
 export default function Hadith() {
   const { language } = useApp();
@@ -22,10 +24,10 @@ export default function Hadith() {
         <div className="flex items-start justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              {language === 'bn' ? 'হাদিস' : 'Hadith'}
+              {tr('nav_hadith', language)}
             </h1>
             <p className="mt-1 text-gray-500 dark:text-gray-400">
-              {language === 'bn' ? 'আরবি, বাংলা ও ইংরেজি সহ' : 'In Arabic, Bangla, and English'}
+              {tr('ct_hadith_subtitle', language)}
             </p>
           </div>
 
@@ -36,12 +38,12 @@ export default function Hadith() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-            <span className="hidden sm:inline">{language === 'bn' ? 'অনুসন্ধান' : 'Search'}</span>
+            <span className="hidden sm:inline">{tr('quran_search', language)}</span>
           </Link>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-          {isLoading && <Loading message={language === 'bn' ? 'লোড হচ্ছে...' : 'Loading collections...'} />}
+          {isLoading && <Loading />}
           {error && <ErrorMessage error={error} onRetry={refetch} />}
           {!isLoading && !error && (
             <ul className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -54,9 +56,10 @@ export default function Hadith() {
                     <div>
                       <p className="font-medium text-gray-900 dark:text-gray-100">{c.name}</p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {language === 'bn'
-                          ? `${c.total_books} অধ্যায় · ${c.total_hadiths} হাদিস`
-                          : `${c.total_books} books · ${c.total_hadiths} hadiths`}
+                        {fmt('ct_hadith_counts', language, {
+                          books: localDigits(c.total_books, language),
+                          hadiths: localDigits(c.total_hadiths, language),
+                        })}
                       </p>
                     </div>
                     <svg className="w-5 h-5 text-gray-300 dark:text-gray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

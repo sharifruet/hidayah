@@ -1,5 +1,6 @@
 import { getJSON, setJSON } from './storage';
 import type { PrayerKey } from './constants';
+import { localISODate } from './dates';
 
 const KEY = 'salah_tracker_log';
 const TRACKED: PrayerKey[] = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
@@ -16,18 +17,14 @@ function loadLog(): Log {
   return getJSON<Log>(KEY, {});
 }
 
-function toISO(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
 export function getDayStatus(date: Date = new Date()): DayStatus {
   const log = loadLog();
-  return { ...emptyDay(), ...(log[toISO(date)] ?? {}) };
+  return { ...emptyDay(), ...(log[localISODate(date)] ?? {}) };
 }
 
 export function setPrayerDone(prayer: keyof DayStatus, done: boolean, date: Date = new Date()): void {
   const log = loadLog();
-  const key = toISO(date);
+  const key = localISODate(date);
   log[key] = { ...emptyDay(), ...(log[key] ?? {}), [prayer]: done };
   setJSON(KEY, log);
 }
@@ -44,7 +41,7 @@ export function getRecentDays(days = 7): { date: string; status: DayStatus }[] {
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    out.push({ date: toISO(d), status: getDayStatus(d) });
+    out.push({ date: localISODate(d), status: getDayStatus(d) });
   }
   return out;
 }

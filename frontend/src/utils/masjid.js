@@ -1,38 +1,61 @@
-import { formatDistanceToNow, format, parseISO } from 'date-fns';
-import { PRAYER_LABELS, PRAYER_LABELS_BN } from './constants.js';
-import { tr } from '../i18n/translations.js';
+import { parseISO } from 'date-fns';
+import { fmt, tr } from '../i18n/translations.js';
+import { formatClock, formatDate, localDigits, localeFor } from './format.js';
 
 export const JAMAH_PRAYERS = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha', 'jumuah'];
 
 /** Localised label for a jamah prayer key (jumuah isn't in the calculated-times labels). */
 export function prayerLabel(key, language) {
-  if (key === 'jumuah') return tr('masjid_jumuah', language);
-  return (language === 'bn' ? PRAYER_LABELS_BN : PRAYER_LABELS)[key] || key;
+  return tr(key === 'jumuah' ? 'masjid_jumuah' : `prayer_${key}`, language);
 }
 
-/** "3 hours ago" style relative time; empty string for null. */
-export function relativeTime(iso) {
+const toDate = (iso) => (typeof iso === 'string' ? parseISO(iso) : iso);
+
+// Largest unit first; the first one the elapsed time reaches is used ("3 days ago").
+const RELATIVE_UNITS = [
+  ['year', 365 * 24 * 3600],
+  ['month', 30 * 24 * 3600],
+  ['week', 7 * 24 * 3600],
+  ['day', 24 * 3600],
+  ['hour', 3600],
+  ['minute', 60],
+];
+
+/** "3 hours ago" style relative time in the UI language; empty string for null. */
+export function relativeTime(iso, language = 'en') {
   if (!iso) return '';
   try {
-    return formatDistanceToNow(typeof iso === 'string' ? parseISO(iso) : iso, { addSuffix: true });
+    const d = toDate(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    const seconds = (d.getTime() - Date.now()) / 1000;
+    const rtf = new Intl.RelativeTimeFormat(localeFor(language), { numeric: 'auto' });
+    const [unit, size] = RELATIVE_UNITS.find(([, s]) => Math.abs(seconds) >= s) ?? ['second', 1];
+    const value = unit === 'second' ? 0 : Math.round(seconds / size); // < 1 min → "now"
+    return localDigits(rtf.format(value, unit), language);
   } catch {
     return '';
   }
 }
 
-/** Absolute timestamp for tooltips / secondary text. */
-export function absoluteTime(iso) {
+/** Absolute timestamp for tooltips / secondary text ("12 Mar 2025, 4:05 PM"). */
+export function absoluteTime(iso, language = 'en', timeFormat) {
   if (!iso) return '';
   try {
-    return format(typeof iso === 'string' ? parseISO(iso) : iso, 'dd MMM yyyy, HH:mm');
+    const d = toDate(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    const date = formatDate(d, language, { day: 'numeric', month: 'short', year: 'numeric' });
+    return `${date}, ${formatClock(d, language, timeFormat)}`;
   } catch {
     return '';
   }
 }
 
-export function formatDistance(km) {
+/** Distance for display: metres under 1 km, else km (one decimal under 10 km). */
+export function formatDistance(km, language = 'en') {
   if (km == null) return '';
-  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(km < 10 ? 1 : 0)} km`;
+  return km < 1
+    ? fmt('pr_distance_m', language, { n: localDigits(Math.round(km * 1000), language) })
+    : fmt('pr_distance_km', language, { n: localDigits(km.toFixed(km < 10 ? 1 : 0), language) });
 }
 
 export function googleMapsUrl(lat, lng) {

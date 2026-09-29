@@ -1,18 +1,23 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchTafsir } from '../../services/quranService.js';
+import { tr } from '../../i18n/translations.js';
+import ErrorMessage from '../common/ErrorMessage.jsx';
 
 const EDITIONS = [
-  { id: 'en.kathir',        label: 'Ibn Kathir (EN)' },
-  { id: 'en.maarifulquran', label: 'Maariful Quran (EN)' },
-  { id: 'bn.bengali',       label: 'Bengali Tafsir' },
+  { id: 'en.kathir',        labelKey: 'qr_tafsir_ibn_kathir' },
+  { id: 'en.maarifulquran', labelKey: 'qr_tafsir_maariful' },
+  { id: 'bn.bengali',       labelKey: 'qr_tafsir_zakaria' },
 ];
+
+// Bangla readers default to the Bangla tafsir (Abu Bakr Zakaria); everyone else to Ibn Kathir.
+const defaultEdition = (language) => (language === 'bn' ? 'bn.bengali' : 'en.kathir');
 
 export default function AyahTafsir({ surahNumber, ayahNumber, language }) {
   const [open, setOpen]       = useState(false);
-  const [edition, setEdition] = useState('en.kathir');
+  const [edition, setEdition] = useState(() => defaultEdition(language));
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['tafsir', surahNumber, ayahNumber, edition],
     queryFn:  () => fetchTafsir(surahNumber, ayahNumber, edition),
     enabled:  open,
@@ -34,7 +39,7 @@ export default function AyahTafsir({ surahNumber, ayahNumber, language }) {
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
-        {language === 'bn' ? 'তাফসির' : 'Tafsir / Commentary'}
+        {tr('quran_tafsir', language)}
       </button>
 
       {open && (
@@ -51,26 +56,28 @@ export default function AyahTafsir({ surahNumber, ayahNumber, language }) {
                     : 'border-teal-300 text-teal-700 hover:border-teal-500'
                 }`}
               >
-                {ed.label}
+                {tr(ed.labelKey, language)}
               </button>
             ))}
           </div>
 
           {isLoading && (
             <p className="text-xs text-gray-400 animate-pulse">
-              {language === 'bn' ? 'লোড হচ্ছে...' : 'Loading tafsir...'}
+              {tr('qr_tafsir_loading', language)}
             </p>
           )}
 
-          {error && (
-            <p className="text-xs text-red-500">
-              {language === 'bn' ? 'তাফসির পাওয়া যায়নি' : 'Tafsir unavailable for this ayah'}
-            </p>
-          )}
+          {error && (error.status === 404 ? (
+            <p className="text-xs text-gray-500">{tr('qr_tafsir_empty', language)}</p>
+          ) : (
+            <ErrorMessage error={error} onRetry={refetch} variant="inline" />
+          ))}
 
-          {!isLoading && !error && text && (
+          {!isLoading && !error && (text ? (
             <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{text}</p>
-          )}
+          ) : (
+            <p className="text-xs text-gray-500">{tr('qr_tafsir_empty', language)}</p>
+          ))}
         </div>
       )}
     </div>

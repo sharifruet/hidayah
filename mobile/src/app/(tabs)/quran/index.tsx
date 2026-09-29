@@ -5,15 +5,17 @@ import { useQuery } from '@tanstack/react-query';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { Screen } from '../../../components/ui/Screen';
-import { fetchSurahs, type Surah } from '../../../lib/services/quran';
+import { fetchSurahs, revelationLabel, type Surah } from '../../../lib/services/quran';
+import { localDigits } from '../../../lib/format';
 import { loadLastRead, getReadSurahs, getKhatmPercent, getStreak } from '../../../lib/progress';
 import { useApp } from '../../../context/AppContext';
-import { tr } from '../../../data/translations';
+import { fmt, tr } from '../../../data/translations';
+import { ErrorState } from '../../../components/ui/ErrorState';
 
 export default function QuranIndexScreen() {
   const { language } = useApp();
   const [search, setSearch] = useState('');
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, error, refetch, isRefetching } = useQuery({
     queryKey: ['quran-surahs'],
     queryFn: fetchSurahs,
     staleTime: 24 * 60 * 60 * 1000,
@@ -47,12 +49,12 @@ export default function QuranIndexScreen() {
             {streak > 0 ? (
               <View className="items-center bg-orange-50 dark:bg-orange-900/20 rounded-xl px-2.5 py-1.5">
                 <Text className="text-base leading-none">🔥</Text>
-                <Text className="font-body-bold text-xs text-orange-600 dark:text-orange-400 mt-0.5">{streak}</Text>
+                <Text className="font-body-bold text-xs text-orange-600 dark:text-orange-400 mt-0.5">{localDigits(streak, language)}</Text>
               </View>
             ) : null}
             <View className="items-center bg-primary-50 dark:bg-primary-900/20 rounded-xl px-2.5 py-1.5">
               <Ionicons name="calendar-outline" size={14} color="#15805a" />
-              <Text className="font-body-bold text-xs text-primary-600 dark:text-primary-400 mt-0.5">{khatmPct}%</Text>
+              <Text className="font-body-bold text-xs text-primary-600 dark:text-primary-400 mt-0.5">{fmt('quran_khatm', language, { pct: localDigits(khatmPct, language) })}</Text>
             </View>
             <TouchableOpacity
               onPress={() =>
@@ -64,7 +66,7 @@ export default function QuranIndexScreen() {
             >
               <Ionicons name="bookmark-outline" size={14} color="#3b82f6" />
               <Text className="font-body-bold text-xs text-blue-600 dark:text-blue-400 mt-0.5">
-                {lastRead ? lastRead.surah : '—'}
+                {lastRead ? localDigits(lastRead.surah, language) : '—'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -103,7 +105,7 @@ export default function QuranIndexScreen() {
         </View>
 
         {isError && surahs.length === 0 ? (
-          <Text className="font-body text-sm text-red-500 mb-3">{tr('quran_load_error', language)}</Text>
+          <ErrorState error={error} onRetry={refetch} retrying={isRefetching} compact className="mb-3" />
         ) : null}
       </View>
 
@@ -124,14 +126,15 @@ export default function QuranIndexScreen() {
                 {isRead ? (
                   <Ionicons name="checkmark" size={16} color="#15805a" />
                 ) : (
-                  <Text className="font-body-semibold text-xs text-primary-700 dark:text-primary-400">{item.number}</Text>
+                  <Text className="font-body-semibold text-xs text-primary-700 dark:text-primary-400">{localDigits(item.number, language)}</Text>
                 )}
               </View>
               <View className="flex-1 ml-3">
                 <Text className="font-body-semibold text-sm text-ink-900 dark:text-white">{item.name_en}</Text>
                 <Text className="font-body text-xs text-ink-400 mt-0.5">
                   {item.name_en_trans ? `${item.name_en_trans} · ` : ''}
-                  {item.revelation_type ? `${item.revelation_type} · ` : ''}{item.ayah_count ?? '—'} {tr('quran_ayahs', language)}
+                  {item.revelation_type ? `${revelationLabel(item.revelation_type, language)} · ` : ''}
+                  {item.ayah_count != null ? localDigits(item.ayah_count, language) : '—'} {tr('quran_ayahs', language)}
                 </Text>
               </View>
               {item.name_ar ? (

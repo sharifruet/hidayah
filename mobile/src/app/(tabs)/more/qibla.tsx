@@ -9,6 +9,7 @@ import { useApp } from '../../../context/AppContext';
 import { qiblaBearing } from '../../../lib/prayerMath';
 import { KAABA_COORDS } from '../../../lib/constants';
 import { tr } from '../../../data/translations';
+import { localDigits } from '../../../lib/format';
 
 export default function QiblaScreen() {
   const { location, language } = useApp();
@@ -84,7 +85,7 @@ export default function QiblaScreen() {
               {aligned ? tr('qibla_facing', language) : tr('qibla_rotate', language)}
             </Text>
             <Text className="font-body text-sm text-ink-400 mt-1">
-              {tr('qibla_bearing', language)}: {bearing.toFixed(0)}° {tr('qibla_from_north', language)}
+              {tr('qibla_bearing', language)}: {localDigits(bearing.toFixed(0), language)}° {tr('qibla_from_north', language)}
             </Text>
             {heading == null ? (
               <Text className="font-body text-xs text-ink-400 mt-2">{tr('qibla_calibrating', language)}</Text>

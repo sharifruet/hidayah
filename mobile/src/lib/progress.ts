@@ -1,4 +1,5 @@
 import { getJSON, setJSON, storage } from './storage';
+import { addDays, localISODate } from './dates';
 
 const KEY_PROGRESS = 'quran_khatm';
 const KEY_STREAK = 'quran_streak';
@@ -17,11 +18,11 @@ function loadProgress(): KhatmData {
 }
 
 function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
+  return localISODate();
 }
 
 function yesterdayStr(): string {
-  return new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+  return localISODate(addDays(new Date(), -1));
 }
 
 function loadStreak(): StreakData {

@@ -1,6 +1,7 @@
 import '../global.css';
 
 import { useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
 import { Stack, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -15,6 +16,10 @@ import { AppProvider, useApp } from '../context/AppContext';
 import { queryPersister, shouldPersistQuery, QUERY_PERSIST_MAX_AGE } from '../lib/queryPersist';
 import { addNotificationResponseListener } from '../lib/notifications';
 import { syncDuasIfDue } from '../lib/duasSync';
+import { refreshMyMasjid } from '../lib/myMasjid';
+import { syncNow } from '../lib/sync';
+// Also defines the background reminder task, which must happen at module load.
+import { registerReminderBackgroundTask, rescheduleReminders } from '../lib/reminders';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -32,7 +37,8 @@ const queryClient = new QueryClient({
 });
 
 function RootNavigation() {
-  const { darkMode } = useApp();
+  const app = useApp();
+  const { darkMode, location, method, language, notificationsEnabled, prayerCheckInEnabled, ramadanRemindersEnabled, setMyMasjid } = app;
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -47,10 +53,44 @@ function RootNavigation() {
     syncDuasIfDue();
   }, []);
 
+  // Pick up jamah-time edits made by others to the user's masjid (fire-and-forget; the
+  // saved copy keeps reminders working offline meanwhile).
+  useEffect(() => {
+    refreshMyMasjid().then((fresh) => {
+      if (fresh) setMyMasjid(fresh);
+    });
+  }, [setMyMasjid]);
+
+  // Keep a week of reminders queued: on launch, whenever the app returns to the
+  // foreground, and when a setting that affects them changes. The background task
+  // covers stretches where the app isn't opened at all.
+  useEffect(() => {
+    rescheduleReminders();
+  }, [
+    location.lat, location.lng, location.name, method, language, notificationsEnabled, prayerCheckInEnabled,
+    ramadanRemindersEnabled, app.adhanSound, app.fajrSoftAdhan, app.hijriOffset, app.islamicDayRemindersEnabled,
+    app.sunnahFastRemindersEnabled, app.jamahRemindersEnabled, app.jamahLeadMinutes, app.jumuahReminderEnabled,
+    app.myMasjid, app.timeFormat,
+  ]);
+
+  useEffect(() => {
+    registerReminderBackgroundTask();
+    // Optional backup: pull on launch/foreground, push when leaving the app. No-op unless
+    // the user turned it on; failures (offline) are retried next time.
+    syncNow().catch(() => {});
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') rescheduleReminders();
+      if (state === 'active' || state === 'background') syncNow().catch(() => {});
+    });
+    return () => sub.remove();
+  }, []);
+
   useEffect(() => {
     const sub = addNotificationResponseListener((response) => {
-      const screen = response.notification.request.content.data?.screen;
+      const screen = String(response.notification.request.content.data?.screen ?? '');
       if (screen === 'prayer-tracker') router.push('/more/prayer-tracker' as never);
+      else if (screen === 'islamic-days') router.push('/more/islamic-days' as never);
+      else if (screen.startsWith('masjid:')) router.push(`/more/masjids/${screen.slice('masjid:'.length)}` as never);
     });
     return () => sub.remove();
   }, []);

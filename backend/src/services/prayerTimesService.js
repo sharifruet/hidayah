@@ -1,4 +1,5 @@
 import pool from '../config/database.js';
+import { bengaliRegionNames } from '../utils/placeNames.js';
 import { calculatePrayerTimes } from '../utils/calculations.js';
 import { getPrayerTimesFromCache, storePrayerTimesInCache } from './cacheService.js';
 
@@ -39,9 +40,9 @@ export async function getPrayerTimesService(latitude, longitude, date, method, o
     // Get location info
     const [locations] = await pool.query(
       `SELECT name, name_bengali, district, division FROM locations
-       WHERE ABS(latitude - ?) < 0.01 AND ABS(longitude - ?) < 0.01
-       ORDER BY is_popular DESC LIMIT 1`,
-      [latitude, longitude]
+       WHERE latitude BETWEEN ? - 0.2 AND ? + 0.2 AND longitude BETWEEN ? - 0.2 AND ? + 0.2
+       ORDER BY POW(latitude - ?, 2) + POW(longitude - ?, 2) LIMIT 1`,
+      [latitude, latitude, longitude, longitude, latitude, longitude]
     );
 
     return {
@@ -53,6 +54,7 @@ export async function getPrayerTimesService(latitude, longitude, date, method, o
         ...(locations.length > 0 && {
           name: locations[0].name,
           name_bengali: locations[0].name_bengali,
+          ...bengaliRegionNames(locations[0]),
           district: locations[0].district,
           division: locations[0].division
         })
@@ -94,9 +96,9 @@ export async function getPrayerTimesService(latitude, longitude, date, method, o
   // Get location info if available
   const [locations] = await pool.query(
     `SELECT name, name_bengali, district, division FROM locations
-     WHERE ABS(latitude - ?) < 0.01 AND ABS(longitude - ?) < 0.01
-     ORDER BY is_popular DESC LIMIT 1`,
-    [latitude, longitude]
+     WHERE latitude BETWEEN ? - 0.2 AND ? + 0.2 AND longitude BETWEEN ? - 0.2 AND ? + 0.2
+     ORDER BY POW(latitude - ?, 2) + POW(longitude - ?, 2) LIMIT 1`,
+    [latitude, latitude, longitude, longitude, latitude, longitude]
   );
 
   return {
@@ -108,6 +110,7 @@ export async function getPrayerTimesService(latitude, longitude, date, method, o
       ...(locations.length > 0 && {
         name: locations[0].name,
         name_bengali: locations[0].name_bengali,
+          ...bengaliRegionNames(locations[0]),
         district: locations[0].district,
         division: locations[0].division
       })

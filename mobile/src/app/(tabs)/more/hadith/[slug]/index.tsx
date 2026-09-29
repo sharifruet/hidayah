@@ -7,6 +7,8 @@ import { Screen } from '../../../../../components/ui/Screen';
 import { hadithService, type HadithBook } from '../../../../../lib/services/hadith';
 import { useApp } from '../../../../../context/AppContext';
 import { tr } from '../../../../../data/translations';
+import { formatNumber, localDigits } from '../../../../../lib/format';
+import { ErrorState } from '../../../../../components/ui/ErrorState';
 
 export default function HadithBooksScreen() {
   const { language } = useApp();
@@ -19,7 +21,7 @@ export default function HadithBooksScreen() {
   });
   const collection = collectionsData?.data?.find((c) => c.slug === slug);
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, error, refetch, isRefetching } = useQuery({
     queryKey: ['hadith-books', slug],
     queryFn: () => hadithService.listBooks(slug),
     enabled: !!slug,
@@ -39,11 +41,11 @@ export default function HadithBooksScreen() {
         </Text>
       </View>
       <Text className="font-body text-xs text-ink-400 px-4 mb-4 ml-9">
-        {collection ? `${collection.total_hadiths} ${tr('hadith_hadiths_count', language)}` : ''}
+        {collection ? `${formatNumber(collection.total_hadiths, language)} ${tr('hadith_hadiths_count', language)}` : ''}
       </Text>
 
       {isError && books.length === 0 ? (
-        <Text className="font-body text-sm text-red-500 px-4 mb-2">{tr('error_generic', language)}</Text>
+        <ErrorState error={error} onRetry={refetch} retrying={isRefetching} />
       ) : null}
       {isLoading && books.length === 0 ? (
         <Text className="font-body text-sm text-ink-400 px-4">{tr('loading', language)}</Text>
@@ -59,12 +61,12 @@ export default function HadithBooksScreen() {
             className="flex-row items-center bg-white dark:bg-ink-900 border border-ink-100 dark:border-ink-800 rounded-xl px-3.5 py-3 mb-2"
           >
             <View className="w-8 h-8 rounded-full bg-primary-50 dark:bg-primary-900/30 items-center justify-center">
-              <Text className="font-body-semibold text-[11px] text-primary-700 dark:text-primary-400">{item.book_number}</Text>
+              <Text className="font-body-semibold text-[11px] text-primary-700 dark:text-primary-400">{localDigits(item.book_number, language)}</Text>
             </View>
             <View className="flex-1 ml-3">
               <Text className="font-body-medium text-sm text-ink-900 dark:text-white">{item.name}</Text>
               <Text className="font-body text-xs text-ink-400 mt-0.5">
-                {tr('hadith_number_range', language)} {item.hadithnumber_first}–{item.hadithnumber_last}
+                {tr('hadith_number_range', language)} {localDigits(`${item.hadithnumber_first}–${item.hadithnumber_last}`, language)}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color="#7d879a" />

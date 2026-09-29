@@ -86,9 +86,9 @@ export default function AdminDuas() {
     <AdminLayout>
       <div className="p-8">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Du'a & Adhkar</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Du&apos;a &amp; Adhkar</h1>
           <button onClick={openAdd} className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
-            + Add Du'a
+            + Add Du&apos;a
           </button>
         </div>
 
@@ -206,11 +206,11 @@ export default function AdminDuas() {
                   <input name="reference" value={form.reference} onChange={handleField} className={inputCls} />
                 </div>
                 <div>
-                  <label className={labelCls}>Qur'an Surah</label>
+                  <label className={labelCls}>Qur&apos;an Surah</label>
                   <input type="number" name="quran_surah" value={form.quran_surah} onChange={handleField} className={inputCls} />
                 </div>
                 <div>
-                  <label className={labelCls}>Qur'an Ayah</label>
+                  <label className={labelCls}>Qur&apos;an Ayah</label>
                   <input type="number" name="quran_ayah" value={form.quran_ayah} onChange={handleField} className={inputCls} />
                 </div>
               </div>

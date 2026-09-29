@@ -2,13 +2,14 @@
  * Hidayah Service Worker
  *
  * Strategy:
- *  - App shell (HTML, JS, CSS, fonts): Cache-first with network fallback
+ *  - App shell (HTML, JS, CSS, bundled fonts): Cache-first with network fallback
  *  - Quran API (alquran.cloud, api.quran.com): Stale-while-revalidate
  *  - Own backend API: Network-first (time-sensitive data), 24 h cache fallback
  *  - Everything else: Network-only (pass through)
  */
 
-const SHELL_CACHE  = 'hidayah-shell-v2';
+// v3: fonts are now self-hosted (same-origin), so old Google Fonts entries are dropped.
+const SHELL_CACHE  = 'hidayah-shell-v3';
 const QURAN_CACHE  = 'hidayah-quran-v2';
 const PRAYER_CACHE = 'hidayah-prayer-v2';
 
@@ -52,12 +53,6 @@ self.addEventListener('fetch', (event) => {
     url.hostname === 'everyayah.com'
   ) {
     event.respondWith(staleWhileRevalidate(request, QURAN_CACHE));
-    return;
-  }
-
-  // ── Google Fonts — cache-first ────────────────────────────────────────────
-  if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
-    event.respondWith(cacheFirst(request, SHELL_CACHE));
     return;
   }
 

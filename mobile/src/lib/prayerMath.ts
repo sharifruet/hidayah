@@ -1,4 +1,5 @@
 import { PrayerTimesResponse } from './services/prayer';
+import { localDigits } from './format';
 
 /**
  * Device's current local UTC offset as "+HH:MM" / "-HH:MM".
@@ -99,12 +100,13 @@ export function getWindowProgress(
   return Math.min(Math.max(elapsed / total, 0), 1);
 }
 
-export function formatCountdown(minutes: number | null): string {
+/** Minutes → "HH:MM" countdown in the language's numerals. */
+export function formatCountdown(minutes: number | null, language: string = 'en'): string {
   if (minutes == null) return '--:--';
-  if (minutes < 0) return '00:00';
+  if (minutes < 0) return localDigits('00:00', language);
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
-  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+  return localDigits(`${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`, language);
 }
 
 /** Bearing in degrees (0-360, clockwise from true north) from a point to the Kaaba. */

@@ -53,8 +53,7 @@ describe('Prayer Times Service', () => {
         longitude: 90.4125,
         year: 2024,
         month: 3,
-        method: 'karachi',
-        include_fasting: true
+        method: 'karachi'
       }
     });
 

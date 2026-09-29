@@ -5,10 +5,13 @@ import Loading from '../common/Loading.jsx';
 import ErrorMessage from '../common/ErrorMessage.jsx';
 import CalendarDay from './CalendarDay.jsx';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday } from 'date-fns';
-import { gregorianToHijri } from '../../utils/hijri.js';
+import { gregorianToHijri, hijriMonthName } from '../../utils/hijri.js';
+import { tr, fmt } from '../../i18n/translations.js';
+import { formatDate, formatMonthYear, localDigits } from '../../utils/format.js';
+import { placeName } from '../../utils/place.js';
 
 export default function MonthlyCalendar({ year, month, onDateClick = null }) {
-  const { location, method, language } = useApp();
+  const { location, method, language, hijriOffset } = useApp();
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['monthly-calendar', location.lat, location.lng, year, month, method],
     queryFn: () => getMonthlyCalendar(location.lat, location.lng, year, month, method, true),
@@ -16,7 +19,7 @@ export default function MonthlyCalendar({ year, month, onDateClick = null }) {
   });
 
   if (isLoading) {
-    return <Loading message="Loading calendar..." />;
+    return <Loading message={tr('cal_loading', language)} />;
   }
 
   if (error) {
@@ -24,7 +27,7 @@ export default function MonthlyCalendar({ year, month, onDateClick = null }) {
   }
 
   if (!data?.days) {
-    return <ErrorMessage error="No calendar data available" />;
+    return <ErrorMessage error={tr('cal_no_data', language)} onRetry={refetch} />;
   }
 
   const monthStart = startOfMonth(new Date(year, month - 1));
@@ -43,28 +46,29 @@ export default function MonthlyCalendar({ year, month, onDateClick = null }) {
     return data.days.find(d => d.date === dateStr);
   };
 
-  const weekDays = language === 'bn'
-    ? ['রবি', 'সোম', 'মঙ্গল', 'বুধ', 'বৃহ', 'শুক্র', 'শনি']
-    : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  // Localized short weekday names, Sunday first (2023-01-01 was a Sunday).
+  const weekDays = Array.from({ length: 7 }, (_, i) =>
+    formatDate(new Date(2023, 0, 1 + i), language, { weekday: 'short' })
+  );
 
   // Derive Hijri month range (start–end) for display
-  const hijriStart = gregorianToHijri(monthStart);
-  const hijriEnd = gregorianToHijri(monthEnd);
+  const hijriStart = gregorianToHijri(monthStart, hijriOffset);
+  const hijriEnd = gregorianToHijri(monthEnd, hijriOffset);
   const sameHijriMonth = hijriStart.month === hijriEnd.month && hijriStart.year === hijriEnd.year;
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
       <div className="mb-4">
         <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-          {format(monthStart, 'MMMM yyyy')}
+          {formatMonthYear(monthStart, language)}
         </h2>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          {location.name || `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`} • {method}
+          {placeName(location, language) || localDigits(`${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`, language)} • {method}
         </p>
         <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
           {sameHijriMonth
-            ? `${hijriStart.monthNameEn} ${hijriStart.year} AH (${hijriStart.monthNameAr})`
-            : `${hijriStart.monthNameEn} ${hijriStart.year} – ${hijriEnd.monthNameEn} ${hijriEnd.year} AH`}
+            ? `${hijriMonthName(hijriStart.month, language)} ${fmt('cal_hijri_year', language, { year: localDigits(hijriStart.year, language) })} (${hijriStart.monthNameAr})`
+            : `${hijriMonthName(hijriStart.month, language)} ${localDigits(hijriStart.year, language)} – ${hijriMonthName(hijriEnd.month, language)} ${fmt('cal_hijri_year', language, { year: localDigits(hijriEnd.year, language) })}`}
         </p>
       </div>
 

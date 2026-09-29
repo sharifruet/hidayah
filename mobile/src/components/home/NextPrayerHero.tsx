@@ -97,7 +97,7 @@ export function NextPrayerHero({ times, locationName }: { times?: PrayerTimesRes
             size={22}
             color="#e0b361"
           />
-          <Text className="font-body-bold text-xl text-white mt-1">{formatCountdown(minutesUntil)}</Text>
+          <Text className="font-body-bold text-xl text-white mt-1">{formatCountdown(minutesUntil, language)}</Text>
           <Text className="font-body text-[10px] text-primary-200">
             {tr('home_until', language)} {info ? tr(PRAYER_NAME_KEYS[info.next], language) : '—'}
           </Text>

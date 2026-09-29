@@ -54,9 +54,9 @@ export async function getMonthlyCalendarService(latitude, longitude, year, month
 
   const [locations] = await pool.query(
     `SELECT name, name_bengali, district, division FROM locations
-     WHERE ABS(latitude - ?) < 0.01 AND ABS(longitude - ?) < 0.01
-     ORDER BY is_popular DESC LIMIT 1`,
-    [latitude, longitude]
+     WHERE latitude BETWEEN ? - 0.2 AND ? + 0.2 AND longitude BETWEEN ? - 0.2 AND ? + 0.2
+     ORDER BY POW(latitude - ?, 2) + POW(longitude - ?, 2) LIMIT 1`,
+    [latitude, latitude, longitude, longitude, latitude, longitude]
   );
 
   const timezoneOffset = normalizedOptions.timezone_offset !== undefined ? normalizedOptions.timezone_offset : 6;
@@ -146,9 +146,9 @@ export async function getYearlyCalendarService(latitude, longitude, year, method
 
   const [locations] = await pool.query(
     `SELECT name, name_bengali, district, division FROM locations
-     WHERE ABS(latitude - ?) < 0.01 AND ABS(longitude - ?) < 0.01
-     ORDER BY is_popular DESC LIMIT 1`,
-    [latitude, longitude]
+     WHERE latitude BETWEEN ? - 0.2 AND ? + 0.2 AND longitude BETWEEN ? - 0.2 AND ? + 0.2
+     ORDER BY POW(latitude - ?, 2) + POW(longitude - ?, 2) LIMIT 1`,
+    [latitude, latitude, longitude, longitude, latitude, longitude]
   );
 
   const timezoneOffset = normalizedOptions.timezone_offset !== undefined ? normalizedOptions.timezone_offset : 6;
@@ -228,9 +228,9 @@ export async function getDateRangeCalendarService(latitude, longitude, startDate
 
   const [locations] = await pool.query(
     `SELECT name, name_bengali, district, division FROM locations
-     WHERE ABS(latitude - ?) < 0.01 AND ABS(longitude - ?) < 0.01
-     ORDER BY is_popular DESC LIMIT 1`,
-    [latitude, longitude]
+     WHERE latitude BETWEEN ? - 0.2 AND ? + 0.2 AND longitude BETWEEN ? - 0.2 AND ? + 0.2
+     ORDER BY POW(latitude - ?, 2) + POW(longitude - ?, 2) LIMIT 1`,
+    [latitude, latitude, longitude, longitude, latitude, longitude]
   );
 
   const timezoneOffset = normalizedOptions.timezone_offset !== undefined ? normalizedOptions.timezone_offset : 6;

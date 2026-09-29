@@ -5,6 +5,8 @@
  * RTL languages: ur
  */
 import type { LanguageCode } from '../lib/constants';
+import { featureStrings } from './featureStrings';
+import { localDigits } from '../lib/format';
 
 export const RTL_LANGUAGES = new Set<LanguageCode>(['ur']);
 
@@ -16,6 +18,8 @@ export const LANGUAGE_LABELS: Record<LanguageCode, string> = {
   id: 'Indonesia',
 };
 
+// Every entry needs all five languages — a missing one is a compile error. (`tr` still
+// falls back to English at runtime for unknown keys/languages.)
 type Entry = Record<LanguageCode, string>;
 
 const t: Record<string, Entry> = {
@@ -144,12 +148,16 @@ const t: Record<string, Entry> = {
   home_library: { en: 'Library', bn: 'লাইব্রেরি', ur: 'لائبریری', tr: 'Kütüphane', id: 'Perpustakaan' },
   home_compass: { en: 'Compass', bn: 'কম্পাস', ur: 'قطب نما', tr: 'Pusula', id: 'Kompas' },
   home_ramadan_mubarak: { en: 'Ramadan Mubarak', bn: 'রমজান মোবারক', ur: 'رمضان مبارک', tr: 'Ramazan Mübarek', id: 'Ramadhan Mubarak' },
-  home_day_of_ramadan: { en: 'day of Ramadan', bn: 'রমজানের দিন', ur: 'رمضان کا دن', tr: 'Ramazan günü', id: 'hari Ramadhan' },
-  home_eid_in: { en: 'Eid in ~', bn: 'ঈদ আনুমানিক', ur: 'عید تقریباً', tr: 'Bayrama yaklaşık', id: 'Idul Fitri sekitar' },
-  home_days: { en: 'days', bn: 'দিন', ur: 'دن', tr: 'gün', id: 'hari' },
-  home_until_ramadan: { en: 'days until Ramadan', bn: 'রমজান শুরু হতে দিন বাকি', ur: 'رمضان تک دن', tr: 'Ramazan\'a kalan gün', id: 'hari menuju Ramadhan' },
-  home_iftar_in: { en: 'Iftar in', bn: 'ইফতারে বাকি', ur: 'افطار میں', tr: 'İftara kalan', id: 'Iftar dalam' },
-  home_suhoor_ends_in: { en: 'Suhoor ends in', bn: 'সেহরি শেষ হবে', ur: 'سحری ختم ہو گی', tr: 'Sahur bitiyor', id: 'Sahur berakhir dalam' },
+  home_ramadan_status: {
+    en: 'Ramadan Mubarak — day {day} of Ramadan · Eid in ~{n} days',
+    bn: 'রমজান মোবারক — {day} রমজান · ঈদ আনুমানিক {n} দিন পর',
+    ur: 'رمضان مبارک — رمضان کا {day}واں دن · عید تقریباً {n} دن بعد',
+    tr: "Hayırlı Ramazanlar — Ramazan'ın {day}. günü · Bayrama yaklaşık {n} gün",
+    id: 'Ramadhan Mubarak — hari ke-{day} Ramadhan · Idul Fitri sekitar {n} hari lagi',
+  },
+  home_until_ramadan: { en: '{n} days until Ramadan', bn: 'রমজান শুরু হতে {n} দিন বাকি', ur: 'رمضان میں {n} دن باقی', tr: "Ramazan'a {n} gün kaldı", id: '{n} hari menuju Ramadhan' },
+  home_iftar_in: { en: 'Iftar in {time}', bn: 'ইফতারের বাকি {time}', ur: 'افطار میں {time} باقی', tr: 'İftara {time} kaldı', id: 'Berbuka dalam {time}' },
+  home_suhoor_ends_in: { en: 'Sehri ends in {time}', bn: 'সেহরি শেষ হতে বাকি {time}', ur: 'سحری ختم ہونے میں {time} باقی', tr: 'Sahurun bitmesine {time} kaldı', id: 'Sahur berakhir dalam {time}' },
   tracker_home_title: { en: "Today's Salah", bn: 'আজকের নামাজ', ur: 'آج کی نماز', tr: 'Bugünkü Namaz', id: 'Shalat Hari Ini' },
   home_read: { en: 'Read', bn: 'পড়ুন', ur: 'پڑھیں', tr: 'Oku', id: 'Baca' },
 
@@ -196,7 +204,9 @@ const t: Record<string, Entry> = {
   methods_custom: { en: 'Custom Methods', bn: 'কাস্টম পদ্ধতি', ur: 'حسب ضرورت طریقے', tr: 'Özel Yöntemler', id: 'Metode Kustom' },
   methods_fajr_angle: { en: 'Fajr angle', bn: 'ফজরের কোণ', ur: 'فجر کا زاویہ', tr: 'İmsak açısı', id: 'Sudut Subuh' },
   methods_isha_angle: { en: 'Isha angle', bn: 'ইশার কোণ', ur: 'عشاء کا زاویہ', tr: 'Yatsı açısı', id: 'Sudut Isya' },
-  methods_isha_after_maghrib: { en: 'min after Maghrib', bn: 'মিনিট মাগরিবের পর', ur: 'منٹ مغرب کے بعد', tr: 'dakika Akşam\'dan sonra', id: 'menit setelah Maghrib' },
+  methods_isha_after_maghrib: { en: '{n} min after Maghrib', bn: 'মাগরিবের {n} মিনিট পর', ur: 'مغرب کے {n} منٹ بعد', tr: 'Akşamdan {n} dk sonra', id: '{n} menit setelah Maghrib' },
+  methods_asr_standard: { en: 'Standard (Shafi‘i, Maliki, Hanbali)', bn: 'সাধারণ (শাফেয়ি, মালেকি, হাম্বলি)', ur: 'عام (شافعی، مالکی، حنبلی)', tr: 'Standart (Şâfiî, Mâlikî, Hanbelî)', id: 'Standar (Syafi‘i, Maliki, Hambali)' },
+  methods_asr_hanafi: { en: 'Hanafi', bn: 'হানাফি', ur: 'حنفی', tr: 'Hanefî', id: 'Hanafi' },
   methods_asr: { en: 'Asr', bn: 'আসর', ur: 'عصر', tr: 'İkindi', id: 'Ashar' },
 
   // ── Qur'an ───────────────────────────────────────────────────────────────────
@@ -210,7 +220,7 @@ const t: Record<string, Entry> = {
   quran_bookmarks_title: { en: 'Bookmarks', bn: 'বুকমার্ক', ur: 'بک مارکس', tr: 'Yer İşaretleri', id: 'Markah' },
   quran_no_bookmarks: { en: 'No bookmarks yet.', bn: 'এখনো কোনো বুকমার্ক নেই।', ur: 'ابھی تک کوئی بک مارک نہیں۔', tr: 'Henüz yer işareti yok.', id: 'Belum ada markah.' },
   quran_search_placeholder: { en: 'Search translation text…', bn: 'অনুবাদ টেক্সট খুঁজুন…', ur: 'ترجمہ متن تلاش کریں…', tr: 'Çeviri metninde ara…', id: 'Cari teks terjemahan…' },
-  quran_no_results: { en: 'No results for', bn: 'এর জন্য কোনো ফলাফল নেই', ur: 'کے لیے کوئی نتیجہ نہیں', tr: 'için sonuç yok', id: 'Tidak ada hasil untuk' },
+  quran_no_results: { en: 'No results for "{query}"', bn: '"{query}"-এর জন্য কোনো ফলাফল নেই', ur: '"{query}" کے لیے کوئی نتیجہ نہیں', tr: '"{query}" için sonuç bulunamadı', id: 'Tidak ada hasil untuk "{query}"' },
   quran_reveal_translation: { en: 'Tap to reveal translation', bn: 'অনুবাদ দেখতে ট্যাপ করুন', ur: 'ترجمہ دیکھنے کے لیے ٹیپ کریں', tr: 'Çeviriyi görmek için dokun', id: 'Ketuk untuk menampilkan terjemahan' },
   quran_tafsir_loading: { en: 'Loading tafsir…', bn: 'তাফসির লোড হচ্ছে…', ur: 'تفسیر لوڈ ہو رہی ہے…', tr: 'Tefsir yükleniyor…', id: 'Memuat tafsir…' },
   quran_tafsir_unavailable: { en: 'Tafsir unavailable.', bn: 'তাফসির উপলব্ধ নেই।', ur: 'تفسیر دستیاب نہیں۔', tr: 'Tefsir mevcut değil.', id: 'Tafsir tidak tersedia.' },
@@ -281,8 +291,8 @@ const t: Record<string, Entry> = {
   more_books_sub: { en: 'Islamic library', bn: 'ইসলামিক লাইব্রেরি', ur: 'اسلامی لائبریری', tr: 'İslami kütüphane', id: 'Perpustakaan Islam' },
   more_hadith: { en: 'Hadith', bn: 'হাদিস', ur: 'حدیث', tr: 'Hadis', id: 'Hadis' },
   more_hadith_sub: { en: 'Bukhari, Muslim & more', bn: 'বুখারী, মুসলিম ও অন্যান্য', ur: 'بخاری، مسلم اور دیگر', tr: 'Buhari, Müslim ve diğerleri', id: 'Bukhari, Muslim & lainnya' },
-  more_bookmarks: { en: 'Bookmarks', bn: 'বুকমার্ক', ur: 'بک مارکس', tr: 'Yer İşaretleri', id: 'Markah' },
-  more_bookmarks_sub: { en: 'Saved ayahs', bn: 'সংরক্ষিত আয়াত', ur: 'محفوظ شدہ آیات', tr: 'Kaydedilen ayetler', id: 'Ayat tersimpan' },
+  more_bookmarks: { en: 'Saved', bn: 'সংরক্ষিত', ur: 'محفوظ شدہ', tr: 'Kaydedilenler', id: 'Tersimpan' },
+  more_bookmarks_sub: { en: "Ayahs, favourite du'as, hadith", bn: "আয়াত, প্রিয় দু'আ, হাদিস", ur: 'آیات، پسندیدہ دعائیں، احادیث', tr: 'Ayetler, favori dualar, hadisler', id: 'Ayat, doa favorit, hadis' },
   more_qibla: { en: 'Qibla', bn: 'কিবলা', ur: 'قبلہ', tr: 'Kıble', id: 'Kiblat' },
   more_qibla_sub: { en: 'Compass direction', bn: 'কম্পাস দিক', ur: 'قطب نما کی سمت', tr: 'Pusula yönü', id: 'Arah kompas' },
   more_calendar_sub: { en: 'Hijri & Gregorian', bn: 'হিজরি ও গ্রেগরিয়ান', ur: 'ہجری اور عیسوی', tr: 'Hicri ve Miladi', id: 'Hijriah & Masehi' },
@@ -319,7 +329,7 @@ const t: Record<string, Entry> = {
 
   // ── Hadith ───────────────────────────────────────────────────────────────────
   hadith_title: { en: 'Hadith', bn: 'হাদিস', ur: 'حدیث', tr: 'Hadis', id: 'Hadis' },
-  hadith_subtitle: { en: 'In Arabic, Bangla, and English', bn: 'আরবি, বাংলা ও ইংরেজি সহ', ur: 'عربی، بنگالی اور انگریزی میں', tr: 'Arapça, Bengalce ve İngilizce', id: 'Dalam bahasa Arab, Bengali, dan Inggris' },
+  hadith_subtitle: { en: 'In your language, with the original Arabic', bn: 'বাংলা অনুবাদ, মূল আরবি সহ', ur: 'ترجمہ، اصل عربی کے ساتھ', tr: 'Çeviri, Arapça aslıyla birlikte', id: 'Terjemahan, dengan teks Arab asli' },
   hadith_load_error: { en: "Couldn't load hadith collections.", bn: 'হাদিস সংকলন লোড করা যায়নি।', ur: 'حدیث کے مجموعے لوڈ نہیں ہو سکے۔', tr: 'Hadis koleksiyonları yüklenemedi.', id: 'Koleksi hadis tidak dapat dimuat.' },
   hadith_books_count: { en: 'books', bn: 'অধ্যায়', ur: 'کتب', tr: 'kitap', id: 'buku' },
   hadith_hadiths_count: { en: 'hadiths', bn: 'হাদিস', ur: 'احادیث', tr: 'hadis', id: 'hadis' },
@@ -328,6 +338,9 @@ const t: Record<string, Entry> = {
   hadith_no_results: { en: 'No results found', bn: 'কোনো ফলাফল পাওয়া যায়নি', ur: 'کوئی نتیجہ نہیں ملا', tr: 'Sonuç bulunamadı', id: 'Tidak ada hasil ditemukan' },
   hadith_number_range: { en: 'Hadith', bn: 'হাদিস', ur: 'حدیث', tr: 'Hadis', id: 'Hadis' },
   hadith_no_translation: { en: 'Translation not available.', bn: 'অনুবাদ পাওয়া যায়নি।', ur: 'ترجمہ دستیاب نہیں ہے۔', tr: 'Çeviri mevcut değil.', id: 'Terjemahan tidak tersedia.' },
+  hadith_show_arabic: { en: 'Show original Arabic', bn: 'মূল আরবি দেখুন', ur: 'اصل عربی دکھائیں', tr: 'Arapça aslını göster', id: 'Tampilkan teks Arab asli' },
+  hadith_hide_arabic: { en: 'Hide Arabic', bn: 'আরবি লুকান', ur: 'عربی چھپائیں', tr: 'Arapçayı gizle', id: 'Sembunyikan teks Arab' },
+  hadith_number: { en: 'Hadith', bn: 'হাদিস', ur: 'حدیث', tr: 'Hadis', id: 'Hadis' },
 
   // ── Qibla ────────────────────────────────────────────────────────────────────
   qibla_title: { en: 'Qibla', bn: 'কিবলা', ur: 'قبلہ', tr: 'Kıble', id: 'Kiblat' },
@@ -419,10 +432,25 @@ const t: Record<string, Entry> = {
   masjid_location_set: { en: 'Location set', bn: 'অবস্থান নির্ধারিত', ur: 'مقام متعین', tr: 'Konum ayarlandı', id: 'Lokasi ditetapkan' },
 };
 
+Object.assign(t, featureStrings);
+
 export function tr(key: string, language: LanguageCode = 'en'): string {
   const entry = t[key];
   if (!entry) return key;
   return entry[language] ?? entry.en ?? key;
+}
+
+/**
+ * `tr` with `{name}` placeholders filled from `vars`. Number values are shown in the
+ * language's numerals (Bangla digits for `bn`); strings are inserted as-is, so pass
+ * already-formatted times/dates.
+ */
+export function fmt(key: string, language: LanguageCode, vars: Record<string, string | number> = {}): string {
+  return tr(key, language).replace(/\{(\w+)\}/g, (m, name) => {
+    if (!(name in vars)) return m;
+    const v = vars[name];
+    return typeof v === 'number' ? localDigits(v, language) : v;
+  });
 }
 
 export default t;

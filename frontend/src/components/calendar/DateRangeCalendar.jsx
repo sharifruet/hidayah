@@ -4,10 +4,16 @@ import { useApp } from '../../context/AppContext.jsx';
 import Loading from '../common/Loading.jsx';
 import ErrorMessage from '../common/ErrorMessage.jsx';
 import { format } from 'date-fns';
-import { PRAYER_LABELS, PRAYER_LABELS_BN } from '../../utils/constants.js';
+import { tr, fmt } from '../../i18n/translations.js';
+import { formatDate, formatTime, localDigits } from '../../utils/format.js';
+import { placeName } from '../../utils/place.js';
+
+const PRAYER_COLUMNS = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha'];
+const SHORT_DATE = { day: 'numeric', month: 'short' };
+const FULL_DATE = { day: 'numeric', month: 'short', year: 'numeric' };
 
 export default function DateRangeCalendar({ startDate, endDate }) {
-  const { location, method, language } = useApp();
+  const { location, method, language, timeFormat } = useApp();
   const startDateStr = format(startDate, 'yyyy-MM-dd');
   const endDateStr = format(endDate, 'yyyy-MM-dd');
 
@@ -17,10 +23,8 @@ export default function DateRangeCalendar({ startDate, endDate }) {
     enabled: !!location.lat && !!location.lng && !!startDate && !!endDate,
   });
 
-  const labels = language === 'bn' ? PRAYER_LABELS_BN : PRAYER_LABELS;
-
   if (isLoading) {
-    return <Loading message="Loading calendar..." />;
+    return <Loading message={tr('cal_loading', language)} />;
   }
 
   if (error) {
@@ -28,17 +32,18 @@ export default function DateRangeCalendar({ startDate, endDate }) {
   }
 
   if (!data?.days) {
-    return <ErrorMessage error="No calendar data available" />;
+    return <ErrorMessage error={tr('cal_no_data', language)} onRetry={refetch} />;
   }
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="mb-4">
         <h2 className="text-2xl font-bold text-gray-800">
-          {format(startDate, 'MMM d')} - {format(endDate, 'MMM d, yyyy')}
+          {formatDate(startDate, language, SHORT_DATE)} – {formatDate(endDate, language, FULL_DATE)}
         </h2>
         <p className="text-sm text-gray-600">
-          {location.name || `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`} • {method} • {data.total_days} days
+          {placeName(location, language) || localDigits(`${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`, language)} • {method} •{' '}
+          {fmt('cal_days_count', language, { n: localDigits(data.total_days ?? data.days.length, language) })}
         </p>
       </div>
 
@@ -46,53 +51,27 @@ export default function DateRangeCalendar({ startDate, endDate }) {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Date
+              <th className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {tr('cal_col_date', language)}
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {labels.fajr || 'Fajr'}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {labels.sunrise || 'Sunrise'}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {labels.dhuhr || 'Dhuhr'}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {labels.asr || 'Asr'}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {labels.maghrib || 'Maghrib'}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {labels.isha || 'Isha'}
-              </th>
+              {PRAYER_COLUMNS.map((key) => (
+                <th key={key} className="px-4 py-3 text-start text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  {tr(`prayer_${key}`, language)}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {data.days.map((day, index) => (
               <tr key={index} className="hover:bg-gray-50">
                 <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {format(new Date(day.date), 'MMM d, yyyy')}
+                  {formatDate(day.date, language, FULL_DATE)}
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                  {day.prayer_times?.fajr || '--'}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                  {day.prayer_times?.sunrise || '--'}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                  {day.prayer_times?.dhuhr || '--'}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                  {day.prayer_times?.asr || '--'}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                  {day.prayer_times?.maghrib || '--'}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
-                  {day.prayer_times?.isha || '--'}
-                </td>
+                {PRAYER_COLUMNS.map((key) => (
+                  <td key={key} className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                    {formatTime(day.prayer_times?.[key], language, timeFormat)}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>

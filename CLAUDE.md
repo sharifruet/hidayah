@@ -15,11 +15,13 @@ All commands below are run from `backend/` or `frontend/` respectively unless no
 ### Backend (`backend/`)
 - `npm run dev` — start with nodemon (hot reload)
 - `npm start` — start production server
+- `npm run test:unit` — the `node:test` suites (masjids, zakat, sync; the sync API test runs the real routes against an in-memory pool stand-in, no DB needed)
 - `npm test` — run Jest tests (ESM via `--experimental-vm-modules`); run a single file with `npm test -- tests/calculations.test.js` or a single case with `npm test -- -t "test name"`
 - `npm run lint` — ESLint (`eslint . --ext .js`); there is no `lint:fix` script — use `npx eslint . --ext .js --fix`
 - `npm run format` — Prettier write on `src/**/*.js`
 - `npm run migrate` / `npm run migrate:status` / `npm run migrate:rollback` — schema migration runner (see below)
 - `npm run seed` — seed base data (locations, calculation methods, du'as)
+- `npm run seed:upazilas` — (re)load all ~500 upazilas into `locations` (type `upazila`) from `src/database/data/upazilas.json` (Wikidata, CC0); also adds the enum value on an older DB (see `database/migrations/003_upazila_locations.sql`). Run by `npm run seed` too
 - `npm run seed:duas` — (re)seed the du'a collection from `src/database/data/duas.json` (idempotent, keyed by slug; also creates/upgrades the tables on an older DB)
 - `npm run seed:quran` / `npm run seed:quran:force` — seed Quran text/translations from `src/database/quranSeeder.js` (force re-seeds)
 - `npm run download:audio` — fetch per-ayah recitation audio into `backend/public/audio/` (`scripts/downloadAudio.js`)
@@ -28,7 +30,7 @@ All commands below are run from `backend/` or `frontend/` respectively unless no
 ### Frontend (`frontend/`)
 - `npm run dev` / `npm start` — Vite dev server (default http://localhost:5173)
 - `npm run build` — production build
-- `npm run lint` — ESLint (zero warnings allowed)
+- `npm run lint` — ESLint 8 with `.eslintrc.cjs` (zero warnings allowed)
 - `npm run format` — Prettier write on `src/**/*.{js,jsx}`
 - `npm test` — Vitest unit/component tests (jsdom); run one file with `npx vitest run src/tests/hooks/usePrayerTimes.test.js`
 - `npm run test:ui` — Vitest with UI
@@ -40,7 +42,7 @@ All commands below are run from `backend/` or `frontend/` respectively unless no
 ## Architecture
 
 ### Backend layering
-Express request flow is strictly layered: `routes/*.js` → `middleware/validation.js` (Joi schemas) → `controllers/*.js` (parse/format only) → `services/*.js` (business logic + DB queries via the shared `mysql2` pool) → MySQL. Routes are mounted in `src/server.js` under `/${API_VERSION}` (default `/v1`): `prayer-times`, `sun-times`, `calendar`, `batch`, `locations`, `methods`, `quran`, `hadith`, `books`, `masjids`, `duas`, `admin`. Admin routes (`routes/admin.js`) are protected by `middleware/adminAuth.js` (JWT bearer, `requireAdmin`); non-admin routes are public/unauthenticated.
+Express request flow is strictly layered: `routes/*.js` → `middleware/validation.js` (Joi schemas) → `controllers/*.js` (parse/format only) → `services/*.js` (business logic + DB queries via the shared `mysql2` pool) → MySQL. Routes are mounted in `src/server.js` under `/${API_VERSION}` (default `/v1`): `prayer-times`, `sun-times`, `calendar`, `batch`, `locations`, `methods`, `quran`, `hadith`, `books`, `masjids`, `duas`, `zakat`, `admin`. Admin routes (`routes/admin.js`) are protected by `middleware/adminAuth.js` (JWT bearer, `requireAdmin`); non-admin routes are public/unauthenticated.
 
 ### Prayer/sun time calculation engine
 `src/utils/calculations.js` implements the astronomical formulas (solar declination, equation of time, solar noon, hour angles) directly — no external prayer-times library. `src/config/methods.js` defines ~20 named calculation methods (e.g. `karachi` [default], `mwl`, `isna`, `egyptian`, …) as angle/adjustment parameter sets that `calculations.js` consumes. Results are cached in MySQL (`prayer_times_cache`) via `src/services/cacheService.js`, keyed on lat/lng/date/method — custom angle/adjustment overrides bypass the cache entirely (see `generatePrayerTimesCacheKey`). Hijri calendar conversion is a separate self-contained tabular approximation in `src/utils/hijri.js` (and its frontend mirror `frontend/src/utils/hijri.js`).
@@ -56,6 +58,24 @@ Community-contributed masjid directory: `masjids` (name/address/coords/status) +
 
 ### Du'as module
 The du'a collection is DB-backed (`dua_categories` + `duas`, the latter keyed by a stable `slug` such as `major-4`, with optional `virtue_en/virtue_bn` "fazilat" text). `backend/src/database/data/duas.json` is the canonical seed file (`npm run seed:duas`, also run by `npm run seed`). `GET /v1/duas` returns the whole collection plus `updated_at`. Clients don't page: web (`pages/Duas.jsx`) fetches it via react-query and keeps the last copy in `localStorage`; mobile (`lib/duasSync.ts`) copies it into MMKV at startup and re-syncs every `DUAS_SYNC_INTERVAL_DAYS` (7), falling back to the bundled snapshot `mobile/src/data/duas.json` until the first sync. Regenerate that snapshot from the seed JSON when the seed data changes.
+
+### Islamic calendar, reminders & tools
+Hijri conversion exists in three copies (`backend/src/utils/hijri.js`, `frontend/src/utils/hijri.js`, `mobile/src/lib/hijri.ts`). The Julian-day step must use `Math.trunc` for `(month - 14) / 12` and a 1-based month; flooring it, or passing `getMonth()`, shifts dates. Client copies apply a user moon-sighting offset (±2 days, key `app_hijri_offset`) by default. Pure helpers are mirrored between web (`frontend/src/utils/*.js`) and mobile (`mobile/src/lib/*.ts`): `islamicDays` (Eids, Shab-e-Barat/Qadr on the evening before, Ashura, Arafah, Ayyam al-Bid, Mon/Thu fasts), `forbiddenTimes`, `zakat` (nisab rates come from `GET /v1/zakat/nisab`, configured in `backend/src/config/nisab.js` or via `NISAB_*` env vars). Feature strings (en + bn) live in `featureStrings` files on both clients, merged into `tr`/`fmt`.
+
+Mobile reminders (`mobile/src/lib/reminders.ts`) plan all notification categories and hand them to `notifications.ts`. That file keeps only the earliest 60 because of iOS's 64-pending limit; the Android channel goes on the *trigger*. The planner also refreshes the home-screen widget (`mobile/src/widgets/`). iOS uses `expo-widgets` with a native countdown. Android uses `react-native-android-widget`, whose task handler is registered in `mobile/index.ts` (the package `main`). Adhan clips live in `mobile/assets/sounds/` (see `CREDITS.md`) and are bundled via the expo-notifications `sounds` option. "My masjid" (jamah reminders) is cached in storage (`lib/myMasjid.ts`).
+
+### Localisation (both clients)
+Bangla is the default language on web and mobile. There is one translation system per client: `tr(key, lang)` / `fmt(key, lang, vars)`. On web, `frontend/src/i18n/translations.js` merges `featureStrings.js` and the area modules in `i18n/strings/*.js`. On mobile, `mobile/src/data/translations.ts` merges `featureStrings.ts`. Every entry needs all five languages (en/bn/ur/tr/id), and keys must not be redefined across modules. Don't write inline `language === 'bn' ? … : …` for UI text; choosing a *data* field (e.g. `translation_bn`) is fine, and on web the helper is `bnOr`. Display numbers and times through the format helpers (`frontend/src/utils/format.js`, `mobile/src/lib/format.ts`). In Bangla they show Bangla numerals and 12-hour times with a part-of-day word (ভোর/সকাল/দুপুর/বিকাল/সন্ধ্যা/রাত). Pass `timeFormat` from `useApp()` so components re-render when it changes. Stored/API values stay ASCII `HH:MM`. Turn API failures into user-facing text with `userErrorMessage` (`utils/errors.js` / `lib/errors.ts`), and show them through `ErrorMessage` (web) or `ErrorState` (mobile) with a retry button.
+
+User favourites are device-local: Qur'an bookmarks are in `bookmarkService`/`lib/bookmarks.ts`. Favourite du'as, hadith bookmarks and each book's last position are in `frontend/src/utils/saved.js` / `mobile/src/lib/saved.ts`. Mobile location search uses the bundled `mobile/src/data/upazilas.json`, so it works offline; keep it in sync with the backend copy.
+
+### Optional backup & sync (sync codes)
+Users can back up device-local data without an account: `POST /v1/sync/accounts` returns a code (`XXXX-XXXX-XXXX-XXXX`, 80 random bits). The server stores only its SHA-256, and the code is sent as `Authorization: Sync <code>` (`middleware/syncAuth.js`). Data is one JSON document per client storage key (`SYNC_DOC_KEYS` in `backend/src/utils/syncCode.js`: tracker, qada, Qur'an bookmarks/progress, tasbih, favourite du'as, hadith bookmarks, book positions), stored in `sync_documents` with a version. `PUT /sync/documents/:key` takes `base_version` and returns 409 if the stored version has moved on. `syncService` creates the tables on first use (also in `schema.sql`, `setup.sql` and `database/migrations/004_sync.sql`).
+
+The clients (`mobile/src/lib/sync.ts`, `frontend/src/utils/sync.js`) keep the last-synced version and hash per document. A document that changed on only one side is copied to the other. One that changed on both sides is merged with the rules in `syncMerge.ts/.js`: unions for lists, OR for tracker marks, max for owed-prayer counts. To sync a new store, add its key to `SYNC_DOC_KEYS` **and** to `MERGERS` on both clients. Mobile keeps the code in expo-secure-store and syncs on launch, foreground and background; web keeps it in localStorage and syncs on load, visibility changes and every 10 minutes.
+
+### Web fonts
+Web fonts are self-hosted from `@fontsource/*` packages, imported in `frontend/src/main.jsx`: Noto Sans Bengali, Amiri, Scheherazade New and Noto Nastaliq Urdu. Don't add Google Fonts links; the service worker caches the bundled fonts for offline use. Mobile fonts are bundled through `@expo-google-fonts/*`, which ships the font files inside the app.
 
 ### Database schema / migrations
 There are **two schema sources** — be aware which one you're editing:

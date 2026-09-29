@@ -32,7 +32,7 @@ export const requestLogger = async (req, res, next) => {
 /**
  * Log request to database
  */
-async function logRequestToDatabase(req, res, statusCode, responseTime, responseData) {
+async function logRequestToDatabase(req, statusCode, responseTime, responseData) {
   try {
     // Extract relevant data from request
     const latitude = req.query.latitude ? parseFloat(req.query.latitude) : null;

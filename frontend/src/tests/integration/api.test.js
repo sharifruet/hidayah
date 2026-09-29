@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import apiClient from '../../services/api.js';
 import axios from 'axios';
 
 // Mock axios
@@ -21,7 +20,7 @@ describe('API Client', () => {
     });
 
     // Re-import to get mocked instance
-    const client = await import('../../services/api.js');
+    await import('../../services/api.js');
 
     expect(axios.create).toHaveBeenCalled();
   });

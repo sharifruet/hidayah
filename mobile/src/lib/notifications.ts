@@ -2,8 +2,8 @@ import type * as NotificationsModule from 'expo-notifications';
 import { isRunningInExpoGo } from 'expo';
 import { Platform } from 'react-native';
 
-import type { PrayerTimesResponse } from './services/prayer';
-import { PRAYER_LABELS } from './constants';
+import { tr } from '../data/translations';
+import type { LanguageCode } from './constants';
 
 // On Android, Expo Go (SDK 53+) throws as soon as expo-notifications is imported, so
 // reminders are unavailable there. Dev-client and store builds are unaffected.
@@ -13,20 +13,42 @@ export const notificationsAvailable = !(isRunningInExpoGo() && Platform.OS === '
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const Notifications = (notificationsAvailable ? require('expo-notifications') : undefined) as typeof NotificationsModule;
 
-const NOTIFIABLE: (keyof PrayerTimesResponse['times'])[] = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
-const NOTIFICATION_TAG = 'hidayah-prayer';
-const CHECKIN_TAG = 'hidayah-checkin';
-const RAMADAN_TAG = 'hidayah-ramadan';
+// Every notification this app schedules carries a `data.tag` with this prefix, so a
+// reschedule can clear exactly its own.
+const TAG_PREFIX = 'hidayah-';
 
-// Minutes after a prayer's start time before the "did you pray?" check-in fires — long
-// enough that the prayer window has clearly passed, short enough to still be a same-window
-// reminder rather than a end-of-day catch-all.
-const CHECKIN_DELAY_MINUTES = 20;
-const SUHOOR_WARNING_MINUTES = 20;
+// iOS keeps at most 64 pending local notifications per app and silently drops the rest.
+// Planned notifications are sorted by time and only the earliest are queued; the
+// foreground/background reschedule tops the queue back up.
+const MAX_SCHEDULED = 60;
 
-const PRAYER_CHANNEL_ID = 'hidayah-prayer-alarm';
-const CHECKIN_CHANNEL_ID = 'hidayah-checkin';
-const RAMADAN_CHANNEL_ID = 'hidayah-ramadan';
+/**
+ * Android channels. A channel's sound can't be changed after it's created, so each sound
+ * gets its own channel. The sound files are bundled by the expo-notifications config
+ * plugin (`app.json` → `sounds`) into res/raw and the iOS app bundle; iOS notification
+ * sounds must be under 30 s, which is why they're clips rather than the full adhan.
+ */
+export const CHANNELS = {
+  prayerSystem: 'hidayah-prayer-alarm',
+  adhan: 'hidayah-adhan-makkah',
+  adhanFajr: 'hidayah-adhan-fajr',
+  checkin: 'hidayah-checkin',
+  ramadan: 'hidayah-ramadan',
+  reminders: 'hidayah-reminders',
+} as const;
+export type ChannelId = (typeof CHANNELS)[keyof typeof CHANNELS];
+
+export const ADHAN_FILES = { makkah: 'adhan_makkah.wav', fajr: 'adhan_fajr.wav' } as const;
+
+/** iOS sound for each channel (Android takes it from the channel). */
+const IOS_SOUNDS: Record<ChannelId, string> = {
+  [CHANNELS.prayerSystem]: 'default',
+  [CHANNELS.adhan]: ADHAN_FILES.makkah,
+  [CHANNELS.adhanFajr]: ADHAN_FILES.fajr,
+  [CHANNELS.checkin]: 'default',
+  [CHANNELS.ramadan]: 'default',
+  [CHANNELS.reminders]: 'default',
+};
 
 if (notificationsAvailable) {
   Notifications.setNotificationHandler({
@@ -46,32 +68,25 @@ export function addNotificationResponseListener(
   return Notifications.addNotificationResponseReceivedListener(listener);
 }
 
-/** Android requires a notification channel (8+) for reliable, consistent alert behavior —
- * without one, notifications silently fall back to default/low-priority settings. iOS ignores
- * this. NOTE: this uses the system's default notification sound; swapping in an actual adhan
- * recording later just means pointing `sound` at a bundled audio asset here. */
-async function ensureAndroidChannels(): Promise<void> {
+/** Android 8+ needs a channel per alert style; without one, notifications silently fall back
+ * to default/low-priority settings. Idempotent; re-running it renames the channels (shown in
+ * the system's notification settings) into `language` — a channel's sound can't change. iOS
+ * ignores this. */
+async function ensureAndroidChannels(language: LanguageCode): Promise<void> {
   if (Platform.OS !== 'android') return;
-  await Notifications.setNotificationChannelAsync(PRAYER_CHANNEL_ID, {
-    name: 'Prayer time alarm',
-    importance: Notifications.AndroidImportance.HIGH,
-    sound: 'default',
-    vibrationPattern: [0, 250, 250, 250],
-  });
-  await Notifications.setNotificationChannelAsync(CHECKIN_CHANNEL_ID, {
-    name: 'Prayer check-in',
-    importance: Notifications.AndroidImportance.DEFAULT,
-    sound: 'default',
-  });
-  await Notifications.setNotificationChannelAsync(RAMADAN_CHANNEL_ID, {
-    name: 'Ramadan reminders',
-    importance: Notifications.AndroidImportance.HIGH,
-    sound: 'default',
-    vibrationPattern: [0, 250, 250, 250],
-  });
+  const { AndroidImportance } = Notifications;
+  const alarm = { importance: AndroidImportance.HIGH, vibrationPattern: [0, 250, 250, 250] };
+  await Promise.all([
+    Notifications.setNotificationChannelAsync(CHANNELS.prayerSystem, { name: tr('channel_prayer_system', language), sound: 'default', ...alarm }),
+    Notifications.setNotificationChannelAsync(CHANNELS.adhan, { name: tr('channel_adhan', language), sound: ADHAN_FILES.makkah, ...alarm }),
+    Notifications.setNotificationChannelAsync(CHANNELS.adhanFajr, { name: tr('channel_adhan_fajr', language), sound: ADHAN_FILES.fajr, ...alarm }),
+    Notifications.setNotificationChannelAsync(CHANNELS.checkin, { name: tr('channel_checkin', language), importance: AndroidImportance.DEFAULT, sound: 'default' }),
+    Notifications.setNotificationChannelAsync(CHANNELS.ramadan, { name: tr('channel_ramadan', language), sound: 'default', ...alarm }),
+    Notifications.setNotificationChannelAsync(CHANNELS.reminders, { name: tr('channel_reminders', language), importance: AndroidImportance.HIGH, sound: 'default' }),
+  ]);
 }
 
-export async function requestNotificationPermissions(): Promise<boolean> {
+export async function requestNotificationPermissions(language: LanguageCode): Promise<boolean> {
   if (!notificationsAvailable) return false;
   const existing = await Notifications.getPermissionsAsync();
   let granted = existing.status === 'granted';
@@ -81,189 +96,67 @@ export async function requestNotificationPermissions(): Promise<boolean> {
     });
     granted = requested.status === 'granted';
   }
-  if (granted) await ensureAndroidChannels();
+  if (granted) await ensureAndroidChannels(language);
   return granted;
 }
 
-async function cancelByTag(tag: string): Promise<void> {
-  if (!notificationsAvailable) return;
+/** One notification to deliver at `date`. */
+export interface PlannedNotification {
+  date: Date;
+  title: string;
+  body: string;
+  channelId: ChannelId;
+  /** `tag` must be one of the category tags below; `screen` deep-links on tap. */
+  data: { tag: string; screen?: string; [key: string]: unknown };
+}
+
+export const TAGS = {
+  prayer: `${TAG_PREFIX}prayer`,
+  checkin: `${TAG_PREFIX}checkin`,
+  ramadan: `${TAG_PREFIX}ramadan`,
+  jamah: `${TAG_PREFIX}jamah`,
+  jumuah: `${TAG_PREFIX}jumuah`,
+  islamicDay: `${TAG_PREFIX}islamic-day`,
+  sunnahFast: `${TAG_PREFIX}sunnah-fast`,
+} as const;
+
+async function cancelAllOurs(): Promise<void> {
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
   await Promise.all(
     scheduled
-      .filter((n) => n.content.data?.tag === tag)
+      .filter((n) => String(n.content.data?.tag ?? '').startsWith(TAG_PREFIX))
       .map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier))
   );
 }
 
-function fireDateFor(timeStr: string, forDate: Date, offsetMinutes = 0): Date {
-  const [hours, minutes] = timeStr.split(':').map(Number);
-  const d = new Date(forDate);
-  d.setHours(hours, minutes, 0, 0);
-  d.setMinutes(d.getMinutes() + offsetMinutes);
-  return d;
-}
-
-async function scheduleForDay(times: PrayerTimesResponse['times'], forDate: Date, now: Date): Promise<void> {
-  if (!notificationsAvailable) return;
-  for (const key of NOTIFIABLE) {
-    const timeStr = times[key];
-    if (!timeStr) continue;
-    const fireDate = fireDateFor(timeStr, forDate);
-    if (fireDate.getTime() <= now.getTime()) continue;
-
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: `${PRAYER_LABELS[key]} time`,
-        body: `It's time for ${PRAYER_LABELS[key]} prayer.`,
-        sound: Platform.OS === 'ios' ? 'default' : undefined,
-        data: { tag: NOTIFICATION_TAG, prayer: key },
-        ...(Platform.OS === 'android' ? { channelId: PRAYER_CHANNEL_ID } : {}),
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: fireDate,
-      },
-    });
-  }
-}
-
-/** Cancels previously scheduled prayer reminders and schedules new ones for the given day's times. */
-export async function scheduleTodaysPrayerNotifications(
-  times: PrayerTimesResponse['times'],
-  forDate: Date = new Date()
-): Promise<void> {
-  await cancelByTag(NOTIFICATION_TAG);
-  await scheduleForDay(times, forDate, new Date());
-}
-
 /**
- * Cancels previously scheduled prayer reminders and schedules both today's remaining prayers
- * and tomorrow's full day, so reminders still fire tomorrow even if the app isn't reopened
- * before then. `tomorrowTimes` is optional — pass it when available (e.g. from a second
- * prayer-times fetch); today's reminders are still scheduled without it.
+ * Replaces everything this app has queued with the earliest `MAX_SCHEDULED` of `planned`.
+ * `language` names the Android channels.
  */
-export async function scheduleUpcomingPrayerNotifications(
-  todayTimes: PrayerTimesResponse['times'],
-  tomorrowTimes?: PrayerTimesResponse['times']
-): Promise<void> {
-  await cancelByTag(NOTIFICATION_TAG);
-
-  const now = new Date();
-  await scheduleForDay(todayTimes, now, now);
-
-  if (tomorrowTimes) {
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    await scheduleForDay(tomorrowTimes, tomorrow, now);
-  }
-}
-
-export async function cancelAllPrayerNotifications(): Promise<void> {
-  await cancelByTag(NOTIFICATION_TAG);
-}
-
-// ── "Did you pray?" check-in reminders ──────────────────────────────────────────────────
-
-async function scheduleCheckInsForDay(times: PrayerTimesResponse['times'], forDate: Date, now: Date): Promise<void> {
+export async function replaceScheduledNotifications(planned: PlannedNotification[], language: LanguageCode): Promise<void> {
   if (!notificationsAvailable) return;
-  for (const key of NOTIFIABLE) {
-    const timeStr = times[key];
-    if (!timeStr) continue;
-    const fireDate = fireDateFor(timeStr, forDate, CHECKIN_DELAY_MINUTES);
-    if (fireDate.getTime() <= now.getTime()) continue;
+  await cancelAllOurs();
+  if (!planned.length) return;
+  const { status } = await Notifications.getPermissionsAsync();
+  if (status !== 'granted') return;
+  await ensureAndroidChannels(language);
 
+  const now = Date.now();
+  const queue = planned
+    .filter((p) => p.date.getTime() > now)
+    .sort((a, b) => a.date.getTime() - b.date.getTime())
+    .slice(0, MAX_SCHEDULED);
+
+  for (const p of queue) {
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: `Have you offered ${PRAYER_LABELS[key]}?`,
-        body: 'Tap to log it in your Salah tracker.',
-        sound: Platform.OS === 'ios' ? 'default' : undefined,
-        data: { tag: CHECKIN_TAG, prayer: key, screen: 'prayer-tracker' },
-        ...(Platform.OS === 'android' ? { channelId: CHECKIN_CHANNEL_ID } : {}),
+        title: p.title,
+        body: p.body,
+        sound: Platform.OS === 'ios' ? IOS_SOUNDS[p.channelId] : undefined,
+        data: p.data,
       },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: fireDate,
-      },
+      // Android reads the channel from the trigger, not the content.
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: p.date, channelId: p.channelId },
     });
   }
-}
-
-export async function scheduleUpcomingPrayerCheckIns(
-  todayTimes: PrayerTimesResponse['times'],
-  tomorrowTimes?: PrayerTimesResponse['times']
-): Promise<void> {
-  await cancelByTag(CHECKIN_TAG);
-
-  const now = new Date();
-  await scheduleCheckInsForDay(todayTimes, now, now);
-
-  if (tomorrowTimes) {
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    await scheduleCheckInsForDay(tomorrowTimes, tomorrow, now);
-  }
-}
-
-export async function cancelAllCheckInNotifications(): Promise<void> {
-  await cancelByTag(CHECKIN_TAG);
-}
-
-// ── Ramadan: Suhoor-ending-soon + Iftar-time reminders ──────────────────────────────────
-
-async function scheduleRamadanForDay(
-  times: PrayerTimesResponse['times'],
-  forDate: Date,
-  now: Date
-): Promise<void> {
-  if (!notificationsAvailable) return;
-  if (times.fajr) {
-    const suhoorWarning = fireDateFor(times.fajr, forDate, -SUHOOR_WARNING_MINUTES);
-    if (suhoorWarning.getTime() > now.getTime()) {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: 'Suhoor ending soon',
-          body: `Fajr is in ${SUHOOR_WARNING_MINUTES} minutes — finish up before the fast begins.`,
-          sound: Platform.OS === 'ios' ? 'default' : undefined,
-          data: { tag: RAMADAN_TAG },
-          ...(Platform.OS === 'android' ? { channelId: RAMADAN_CHANNEL_ID } : {}),
-        },
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: suhoorWarning },
-      });
-    }
-  }
-  if (times.maghrib) {
-    const iftar = fireDateFor(times.maghrib, forDate);
-    if (iftar.getTime() > now.getTime()) {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: 'Iftar time',
-          body: "It's Maghrib — time to break your fast.",
-          sound: Platform.OS === 'ios' ? 'default' : undefined,
-          data: { tag: RAMADAN_TAG },
-          ...(Platform.OS === 'android' ? { channelId: RAMADAN_CHANNEL_ID } : {}),
-        },
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: iftar },
-      });
-    }
-  }
-}
-
-export async function scheduleRamadanReminders(
-  todayTimes: PrayerTimesResponse['times'],
-  tomorrowTimes?: PrayerTimesResponse['times']
-): Promise<void> {
-  await cancelByTag(RAMADAN_TAG);
-
-  const now = new Date();
-  await scheduleRamadanForDay(todayTimes, now, now);
-
-  if (tomorrowTimes) {
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    await scheduleRamadanForDay(tomorrowTimes, tomorrow, now);
-  }
-}
-
-export async function cancelRamadanReminders(): Promise<void> {
-  await cancelByTag(RAMADAN_TAG);
 }

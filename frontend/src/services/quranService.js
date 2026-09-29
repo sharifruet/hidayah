@@ -68,7 +68,7 @@ export function splitBasmalah(surahNumber, ayahNumber, textAr) {
   if (ayahNumber !== 1 || surahNumber === 1 || surahNumber === 9) {
     return { basmalah: null, text: textAr };
   }
-  const words = (textAr || '').replace(/^﻿/, '').split(' ');
+  const words = (textAr || '').replace(/^\uFEFF/, '').split(' ');
   if (words.length <= 4) {
     return { basmalah: null, text: textAr };
   }

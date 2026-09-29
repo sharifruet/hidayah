@@ -5,6 +5,7 @@ import { getCurrentPrayer, type PrayerName } from '../../lib/prayerMath';
 import { Card } from '../ui/Card';
 import { tr } from '../../data/translations';
 import { useApp } from '../../context/AppContext';
+import { formatTime } from '../../lib/format';
 
 const VISIBLE: PrayerName[] = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha'];
 const NAME_KEYS: Record<PrayerName, string> = {
@@ -17,7 +18,7 @@ const NAME_KEYS: Record<PrayerName, string> = {
 };
 
 export function PrayerStrip({ times }: { times?: PrayerTimesResponse['times'] }) {
-  const { language } = useApp();
+  const { language, timeFormat } = useApp();
   const info = getCurrentPrayer(times);
 
   return (
@@ -50,7 +51,7 @@ export function PrayerStrip({ times }: { times?: PrayerTimesResponse['times'] })
                       : 'text-ink-500 dark:text-ink-400'
                 }`}
               >
-                {times ? times[name] : '--:--'}
+                {times ? formatTime(times[name], language, timeFormat, { withPeriod: false }) : '--:--'}
               </Text>
             </View>
           </View>

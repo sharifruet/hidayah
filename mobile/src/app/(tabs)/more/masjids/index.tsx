@@ -6,11 +6,14 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { Screen } from '../../../../components/ui/Screen';
 import { useApp } from '../../../../context/AppContext';
-import { tr } from '../../../../data/translations';
+import { fmt, tr } from '../../../../data/translations';
+import { formatTime, localDigits } from '../../../../lib/format';
 import { getCurrentCoords } from '../../../../lib/geocoding';
 import { masjidsService, type Masjid, JAMAH_PRAYERS } from '../../../../lib/services/masjids';
 import { formatDistance, prayerLabel, relativeTime } from '../../../../lib/masjid';
 import { Palette } from '../../../../constants/theme';
+import { myMasjidName } from '../../../../lib/myMasjid';
+import { ErrorState } from '../../../../components/ui/ErrorState';
 
 const RADIUS_OPTIONS = [1, 2, 5, 10, 25];
 
@@ -64,7 +67,7 @@ export default function MasjidsListScreen() {
   }
 
   const isSearch = q.length > 0;
-  const { data, isLoading, isError, refetch, isRefetching } = useQuery({
+  const { data, isLoading, isError, error, refetch, isRefetching } = useQuery({
     queryKey: ['masjids', isSearch ? 'search' : 'nearby', origin.lat, origin.lng, radius, q],
     queryFn: () =>
       isSearch
@@ -128,7 +131,7 @@ export default function MasjidsListScreen() {
             {locating
               ? tr('masjids_locating', language)
               : origin.fromDevice
-                ? `${tr('masjids_searching_near', language)}: ${origin.lat.toFixed(3)}, ${origin.lng.toFixed(3)}`
+                ? `${tr('masjids_searching_near', language)}: ${localDigits(`${origin.lat.toFixed(3)}, ${origin.lng.toFixed(3)}`, language)}`
                 : `${tr('masjids_searching_near', language)}: ${location.name}`}
           </Text>
           {!origin.fromDevice && !locating ? (
@@ -148,7 +151,7 @@ export default function MasjidsListScreen() {
                 className={`flex-1 items-center py-2 ${radius === r ? 'bg-primary-600' : ''}`}
               >
                 <Text className={`font-body-medium text-xs ${radius === r ? 'text-white' : 'text-ink-600 dark:text-ink-300'}`}>
-                  {r} km
+                  {fmt('distance_km', language, { n: r })}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -157,7 +160,7 @@ export default function MasjidsListScreen() {
       </View>
 
       {isError && masjids.length === 0 ? (
-        <Text className="font-body text-sm text-red-500 px-4 mb-2">{tr('masjids_load_error', language)}</Text>
+        <ErrorState error={error} onRetry={refetch} retrying={isRefetching} />
       ) : null}
       {isLoading && masjids.length === 0 ? (
         <Text className="font-body text-sm text-ink-400 px-4">{tr('loading', language)}</Text>
@@ -186,8 +189,8 @@ export default function MasjidsListScreen() {
 }
 
 function MasjidRow({ masjid }: { masjid: Masjid }) {
-  const { language } = useApp();
-  const name = language === 'bn' && masjid.name_bn ? masjid.name_bn : masjid.name;
+  const { language, timeFormat } = useApp();
+  const name = myMasjidName(masjid, language);
   const jamah = JAMAH_PRAYERS.filter((p) => masjid.jamah?.[p]);
 
   return (
@@ -210,7 +213,7 @@ function MasjidRow({ masjid }: { masjid: Masjid }) {
         {masjid.distance_km != null ? (
           <View className="bg-primary-50 dark:bg-primary-900/30 px-2 py-1 rounded-full ml-2">
             <Text className="font-body-medium text-[11px] text-primary-700 dark:text-primary-300">
-              {formatDistance(masjid.distance_km)}
+              {formatDistance(masjid.distance_km, language)}
             </Text>
           </View>
         ) : null}
@@ -221,7 +224,7 @@ function MasjidRow({ masjid }: { masjid: Masjid }) {
           {jamah.map((p) => (
             <View key={p} className="flex-row items-baseline bg-ink-50 dark:bg-ink-800 rounded-md px-2 py-1 mx-0.5 mb-1">
               <Text className="font-body text-[10px] text-ink-400 mr-1">{prayerLabel(p, language)}</Text>
-              <Text className="font-body-semibold text-xs text-ink-900 dark:text-white">{masjid.jamah[p]}</Text>
+              <Text className="font-body-semibold text-xs text-ink-900 dark:text-white">{formatTime(masjid.jamah[p], language, timeFormat, { withPeriod: false })}</Text>
             </View>
           ))}
         </View>
@@ -231,7 +234,7 @@ function MasjidRow({ masjid }: { masjid: Masjid }) {
 
       {masjid.jamah_updated_at ? (
         <Text className="font-body text-[10px] text-ink-300 dark:text-ink-600 mt-1.5">
-          {tr('masjid_last_updated', language)}: {relativeTime(masjid.jamah_updated_at)}
+          {tr('masjid_last_updated', language)}: {relativeTime(masjid.jamah_updated_at, language)}
         </Text>
       ) : null}
     </TouchableOpacity>

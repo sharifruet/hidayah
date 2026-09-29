@@ -8,21 +8,20 @@ import { Card } from '../../../components/ui/Card';
 import { MonthCalendarGrid } from '../../../components/prayer/MonthCalendarGrid';
 import { YearCalendarGrid } from '../../../components/prayer/YearCalendarGrid';
 import { DateRangeCalendarView } from '../../../components/prayer/DateRangeCalendarView';
-import { HIJRI_MONTH_NAMES_EN } from '../../../lib/hijri';
+import { formatHijriDate, gregorianToHijri } from '../../../lib/hijri';
+import { islamicDaysOn } from '../../../lib/islamicDays';
 import { tr } from '../../../data/translations';
 import { useApp } from '../../../context/AppContext';
-import type { LanguageCode } from '../../../lib/constants';
-
-const LOCALE_MAP: Record<LanguageCode, string> = { en: 'en-US', bn: 'bn-BD', ur: 'ur-PK', tr: 'tr-TR', id: 'id-ID' };
+import { formatDate, localDigits } from '../../../lib/format';
 type CalendarViewMode = 'month' | 'year' | 'range';
 
 export default function CalendarScreen() {
-  const { language } = useApp();
+  const { language, hijriOffset } = useApp();
   const now = new Date();
   const [view, setView] = useState<CalendarViewMode>('month');
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const monthLabel = new Date(year, month - 1, 1).toLocaleDateString(LOCALE_MAP[language], { month: 'long' });
+  const monthLabel = formatDate(new Date(year, month - 1, 1), language, { month: 'long' });
 
   function shiftMonth(delta: number) {
     let m = month + delta;
@@ -37,6 +36,12 @@ export default function CalendarScreen() {
     setMonth(m);
     setYear(y);
   }
+
+  // Islamic days falling in the visible month (sunnah fasts are shown only as grid dots).
+  const monthEvents = Array.from({ length: new Date(year, month, 0).getDate() }, (_, i) => new Date(year, month - 1, i + 1))
+    .flatMap((date) => islamicDaysOn(date, hijriOffset).filter((e) => e.kind !== 'fast').map((e) => ({ date, ...e })));
+  const hijriStart = gregorianToHijri(new Date(year, month - 1, 1), hijriOffset);
+  const hijriEnd = gregorianToHijri(new Date(year, month, 0), hijriOffset);
 
   const TABS: { key: CalendarViewMode; label: string }[] = [
     { key: 'month', label: tr('calendar_view_month', language) },
@@ -79,7 +84,7 @@ export default function CalendarScreen() {
                 <Ionicons name="chevron-back" size={18} color="#5b6579" />
               </TouchableOpacity>
               <Text className="font-body-semibold text-base text-ink-900 dark:text-white">
-                {monthLabel} {year}
+                {monthLabel} {localDigits(year, language)}
               </Text>
               <TouchableOpacity onPress={() => shiftMonth(1)} className="p-2">
                 <Ionicons name="chevron-forward" size={18} color="#5b6579" />
@@ -91,9 +96,35 @@ export default function CalendarScreen() {
 
           <Card className="p-4">
             <Text className="font-body-medium text-xs text-ink-400 mb-1">{tr('calendar_hijri_months', language)}</Text>
-            <Text className="font-body text-sm text-ink-700 dark:text-ink-300 leading-relaxed">
-              {HIJRI_MONTH_NAMES_EN.join(' · ')}
+            <Text className="font-body-semibold text-sm text-ink-700 dark:text-ink-300">
+              {formatHijriDate(hijriStart, language, { day: false })}
+              {hijriEnd.month !== hijriStart.month ? ` – ${formatHijriDate(hijriEnd, language, { day: false })}` : ''}
             </Text>
+            {monthEvents.length ? (
+              <View className="mt-3 pt-3 border-t border-ink-100 dark:border-ink-800">
+                {monthEvents.map((e) => (
+                  <View key={`${e.key}-${e.date.getDate()}`} className="flex-row items-center py-1">
+                    <View className="w-1.5 h-1.5 rounded-full bg-gold-500 mr-2" />
+                    <Text className="font-body-medium text-sm text-ink-900 dark:text-white flex-1">
+                      {tr(`iday_${e.key}`, language)}
+                      {e.kind === 'night' ? ` ${tr('islamic_days_night_suffix', language)}` : ''}
+                    </Text>
+                    <Text className="font-body text-xs text-ink-400">
+                      {formatDate(e.date, language, { weekday: 'short', day: 'numeric', month: 'short' })}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+            <View className="flex-row items-center mt-3">
+              <View className="w-1.5 h-1.5 rounded-full bg-sky-500 mr-1.5" />
+              <Text className="font-body text-[11px] text-ink-400 flex-1">
+                {tr('iday_monday_fast', language)} / {tr('iday_thursday_fast', language)} · {tr('iday_ayyam_al_bid', language)}
+              </Text>
+              <TouchableOpacity onPress={() => router.push('/more/islamic-days' as never)}>
+                <Text className="font-body-medium text-xs text-primary-600">{tr('islamic_days_title', language)} ›</Text>
+              </TouchableOpacity>
+            </View>
           </Card>
         </>
       ) : view === 'year' ? (
@@ -102,7 +133,7 @@ export default function CalendarScreen() {
             <TouchableOpacity onPress={() => setYear((y) => y - 1)} className="p-2">
               <Ionicons name="chevron-back" size={18} color="#5b6579" />
             </TouchableOpacity>
-            <Text className="font-body-semibold text-base text-ink-900 dark:text-white">{year}</Text>
+            <Text className="font-body-semibold text-base text-ink-900 dark:text-white">{localDigits(year, language)}</Text>
             <TouchableOpacity onPress={() => setYear((y) => y + 1)} className="p-2">
               <Ionicons name="chevron-forward" size={18} color="#5b6579" />
             </TouchableOpacity>

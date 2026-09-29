@@ -8,7 +8,9 @@ import { Screen } from '../../../components/ui/Screen';
 import { fetchSearch } from '../../../lib/services/quran';
 import { backOr } from '../../../lib/navigation';
 import { useApp } from '../../../context/AppContext';
-import { tr } from '../../../data/translations';
+import { fmt, tr } from '../../../data/translations';
+import { localDigits } from '../../../lib/format';
+import { ErrorState } from '../../../components/ui/ErrorState';
 
 interface SearchResult {
   surah: number;
@@ -23,7 +25,7 @@ export default function QuranSearchScreen() {
   const [query, setQuery] = useState('');
   const [submitted, setSubmitted] = useState('');
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, error, refetch, isRefetching } = useQuery({
     queryKey: ['quran-search', submitted],
     queryFn: () => fetchSearch(submitted),
     enabled: submitted.length > 1,
@@ -56,7 +58,7 @@ export default function QuranSearchScreen() {
         </View>
       </View>
 
-      {isError ? <Text className="font-body text-sm text-red-500 px-4 mb-2">{tr('error_generic', language)}</Text> : null}
+      {isError ? <ErrorState error={error} onRetry={refetch} retrying={isRefetching} compact className="mx-4 mb-2" /> : null}
 
       <FlatList
         data={results}
@@ -64,7 +66,7 @@ export default function QuranSearchScreen() {
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 128 }}
         ListEmptyComponent={
           submitted && !isLoading ? (
-            <Text className="font-body text-sm text-ink-400 text-center mt-8">{tr('quran_no_results', language)} "{submitted}"</Text>
+            <Text className="font-body text-sm text-ink-400 text-center mt-8">{fmt('quran_no_results', language, { query: submitted })}</Text>
           ) : null
         }
         renderItem={({ item }) => (
@@ -73,7 +75,8 @@ export default function QuranSearchScreen() {
             className="bg-white dark:bg-ink-900 border border-ink-100 dark:border-ink-800 rounded-xl p-4 mb-2.5"
           >
             <Text className="font-body-medium text-xs text-primary-600 dark:text-primary-400 mb-1.5">
-              {item.surah_name ?? `${tr('quran_surah_tab', language)} ${item.surah}`} · {tr('quran_ayah', language)} {item.ayah}
+              {item.surah_name ?? `${tr('quran_surah_tab', language)} ${localDigits(item.surah, language)}`} · {tr('quran_ayah', language)}{' '}
+              {localDigits(item.ayah, language)}
             </Text>
             {item.text_ar ? (
               <Text className="font-arabic text-lg text-right text-ink-900 dark:text-white mb-1.5">

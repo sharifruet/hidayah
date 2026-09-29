@@ -40,21 +40,14 @@ export async function fetchHadithSearch(q, { language = 'en', collection = 'all'
   });
 }
 
-/**
- * Persist/load reader settings (which languages to show) in localStorage.
- */
-const SETTINGS_KEY = 'hadith_reader_settings';
-
-export function loadReaderSettings() {
-  try {
-    return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
-  } catch {
-    return {};
-  }
+/** Translation language served for an app language — only Bangla and English are seeded. */
+export function hadithLanguageFor(appLanguage) {
+  return appLanguage === 'bn' ? 'bn' : 'en';
 }
 
-export function saveReaderSettings(settings) {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+/** Edition identifier for a collection in the given app language, e.g. "ben-bukhari" / "eng-bukhari". */
+export function editionFor(slug, appLanguage) {
+  return `${hadithLanguageFor(appLanguage) === 'bn' ? 'ben' : 'eng'}-${slug}`;
 }
 
 const RESUME_KEY = 'hadith_last_read';

@@ -7,6 +7,7 @@ import * as Haptics from 'expo-haptics';
 import { Screen } from '../../../components/ui/Screen';
 import { useApp } from '../../../context/AppContext';
 import { tr } from '../../../data/translations';
+import { localDigits } from '../../../lib/format';
 import { TASBIH_PRESETS, getCount, getSelectedPreset, increment, resetCount, setSelectedPreset } from '../../../lib/tasbih';
 
 export default function TasbihScreen() {
@@ -61,7 +62,7 @@ export default function TasbihScreen() {
           >
             <Text className={`font-body-medium text-xs ${presetId === p.id ? 'text-white' : 'text-ink-600 dark:text-ink-300'}`}>
               {tr(p.targetKey, language)}
-              {p.target > 0 ? ` (${p.target})` : ''}
+              {p.target > 0 ? ` (${localDigits(p.target, language)})` : ''}
             </Text>
           </TouchableOpacity>
         ))}
@@ -83,18 +84,18 @@ export default function TasbihScreen() {
           <Text
             className={`font-body-bold text-6xl ${reachedTarget ? 'text-white' : 'text-primary-700 dark:text-primary-300'}`}
           >
-            {hasTarget ? count % preset.target || (count > 0 ? preset.target : 0) : count}
+            {localDigits(hasTarget ? count % preset.target || (count > 0 ? preset.target : 0) : count, language)}
           </Text>
           {hasTarget ? (
             <Text className={`font-body-medium text-sm mt-1 ${reachedTarget ? 'text-white/80' : 'text-primary-500'}`}>
-              / {preset.target}
+              / {localDigits(preset.target, language)}
             </Text>
           ) : null}
         </TouchableOpacity>
 
         {hasTarget ? (
           <Text className="font-body text-xs text-ink-400 mt-6">
-            {tr('tasbih_total', language)} {count}
+            {tr('tasbih_total', language)} {localDigits(count, language)}
           </Text>
         ) : null}
         <Text className="font-body text-xs text-ink-400 mt-2">{tr('tasbih_tap_hint', language)}</Text>

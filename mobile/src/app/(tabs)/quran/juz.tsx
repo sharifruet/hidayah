@@ -8,6 +8,7 @@ import { getReadSurahs } from '../../../lib/progress';
 import { backOr } from '../../../lib/navigation';
 import { useApp } from '../../../context/AppContext';
 import { tr } from '../../../data/translations';
+import { localDigits } from '../../../lib/format';
 
 export default function JuzScreen() {
   const { language } = useApp();
@@ -37,13 +38,14 @@ export default function JuzScreen() {
             >
               <View className="flex-row items-center justify-between mb-2">
                 <View className="w-8 h-8 rounded-full bg-primary-50 dark:bg-primary-900/30 items-center justify-center">
-                  <Text className="font-body-semibold text-xs text-primary-700 dark:text-primary-400">{item.juz}</Text>
+                  <Text className="font-body-semibold text-xs text-primary-700 dark:text-primary-400">{localDigits(item.juz, language)}</Text>
                 </View>
                 {progress === 1 ? <Ionicons name="checkmark-circle" size={18} color="#15805a" /> : null}
               </View>
               <Text className="font-body-semibold text-sm text-ink-900 dark:text-white">{item.name}</Text>
               <Text className="font-body text-xs text-ink-400 mt-0.5">
-                {tr('quran_surah_tab', language)} {item.start.surah}:{item.start.ayah} – {item.end.surah}:{item.end.ayah}
+                {tr('quran_surah_tab', language)}{' '}
+                {localDigits(`${item.start.surah}:${item.start.ayah} – ${item.end.surah}:${item.end.ayah}`, language)}
               </Text>
               <View className="h-1.5 bg-ink-100 dark:bg-ink-800 rounded-full mt-3 overflow-hidden">
                 <View className="h-full bg-primary-500" style={{ width: `${progress * 100}%` }} />

@@ -1,8 +1,10 @@
-import { Text, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
+import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { daysUntilHijriMonth, gregorianToHijri } from '../../lib/hijri';
-import { tr } from '../../data/translations';
+import { fmt, tr } from '../../data/translations';
+import { formatDuration } from '../../lib/format';
 import { useApp } from '../../context/AppContext';
 import type { PrayerTimesResponse } from '../../lib/services/prayer';
 
@@ -19,16 +21,11 @@ function minutesUntil(timeStr: string | undefined, now: Date): number | null {
   return diff;
 }
 
-function formatMinutes(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
-}
-
 export function RamadanBanner({ times }: { times?: PrayerTimesResponse['times'] }) {
-  const { language } = useApp();
+  const { language, hijriOffset } = useApp();
   const today = new Date();
-  const hijri = gregorianToHijri(today);
+  const hijri = gregorianToHijri(today, hijriOffset);
+  const openTimetable = () => router.push('/prayer/ramadan' as never);
   const isRamadan = hijri.month === RAMADAN_MONTH;
 
   if (isRamadan) {
@@ -40,12 +37,11 @@ export function RamadanBanner({ times }: { times?: PrayerTimesResponse['times'] 
     const showingIftar = untilMaghrib != null && (untilFajr == null || untilMaghrib <= untilFajr);
 
     return (
-      <View className="rounded-2xl bg-gold-500/10 border border-gold-500/30 px-4 py-3">
+      <TouchableOpacity onPress={openTimetable} className="rounded-2xl bg-gold-500/10 border border-gold-500/30 px-4 py-3">
         <View className="flex-row items-center">
           <Ionicons name="moon" size={18} color="#c99a45" />
           <Text className="font-body-medium text-sm text-gold-600 dark:text-gold-400 ml-2">
-            {tr('home_ramadan_mubarak', language)} — {hijri.day} {tr('home_day_of_ramadan', language)} · {tr('home_eid_in', language)}
-            {daysLeft} {tr('home_days', language)}
+            {fmt('home_ramadan_status', language, { day: hijri.day, n: daysLeft })}
           </Text>
         </View>
         {times ? (
@@ -53,12 +49,12 @@ export function RamadanBanner({ times }: { times?: PrayerTimesResponse['times'] 
             <Ionicons name={showingIftar ? 'restaurant-outline' : 'cafe-outline'} size={14} color="#c99a45" />
             <Text className="font-body-medium text-xs text-gold-700 dark:text-gold-400 ml-1.5">
               {showingIftar
-                ? `${tr('home_iftar_in', language)} ${formatMinutes(untilMaghrib!)}`
-                : `${tr('home_suhoor_ends_in', language)} ${formatMinutes(untilFajr!)}`}
+                ? fmt('home_iftar_in', language, { time: formatDuration(untilMaghrib!, language) })
+                : fmt('home_suhoor_ends_in', language, { time: formatDuration(untilFajr!, language) })}
             </Text>
           </View>
         ) : null}
-      </View>
+      </TouchableOpacity>
     );
   }
 
@@ -66,11 +62,15 @@ export function RamadanBanner({ times }: { times?: PrayerTimesResponse['times'] 
   if (daysToRamadan > 45) return null;
 
   return (
-    <View className="rounded-2xl bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 px-4 py-3 flex-row items-center">
+    <TouchableOpacity
+      onPress={openTimetable}
+      className="rounded-2xl bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 px-4 py-3 flex-row items-center"
+    >
       <Ionicons name="moon-outline" size={18} color="#22a06d" />
       <Text className="font-body-medium text-sm text-primary-700 dark:text-primary-300 ml-2">
-        {daysToRamadan} {tr('home_until_ramadan', language)}
+        {fmt('home_until_ramadan', language, { n: daysToRamadan })}
       </Text>
-    </View>
+      <Text className="font-body-medium text-xs text-primary-600 dark:text-primary-400 ml-auto">{tr('ramadan_title', language)} ›</Text>
+    </TouchableOpacity>
   );
 }

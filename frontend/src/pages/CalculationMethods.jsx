@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useApp } from '../context/AppContext.jsx';
 import { getMethods } from '../services/locationService.js';
 import { tr } from '../i18n/translations.js';
+import { localDigits } from '../utils/format.js';
 import Loading from '../components/common/Loading.jsx';
 import ErrorMessage from '../components/common/ErrorMessage.jsx';
 
@@ -45,7 +46,7 @@ function MethodCard({ method, isCurrent, language, onSelect }) {
       <dl className="space-y-1.5 text-sm flex-grow">
         <div className="flex justify-between gap-3">
           <dt className="text-gray-500 dark:text-gray-400">{tr('methods_fajr_angle', language)}</dt>
-          <dd className="text-gray-900 dark:text-gray-100 font-medium">{method.fajr_angle}°</dd>
+          <dd className="text-gray-900 dark:text-gray-100 font-medium">{localDigits(method.fajr_angle, language)}°</dd>
         </div>
         <div className="flex justify-between gap-3">
           <dt className="text-gray-500 dark:text-gray-400">
@@ -53,8 +54,8 @@ function MethodCard({ method, isCurrent, language, onSelect }) {
           </dt>
           <dd className="text-gray-900 dark:text-gray-100 font-medium">
             {method.isha_calculation_type === 'time'
-              ? `${method.isha_time_adjustment} ${tr('methods_isha_after_maghrib', language)}`
-              : `${method.isha_angle}°`}
+              ? `${localDigits(method.isha_time_adjustment, language)} ${tr('methods_isha_after_maghrib', language)}`
+              : `${localDigits(method.isha_angle, language)}°`}
           </dd>
         </div>
         <div className="flex justify-between gap-3">
@@ -66,13 +67,13 @@ function MethodCard({ method, isCurrent, language, onSelect }) {
         <div className="flex justify-between gap-3">
           <dt className="text-gray-500 dark:text-gray-400">{tr('methods_dhuhr_adjustment', language)}</dt>
           <dd className="text-gray-900 dark:text-gray-100 font-medium">
-            +{method.dhuhr_adjustment} {tr('methods_dhuhr_after_noon', language)}
+            +{localDigits(method.dhuhr_adjustment, language)} {tr('methods_dhuhr_after_noon', language)}
           </dd>
         </div>
         <div className="flex justify-between gap-3">
           <dt className="text-gray-500 dark:text-gray-400">{tr('methods_maghrib_adjustment', language)}</dt>
           <dd className="text-gray-900 dark:text-gray-100 font-medium">
-            +{method.maghrib_adjustment} {tr('methods_maghrib_after_sunset', language)}
+            +{localDigits(method.maghrib_adjustment, language)} {tr('methods_maghrib_after_sunset', language)}
           </dd>
         </div>
       </dl>
@@ -125,7 +126,7 @@ export default function CalculationMethods() {
           </p>
         </div>
 
-        {isLoading && <Loading message={tr('loading', language)} />}
+        {isLoading && <Loading />}
         {error && <ErrorMessage error={error} onRetry={refetch} />}
 
         {!isLoading && !error && groupOrder.map((groupKey) => {

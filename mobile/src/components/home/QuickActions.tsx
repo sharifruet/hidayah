@@ -3,7 +3,8 @@ import { router, type Href } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { loadLastRead, getKhatmPercent } from '../../lib/progress';
-import { tr } from '../../data/translations';
+import { fmt, tr } from '../../data/translations';
+import { localDigits } from '../../lib/format';
 import { useApp } from '../../context/AppContext';
 
 interface Action {
@@ -22,7 +23,7 @@ export function QuickActions() {
   const actions: Action[] = [
     {
       label: tr('nav_quran', language),
-      sub: lastRead ? `${khatmPct}% khatm` : tr('home_start_reading', language),
+      sub: lastRead ? fmt('quran_khatm', language, { pct: localDigits(khatmPct, language) }) : tr('home_start_reading', language),
       icon: 'book',
       // Same destination as the Qur'an tab in the bottom bar
       href: '/quran' as Href,

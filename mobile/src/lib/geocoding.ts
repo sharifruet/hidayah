@@ -1,40 +1,50 @@
 import * as Location from 'expo-location';
 
+import { tr } from '../data/translations';
+import type { LanguageCode } from './constants';
+
 export interface GeocodedPlace {
   lat: number;
   lng: number;
   name: string;
   district?: string;
   division?: string;
+  /** True when the OS geocoder gave no name and `name` is our generic fallback label. */
+  unnamed?: boolean;
 }
 
-function formatPlaceName(place: Location.LocationGeocodedAddress): string {
-  return place.city || place.subregion || place.region || place.name || 'Unknown location';
+function placeName(place: Location.LocationGeocodedAddress): string | null {
+  return place.city || place.subregion || place.region || place.name || null;
 }
 
-/** Reverse-geocode coordinates to a human-readable place name, worldwide (uses the OS's native geocoder). */
-export async function reverseGeocode(lat: number, lng: number): Promise<GeocodedPlace> {
+/**
+ * Reverse-geocode coordinates to a human-readable place name, worldwide (uses the OS's native
+ * geocoder). Falls back to a generic label in `language` when the OS knows no name.
+ */
+export async function reverseGeocode(lat: number, lng: number, language: LanguageCode = 'en'): Promise<GeocodedPlace> {
   try {
     const [place] = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
-    if (!place) return { lat, lng, name: 'Current location' };
+    if (!place) return { lat, lng, name: tr('location_current', language), unnamed: true };
+    const name = placeName(place);
     return {
       lat,
       lng,
-      name: formatPlaceName(place),
+      name: name ?? tr('location_unknown', language),
+      unnamed: !name,
       district: place.subregion ?? undefined,
       division: place.region ?? undefined,
     };
   } catch {
-    return { lat, lng, name: 'Current location' };
+    return { lat, lng, name: tr('location_current', language), unnamed: true };
   }
 }
 
 /** Forward-geocode a free-text place/city name to coordinates, worldwide. */
-export async function searchPlace(query: string): Promise<GeocodedPlace[]> {
+export async function searchPlace(query: string, language: LanguageCode = 'en'): Promise<GeocodedPlace[]> {
   try {
     const results = await Location.geocodeAsync(query);
     const withNames = await Promise.all(
-      results.slice(0, 8).map(async (r) => reverseGeocode(r.latitude, r.longitude))
+      results.slice(0, 8).map(async (r) => reverseGeocode(r.latitude, r.longitude, language))
     );
     return withNames;
   } catch {

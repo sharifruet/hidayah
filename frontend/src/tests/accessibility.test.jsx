@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import { render } from '@testing-library/react';
-import { axe, toHaveNoViolations } from 'jest-axe';
+import { toHaveNoViolations } from 'jest-axe';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Home from '../pages/Home.jsx';
 import PrayerTimes from '../pages/PrayerTimes.jsx';
@@ -26,7 +27,7 @@ describe('Accessibility Tests', () => {
     return render(
       <QueryClientProvider client={queryClient}>
         <AppProvider>
-          {component}
+          <MemoryRouter>{component}</MemoryRouter>
         </AppProvider>
       </QueryClientProvider>
     );

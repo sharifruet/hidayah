@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { tr } from '../../i18n/translations.js';
+import { localDigits } from '../../utils/format.js';
+import ErrorMessage from '../common/ErrorMessage.jsx';
 
 const TRANSLITERATION_EDITION = 'en.transliteration';
 
@@ -17,6 +20,10 @@ export default function ReaderSettingsDrawer({
   onSettingsChange,
   availableTranslations,
   availableReciters,
+  translationsError,
+  onRetryTranslations,
+  recitersError,
+  onRetryReciters,
   language,
 }) {
   const [tab, setTab] = useState('display');
@@ -59,9 +66,9 @@ export default function ReaderSettingsDrawer({
     .sort((a, b) => prioritised.indexOf(a.language) - prioritised.indexOf(b.language));
 
   const tabs = [
-    { id: 'display',      label: { en: 'Display',      bn: 'প্রদর্শন' } },
-    { id: 'translations', label: { en: 'Translations', bn: 'অনুবাদ'  } },
-    { id: 'audio',        label: { en: 'Audio',        bn: 'অডিও'    } },
+    { id: 'display',      labelKey: 'qr_tab_display' },
+    { id: 'translations', labelKey: 'qr_tab_translations' },
+    { id: 'audio',        labelKey: 'qr_tab_audio' },
   ];
 
   const repeatCount = settings.repeatCount || 1;
@@ -73,17 +80,17 @@ export default function ReaderSettingsDrawer({
       <aside
         className="fixed right-0 top-0 h-full w-80 bg-white dark:bg-gray-900 shadow-xl z-50 flex flex-col border-l border-gray-200 dark:border-gray-700"
         role="dialog"
-        aria-label={language === 'bn' ? 'পাঠক সেটিংস' : 'Reader settings'}
+        aria-label={tr('qr_reader_settings', language)}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
           <h2 className="font-semibold text-gray-900 dark:text-gray-100">
-            {language === 'bn' ? 'সেটিংস' : 'Settings'}
+            {tr('settings_title', language)}
           </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
-            aria-label="Close"
+            aria-label={tr('qr_close', language)}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -103,7 +110,7 @@ export default function ReaderSettingsDrawer({
                   : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
               }`}
             >
-              {t.label[language] || t.label.en}
+              {tr(t.labelKey, language)}
             </button>
           ))}
         </div>
@@ -116,7 +123,7 @@ export default function ReaderSettingsDrawer({
               {/* Font size */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {language === 'bn' ? 'ফন্ট সাইজ' : 'Font size'}
+                  {tr('qr_font_size', language)}
                 </label>
                 <div className="flex gap-2">
                   {['sm', 'md', 'lg', 'xl'].map((s) => (
@@ -129,42 +136,42 @@ export default function ReaderSettingsDrawer({
                           : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-green-400 dark:hover:border-green-500 dark:bg-gray-800'
                       }`}
                     >
-                      {s.toUpperCase()}
+                      {tr(`qr_font_${s}`, language)}
                     </button>
                   ))}
                 </div>
               </div>
 
               <ToggleRow
-                label={language === 'bn' ? 'অনুবাদ দেখান' : 'Show translation'}
+                label={tr('qr_show_translation', language)}
                 value={settings.showTranslation !== false}
                 onChange={(v) => toggle('showTranslation', v)}
               />
 
               <ToggleRow
-                label={language === 'bn' ? 'প্রতিবর্ণীকরণ' : 'Transliteration'}
-                description={language === 'bn' ? 'রোমান হরফে উচ্চারণ দেখুন' : 'Show romanised pronunciation'}
+                label={tr('qr_transliteration', language)}
+                description={tr('qr_transliteration_desc', language)}
                 value={hasTransliteration}
                 onChange={toggleTransliteration}
               />
 
               <ToggleRow
-                label={language === 'bn' ? 'শব্দ ভিত্তিক' : 'Word by Word'}
-                description={language === 'bn' ? 'প্রতিটি আরবি শব্দে ট্যাপ করুন অর্থ দেখতে' : 'Tap each Arabic word to see its meaning'}
+                label={tr('qr_word_by_word', language)}
+                description={tr('qr_word_by_word_desc', language)}
                 value={settings.wordByWord === true}
                 onChange={(v) => toggle('wordByWord', v)}
               />
 
               <ToggleRow
-                label={language === 'bn' ? 'তাফসির' : 'Tafsir / Commentary'}
-                description={language === 'bn' ? 'প্রতিটি আয়াতের তাফসির পড়ুন' : 'Show expandable tafsir per ayah'}
+                label={tr('quran_tafsir', language)}
+                description={tr('qr_tafsir_desc', language)}
                 value={settings.showTafsir === true}
                 onChange={(v) => toggle('showTafsir', v)}
               />
 
               <ToggleRow
-                label={language === 'bn' ? 'মুখস্থ মোড' : 'Memorisation Mode'}
-                description={language === 'bn' ? 'আরবি লুকিয়ে রাখুন, ট্যাপ করে প্রকাশ করুন' : 'Hide Arabic text, tap to reveal each ayah'}
+                label={tr('qr_memorisation_mode', language)}
+                description={tr('qr_memorisation_desc', language)}
                 value={settings.memorisationMode === true}
                 onChange={(v) => toggle('memorisationMode', v)}
               />
@@ -172,19 +179,21 @@ export default function ReaderSettingsDrawer({
               {settings.memorisationMode && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {language === 'bn' ? 'পুনরাবৃত্তি সংখ্যা' : 'Repeat each ayah'}
-                    <span className="ml-1 text-gray-400 dark:text-gray-500 font-normal">({repeatCount}×)</span>
+                    {tr('qr_repeat_each', language)}
+                    <span className="ms-1 text-gray-400 dark:text-gray-500 font-normal">({localDigits(repeatCount, language)}×)</span>
                   </label>
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => toggle('repeatCount', Math.max(1, repeatCount - 1))}
                       disabled={repeatCount <= 1}
+                      aria-label={tr('qr_decrease', language)}
                       className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-green-400 disabled:opacity-40 flex items-center justify-center text-lg dark:bg-gray-800"
                     >−</button>
-                    <span className="text-lg font-semibold text-gray-800 dark:text-gray-100 w-8 text-center">{repeatCount}</span>
+                    <span className="text-lg font-semibold text-gray-800 dark:text-gray-100 w-8 text-center">{localDigits(repeatCount, language)}</span>
                     <button
                       onClick={() => toggle('repeatCount', Math.min(20, repeatCount + 1))}
                       disabled={repeatCount >= 20}
+                      aria-label={tr('qr_increase', language)}
                       className="w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-green-400 disabled:opacity-40 flex items-center justify-center text-lg dark:bg-gray-800"
                     >+</button>
                   </div>
@@ -198,7 +207,7 @@ export default function ReaderSettingsDrawer({
             <div>
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {language === 'bn' ? 'কমপক্ষে একটি অনুবাদ নির্বাচন করুন' : 'Select at least one translation'}
+                  {tr('qr_select_one_translation', language)}
                 </p>
                 <button
                   onClick={() => {
@@ -207,9 +216,12 @@ export default function ReaderSettingsDrawer({
                   }}
                   className="text-xs text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 font-medium"
                 >
-                  {language === 'bn' ? 'ডিফল্ট' : 'Reset'}
+                  {tr('qr_reset', language)}
                 </button>
               </div>
+              {translationsError && !popular.length && (
+                <ErrorMessage error={translationsError} onRetry={onRetryTranslations} variant="inline" />
+              )}
               <div className="space-y-2">
                 {popular.map((t) => {
                   const checked = (settings.selectedTranslations || ['en.sahih']).includes(t.id);
@@ -233,8 +245,8 @@ export default function ReaderSettingsDrawer({
                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                           {t.name}
                           {isLangMatch && (
-                            <span className="ml-1.5 text-[10px] bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded-full font-normal">
-                              {language === 'bn' ? 'আপনার ভাষা' : 'Your language'}
+                            <span className="ms-1.5 text-[10px] bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded-full font-normal">
+                              {tr('qr_your_language', language)}
                             </span>
                           )}
                         </p>
@@ -253,8 +265,11 @@ export default function ReaderSettingsDrawer({
           {tab === 'audio' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {language === 'bn' ? 'কারী' : 'Reciter'}
+                {tr('qr_reciter', language)}
               </label>
+              {recitersError && !reciters.length && (
+                <ErrorMessage error={recitersError} onRetry={onRetryReciters} variant="inline" />
+              )}
               <div className="space-y-2">
                 {reciters.map((r) => (
                   <label key={r.id} className="flex items-center gap-3 cursor-pointer p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">

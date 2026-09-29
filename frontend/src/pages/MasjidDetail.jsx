@@ -3,12 +3,14 @@ import { Link, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { useApp } from '../context/AppContext.jsx';
-import { tr } from '../i18n/translations.js';
+import { fmt, tr } from '../i18n/translations.js';
+import { bnOr, formatTime, localDigits } from '../utils/format.js';
 import { getMasjid, updateJamahTimes } from '../services/masjidService.js';
 import { getPrayerTimes } from '../services/prayerTimesService.js';
 import MasjidMap from '../components/masjid/MasjidMap.jsx';
 import JamahTimesFields from '../components/masjid/JamahTimesFields.jsx';
 import Loading from '../components/common/Loading.jsx';
+import ErrorMessage from '../components/common/ErrorMessage.jsx';
 import {
   JAMAH_PRAYERS, prayerLabel, relativeTime, absoluteTime, formatDistance,
   googleMapsUrl, directionsUrl, minutesBetween, jamahFormToBody, jamahToForm,
@@ -16,13 +18,13 @@ import {
 
 export default function MasjidDetail() {
   const { id } = useParams();
-  const { location, method, language } = useApp();
+  const { location, method, language, timeFormat, myMasjid, setMyMasjid } = useApp();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(jamahToForm());
   const [savedMsg, setSavedMsg] = useState('');
 
-  const { data: masjid, isLoading, isError, error } = useQuery({
+  const { data: masjid, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['masjid', id, location.lat, location.lng],
     queryFn: () => getMasjid(id, { lat: location.lat, lng: location.lng }),
   });
@@ -40,6 +42,16 @@ export default function MasjidDetail() {
     if (masjid) setForm(jamahToForm(masjid.jamah));
   }, [masjid]);
 
+  const isMine = !!masjid && myMasjid?.id === masjid.id;
+  const toMyMasjid = (m) => ({ id: m.id, name: m.name, name_bn: m.name_bn, jamah: m.jamah ?? {} });
+
+  // Keep the saved "my masjid" copy (shown on Home) in step with the latest jamah times.
+  useEffect(() => {
+    if (masjid && myMasjid?.id === masjid.id && JSON.stringify(masjid.jamah) !== JSON.stringify(myMasjid.jamah)) {
+      setMyMasjid({ id: masjid.id, name: masjid.name, name_bn: masjid.name_bn, jamah: masjid.jamah ?? {} });
+    }
+  }, [masjid, myMasjid, setMyMasjid]);
+
   const mutation = useMutation({
     mutationFn: (body) => updateJamahTimes(id, body),
     onSuccess: (updated) => {
@@ -51,14 +63,16 @@ export default function MasjidDetail() {
     },
   });
 
-  if (isLoading) return <Loading message={tr('loading', language)} />;
+  if (isLoading) return <Loading />;
 
   if (isError || !masjid) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-16 text-center">
-        <p className="text-gray-600 dark:text-gray-400">
-          {error?.status === 404 ? tr('masjid_not_found', language) : tr('masjids_load_error', language)}
-        </p>
+        {error?.status === 404 || !isError ? (
+          <p className="text-gray-600 dark:text-gray-400">{tr('masjid_not_found', language)}</p>
+        ) : (
+          <ErrorMessage error={tr('masjids_load_error', language)} onRetry={refetch} className="text-start" />
+        )}
         <Link to="/masjids" className="inline-block mt-4 text-sm font-medium text-primary-700 dark:text-green-400 hover:underline">
           ← {tr('masjid_back_to_list', language)}
         </Link>
@@ -66,7 +80,9 @@ export default function MasjidDetail() {
     );
   }
 
-  const name = language === 'bn' && masjid.name_bn ? masjid.name_bn : masjid.name;
+  const name = bnOr(language, masjid.name_bn, masjid.name);
+  const altName = name === masjid.name ? masjid.name_bn : masjid.name;
+  const time = (hhmm) => (hhmm ? formatTime(hhmm, language, timeFormat) : '—');
   const hasJamah = JAMAH_PRAYERS.some((p) => masjid.jamah?.[p]);
   const adhan = prayerTimes?.times;
 
@@ -82,8 +98,8 @@ export default function MasjidDetail() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{name}</h1>
-              {masjid.name_bn && masjid.name_bn !== name && (
-                <p className="text-gray-500 dark:text-gray-400">{language === 'bn' ? masjid.name : masjid.name_bn}</p>
+              {altName && altName !== name && (
+                <p className="text-gray-500 dark:text-gray-400">{altName}</p>
               )}
               {(masjid.address || masjid.city || masjid.district) && (
                 <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
@@ -93,7 +109,7 @@ export default function MasjidDetail() {
               <p className="mt-1 text-xs text-gray-400 dark:text-gray-500 font-mono">
                 {masjid.latitude.toFixed(5)}, {masjid.longitude.toFixed(5)}
                 {masjid.distance_km != null && (
-                  <span className="ml-2 font-sans">· {formatDistance(masjid.distance_km)} {tr('masjids_away', language)}</span>
+                  <span className="ms-2 font-sans">· {formatDistance(masjid.distance_km, language)} {tr('masjids_away', language)}</span>
                 )}
               </p>
               {masjid.phone && (
@@ -116,6 +132,19 @@ export default function MasjidDetail() {
                 </svg>
                 {tr('masjid_directions', language)}
               </a>
+              <button
+                type="button"
+                onClick={() => setMyMasjid(isMine ? null : toMyMasjid(masjid))}
+                className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border ${
+                  isMine
+                    ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300'
+                    : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
+                }`}
+                aria-pressed={isMine}
+              >
+                <span aria-hidden>{isMine ? '★' : '☆'}</span>
+                {isMine ? `${tr('my_masjid_is', language)} · ${tr('my_masjid_remove', language)}` : tr('my_masjid_set', language)}
+              </button>
               <a
                 href={googleMapsUrl(masjid.latitude, masjid.longitude)}
                 target="_blank" rel="noopener noreferrer"
@@ -125,8 +154,8 @@ export default function MasjidDetail() {
               </a>
             </div>
           </div>
-          <p className="mt-4 text-[11px] text-gray-400 dark:text-gray-500" title={absoluteTime(masjid.created_at)}>
-            {tr('masjid_added_on', language)} {relativeTime(masjid.created_at)}
+          <p className="mt-4 text-[11px] text-gray-400 dark:text-gray-500" title={absoluteTime(masjid.created_at, language, timeFormat)}>
+            {tr('masjid_added_on', language)} {relativeTime(masjid.created_at, language)}
           </p>
         </div>
 
@@ -137,9 +166,9 @@ export default function MasjidDetail() {
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{tr('masjid_jamah_times', language)}</h2>
                 {masjid.jamah_updated_at ? (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5" title={absoluteTime(masjid.jamah_updated_at)}>
-                    {tr('masjid_last_updated', language)}: <span className="font-medium">{relativeTime(masjid.jamah_updated_at)}</span>
-                    <span className="text-gray-400 dark:text-gray-500"> · {absoluteTime(masjid.jamah_updated_at)}</span>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5" title={absoluteTime(masjid.jamah_updated_at, language, timeFormat)}>
+                    {tr('masjid_last_updated', language)}: <span className="font-medium">{relativeTime(masjid.jamah_updated_at, language)}</span>
+                    <span className="text-gray-400 dark:text-gray-500"> · {absoluteTime(masjid.jamah_updated_at, language, timeFormat)}</span>
                   </p>
                 ) : null}
               </div>
@@ -168,9 +197,7 @@ export default function MasjidDetail() {
               >
                 <JamahTimesFields value={form} onChange={setForm} disabled={mutation.isPending} />
                 <p className="text-xs text-gray-500 dark:text-gray-400">{tr('masjid_jamah_hint', language)}</p>
-                {mutation.isError && (
-                  <p className="text-sm text-red-600 dark:text-red-400">{mutation.error?.message || tr('error_generic', language)}</p>
-                )}
+                {mutation.isError && <ErrorMessage variant="inline" error={mutation.error} />}
                 <div className="flex justify-end gap-3">
                   <button
                     type="button"
@@ -192,10 +219,10 @@ export default function MasjidDetail() {
               <>
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                    <tr className="text-start text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
                       <th className="py-2 font-medium">{tr('masjid_prayer', language)}</th>
-                      <th className="py-2 font-medium text-right">{tr('masjid_adhan', language)}</th>
-                      <th className="py-2 font-medium text-right">{tr('masjid_jamah', language)}</th>
+                      <th className="py-2 font-medium text-end">{tr('masjid_adhan', language)}</th>
+                      <th className="py-2 font-medium text-end">{tr('masjid_jamah', language)}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -207,11 +234,11 @@ export default function MasjidDetail() {
                       return (
                         <tr key={p} className={jamah ? '' : 'opacity-50'}>
                           <td className="py-2.5 font-medium text-gray-900 dark:text-gray-100">{prayerLabel(p, language)}</td>
-                          <td className="py-2.5 text-right font-mono text-gray-500 dark:text-gray-400">{adhanTime || '—'}</td>
-                          <td className="py-2.5 text-right">
-                            <span className="font-mono font-semibold text-gray-900 dark:text-gray-100">{jamah || '—'}</span>
+                          <td className="py-2.5 text-end tabular-nums text-gray-500 dark:text-gray-400">{time(adhanTime)}</td>
+                          <td className="py-2.5 text-end">
+                            <span className="tabular-nums font-semibold text-gray-900 dark:text-gray-100">{time(jamah)}</span>
                             {delta != null && delta >= 0 && (
-                              <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">+{delta}m</span>
+                              <span className="ms-2 text-xs text-gray-400 dark:text-gray-500">{fmt('pr_jamah_delay', language, { n: localDigits(delta, language) })}</span>
                             )}
                           </td>
                         </tr>

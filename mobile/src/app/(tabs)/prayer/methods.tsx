@@ -7,7 +7,8 @@ import { Screen } from '../../../components/ui/Screen';
 import { Card } from '../../../components/ui/Card';
 import { useApp } from '../../../context/AppContext';
 import { getMethods, type CalculationMethod } from '../../../lib/services/prayer';
-import { tr } from '../../../data/translations';
+import { fmt, tr } from '../../../data/translations';
+import { localDigits } from '../../../lib/format';
 import type { LanguageCode } from '../../../lib/constants';
 
 function groupMethods(methods: CalculationMethod[]) {
@@ -52,18 +53,19 @@ function MethodCard({
 
       <View className="flex-row flex-wrap gap-x-4 gap-y-1 mb-3">
         {method.fajr_angle != null && (
-          <Text className="font-body text-xs text-ink-500">{tr('methods_fajr_angle', language)}: {method.fajr_angle}°</Text>
+          <Text className="font-body text-xs text-ink-500">{tr('methods_fajr_angle', language)}: {localDigits(method.fajr_angle, language)}°</Text>
         )}
         {method.isha_angle != null && (
-          <Text className="font-body text-xs text-ink-500">{tr('methods_isha_angle', language)}: {method.isha_angle}°</Text>
+          <Text className="font-body text-xs text-ink-500">{tr('methods_isha_angle', language)}: {localDigits(method.isha_angle, language)}°</Text>
         )}
         {method.isha_time_adjustment != null && (
           <Text className="font-body text-xs text-ink-500">
-            {tr('prayer_isha', language)}: +{method.isha_time_adjustment} {tr('methods_isha_after_maghrib', language)}
+            {tr('prayer_isha', language)}: {fmt('methods_isha_after_maghrib', language, { n: method.isha_time_adjustment })}
           </Text>
         )}
         {method.asr_method ? (
-          <Text className="font-body text-xs text-ink-500">{tr('methods_asr', language)}: {method.asr_method}</Text>
+          <Text className="font-body text-xs text-ink-500">{tr('methods_asr', language)}:{' '}
+            {method.asr_method === 'hanafi' || method.asr_method === 'standard' ? tr(`methods_asr_${method.asr_method}`, language) : method.asr_method}</Text>
         ) : null}
       </View>
 

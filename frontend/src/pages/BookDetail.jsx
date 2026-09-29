@@ -2,20 +2,17 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { booksService } from '../services/booksService.js';
 import TopicBadge from '../components/books/TopicBadge.jsx';
-
-const LICENSE_LABELS = {
-  public_domain: 'Public Domain',
-  creative_commons: 'Creative Commons',
-  all_rights_reserved: 'All Rights Reserved',
-};
-
-const LANG_LABELS = {
-  en: 'English', ar: 'Arabic', bn: 'Bengali', ur: 'Urdu',
-};
+import { bookLanguageLabel, licenseLabel } from '../components/books/labels.js';
+import ErrorMessage from '../components/common/ErrorMessage.jsx';
+import { useApp } from '../context/AppContext.jsx';
+import { tr } from '../i18n/translations.js';
+import { localDigits } from '../utils/format.js';
+import { getBookPosition } from '../utils/saved.js';
 
 export default function BookDetail() {
   const { slug } = useParams();
-  const { data: book, isLoading, isError } = useQuery({
+  const { language } = useApp();
+  const { data: book, isLoading, error, refetch } = useQuery({
     queryKey: ['book', slug],
     queryFn: () => booksService.getBook(slug),
   });
@@ -38,11 +35,16 @@ export default function BookDetail() {
     );
   }
 
-  if (isError || !book) {
+  if (error || !book) {
+    const notFound = !error || error.status === 404;
     return (
       <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-        <p className="text-gray-500 dark:text-gray-400">Book not found.</p>
-        <Link to="/books" className="mt-4 inline-block text-green-600 hover:underline">← Back to Books</Link>
+        {notFound ? (
+          <p className="text-gray-500 dark:text-gray-400">{tr('ct_book_not_found', language)}</p>
+        ) : (
+          <ErrorMessage error={error} onRetry={refetch} className="text-start" />
+        )}
+        <Link to="/books" className="mt-4 inline-block text-green-600 hover:underline">← {tr('ct_back_to_books', language)}</Link>
       </div>
     );
   }
@@ -54,7 +56,7 @@ export default function BookDetail() {
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
         </svg>
-        Islamic Books
+        {tr('ct_books_title', language)}
       </Link>
 
       <div className="flex flex-col sm:flex-row gap-6">
@@ -89,7 +91,7 @@ export default function BookDetail() {
             {book.islamic_topics?.map(t => <TopicBadge key={t} topic={t} />)}
             {book.language && (
               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-                {LANG_LABELS[book.language] || book.language}
+                {bookLanguageLabel(book.language, language)}
               </span>
             )}
           </div>
@@ -98,32 +100,32 @@ export default function BookDetail() {
           <dl className="mt-4 grid grid-cols-1 gap-y-2 text-sm">
             {book.author && (
               <div className="flex gap-2">
-                <dt className="text-gray-500 dark:text-gray-400 w-24 shrink-0">Author</dt>
+                <dt className="text-gray-500 dark:text-gray-400 w-24 shrink-0">{tr('ct_book_author', language)}</dt>
                 <dd className="text-gray-900 dark:text-gray-100">{book.author}</dd>
               </div>
             )}
             {book.translator && (
               <div className="flex gap-2">
-                <dt className="text-gray-500 dark:text-gray-400 w-24 shrink-0">Translator</dt>
+                <dt className="text-gray-500 dark:text-gray-400 w-24 shrink-0">{tr('ct_book_translator', language)}</dt>
                 <dd className="text-gray-900 dark:text-gray-100">{book.translator}</dd>
               </div>
             )}
             {book.publisher && (
               <div className="flex gap-2">
-                <dt className="text-gray-500 dark:text-gray-400 w-24 shrink-0">Publisher</dt>
+                <dt className="text-gray-500 dark:text-gray-400 w-24 shrink-0">{tr('ct_book_publisher', language)}</dt>
                 <dd className="text-gray-900 dark:text-gray-100">{book.publisher}</dd>
               </div>
             )}
             {book.published_year && (
               <div className="flex gap-2">
-                <dt className="text-gray-500 dark:text-gray-400 w-24 shrink-0">Year</dt>
-                <dd className="text-gray-900 dark:text-gray-100">{book.published_year}</dd>
+                <dt className="text-gray-500 dark:text-gray-400 w-24 shrink-0">{tr('ct_book_year', language)}</dt>
+                <dd className="text-gray-900 dark:text-gray-100">{localDigits(book.published_year, language)}</dd>
               </div>
             )}
             {book.license_class && (
               <div className="flex gap-2">
-                <dt className="text-gray-500 dark:text-gray-400 w-24 shrink-0">License</dt>
-                <dd className="text-gray-900 dark:text-gray-100">{LICENSE_LABELS[book.license_class] || book.license_class}</dd>
+                <dt className="text-gray-500 dark:text-gray-400 w-24 shrink-0">{tr('ct_book_license', language)}</dt>
+                <dd className="text-gray-900 dark:text-gray-100">{licenseLabel(book.license_class, language)}</dd>
               </div>
             )}
           </dl>
@@ -140,7 +142,7 @@ export default function BookDetail() {
                 <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm3 1h6v1H7V5zm0 3h6v1H7V8zm0 3h4v1H7v-1z" clipRule="evenodd" />
                 </svg>
-                Text
+                {tr('ct_format_text', language)}
               </span>
             )}
             {book.pdf_url && (
@@ -170,8 +172,11 @@ export default function BookDetail() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
               </svg>
-              Read Now — Free
+              {getBookPosition(book.slug)?.chapterId ? tr('sv_continue_reading', language) : tr('ct_read_now_free', language)}
             </Link>
+          )}
+          {book.content_type === 'text' && getBookPosition(book.slug)?.chapterTitle && (
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 truncate">{getBookPosition(book.slug).chapterTitle}</p>
           )}
         </div>
       </div>

@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from '../../hooks/useLocation.js';
 import { useApp } from '../../context/AppContext.jsx';
-import Loading from '../common/Loading.jsx';
+import { tr } from '../../i18n/translations.js';
+import { bnOr } from '../../utils/format.js';
+import { placeRegion, toAppLocation } from '../../utils/place.js';
 
 export default function LocationSearch({ onLocationSelect = null, onMapCenter = null }) {
   const { search, loading, error } = useLocation();
@@ -37,17 +39,12 @@ export default function LocationSearch({ onLocationSelect = null, onMapCenter = 
   };
 
   const handleSelect = (location) => {
-    setQuery(location.name || `${location.latitude}, ${location.longitude}`);
+    const name = bnOr(language, location.name_bengali, location.name);
+    setQuery(name || `${location.latitude}, ${location.longitude}`);
     setShowResults(false);
 
     if (onLocationSelect) {
-      onLocationSelect({
-        lat: location.latitude,
-        lng: location.longitude,
-        name: location.name,
-        district: location.district,
-        division: location.division
-      });
+      onLocationSelect(toAppLocation(location));
     }
 
     if (onMapCenter) {
@@ -65,7 +62,8 @@ export default function LocationSearch({ onLocationSelect = null, onMapCenter = 
             setQuery(e.target.value);
             handleSearch(e.target.value);
           }}
-          placeholder={language === 'bn' ? 'অবস্থান খুঁজুন...' : 'Search location...'}
+          placeholder={tr('pr_search_location', language)}
+          aria-label={tr('pr_search_location', language)}
           className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
         />
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -91,9 +89,14 @@ export default function LocationSearch({ onLocationSelect = null, onMapCenter = 
               onClick={() => handleSelect(result)}
               className="w-full text-left px-4 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
             >
-              <div className="font-medium text-gray-900">{result.name}</div>
+              <div className="font-medium text-gray-900 flex items-center gap-2">
+                {bnOr(language, result.name_bengali, result.name)}
+                {result.type === 'upazila' && (
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-green-50 text-green-700">{tr('sv_upazila', language)}</span>
+                )}
+              </div>
               {result.district && (
-                <div className="text-sm text-gray-600">{result.district}, {result.division}</div>
+                <div className="text-sm text-gray-600">{placeRegion(toAppLocation(result), language)}</div>
               )}
               <div className="text-xs text-gray-500">
                 {result.latitude.toFixed(4)}, {result.longitude.toFixed(4)}
@@ -105,12 +108,14 @@ export default function LocationSearch({ onLocationSelect = null, onMapCenter = 
 
       {showResults && query && results.length === 0 && !loading && (
         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg p-4 text-center text-gray-500">
-          {language === 'bn' ? 'কোন ফলাফল পাওয়া যায়নি' : 'No results found'}
+          {tr('pr_no_results', language)}
         </div>
       )}
 
+      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{tr('sv_location_hint', language)}</p>
+
       {error && (
-        <div className="mt-2 text-sm text-red-600">{error}</div>
+        <div role="alert" className="mt-2 text-sm text-red-600">{error}</div>
       )}
     </div>
   );

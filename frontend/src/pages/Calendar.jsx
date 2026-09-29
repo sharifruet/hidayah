@@ -7,9 +7,10 @@ import DateRangeCalendar from '../components/calendar/DateRangeCalendar.jsx';
 import CalendarExport from '../components/calendar/CalendarExport.jsx';
 import { useQuery } from '@tanstack/react-query';
 import { getMonthlyCalendar, getYearlyCalendar, getDateRangeCalendar } from '../services/prayerTimesService.js';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { format} from 'date-fns';
 import { CALENDAR_VIEWS } from '../utils/constants.js';
 import { gregorianToHijri } from '../utils/hijri.js';
+import { tr } from '../i18n/translations.js';
 
 /**
  * Calculate the Gregorian start and end dates for the current Hijri month
@@ -87,7 +88,7 @@ export default function Calendar() {
   const [month, setMonth] = useState(initialMonth);
   const [startDate, setStartDate] = useState(initialStartDate);
   const [endDate, setEndDate] = useState(initialEndDate);
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [, setSelectedDate] = useState(null);
 
   // Fetch data based on view type
   const { data: monthlyData } = useQuery({
@@ -169,10 +170,10 @@ export default function Calendar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            {language === 'bn' ? 'ক্যালেন্ডার' : 'Calendar'}
+            {tr('nav_calendar', language)}
           </h1>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
-            {language === 'bn' ? 'সালাতের সময় ক্যালেন্ডার দেখুন' : 'View prayer times calendar'}
+            {tr('cal_subtitle', language)}
           </p>
         </div>
 
@@ -180,7 +181,7 @@ export default function Calendar() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <div>
               <label className={labelCls}>
-                {language === 'bn' ? 'দেখার ধরন' : 'View Type'}
+                {tr('cal_view_type', language)}
               </label>
               <select
                 value={viewType}
@@ -188,13 +189,13 @@ export default function Calendar() {
                 className={inputCls}
               >
                 <option value={CALENDAR_VIEWS.MONTHLY}>
-                  {language === 'bn' ? 'মাসিক' : 'Monthly'}
+                  {tr('cal_view_monthly', language)}
                 </option>
                 <option value={CALENDAR_VIEWS.YEARLY}>
-                  {language === 'bn' ? 'বার্ষিক' : 'Yearly'}
+                  {tr('cal_view_yearly', language)}
                 </option>
                 <option value={CALENDAR_VIEWS.DATE_RANGE}>
-                  {language === 'bn' ? 'তারিখ পরিসীমা' : 'Date Range'}
+                  {tr('cal_view_date_range', language)}
                 </option>
               </select>
             </div>
@@ -203,7 +204,7 @@ export default function Calendar() {
               <>
                 <div>
                   <label className={labelCls}>
-                    {language === 'bn' ? 'বছর' : 'Year'}
+                    {tr('cal_year', language)}
                   </label>
                   <input
                     type="number"
@@ -216,7 +217,7 @@ export default function Calendar() {
                 </div>
                 <div>
                   <label className={labelCls}>
-                    {language === 'bn' ? 'মাস' : 'Month'}
+                    {tr('cal_month', language)}
                   </label>
                   <input
                     type="number"
@@ -230,6 +231,8 @@ export default function Calendar() {
                 <div className="flex items-end gap-2">
                   <button
                     onClick={() => navigateMonth('prev')}
+                    aria-label={tr('cal_prev_month', language)}
+                    title={tr('cal_prev_month', language)}
                     className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600"
                   >
                     ←
@@ -242,10 +245,12 @@ export default function Calendar() {
                     }}
                     className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
                   >
-                    {language === 'bn' ? 'বর্তমান' : 'Today'}
+                    {tr('cal_this_month', language)}
                   </button>
                   <button
                     onClick={() => navigateMonth('next')}
+                    aria-label={tr('cal_next_month', language)}
+                    title={tr('cal_next_month', language)}
                     className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600"
                   >
                     →
@@ -257,7 +262,7 @@ export default function Calendar() {
             {viewType === CALENDAR_VIEWS.YEARLY && (
               <div>
                 <label className={labelCls}>
-                  {language === 'bn' ? 'বছর' : 'Year'}
+                  {tr('cal_year', language)}
                 </label>
                 <input
                   type="number"
@@ -274,7 +279,7 @@ export default function Calendar() {
               <>
                 <div>
                   <label className={labelCls}>
-                    {language === 'bn' ? 'শুরুর তারিখ' : 'Start Date'}
+                    {tr('cal_start_date', language)}
                   </label>
                   <input
                     type="date"
@@ -285,7 +290,7 @@ export default function Calendar() {
                 </div>
                 <div>
                   <label className={labelCls}>
-                    {language === 'bn' ? 'শেষ তারিখ' : 'End Date'}
+                    {tr('cal_end_date', language)}
                   </label>
                   <input
                     type="date"

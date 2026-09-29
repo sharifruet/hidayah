@@ -7,6 +7,8 @@ import { Screen } from '../../../components/ui/Screen';
 import { Card } from '../../../components/ui/Card';
 import { useApp } from '../../../context/AppContext';
 import { tr } from '../../../data/translations';
+import { localDigits } from '../../../lib/format';
+import { parseLocalISODate } from '../../../lib/dates';
 import {
   getDayStatus,
   togglePrayer,
@@ -23,7 +25,6 @@ const NAME_KEYS: Record<keyof DayStatus, string> = {
   maghrib: 'prayer_maghrib',
   isha: 'prayer_isha',
 };
-const WEEKDAY_SHORT = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 export default function PrayerTrackerScreen() {
   const { language } = useApp();
@@ -43,6 +44,7 @@ export default function PrayerTrackerScreen() {
   }
 
   const doneCount = PRAYERS.filter((p) => today[p]).length;
+  const weekdays = tr('calendar_weekdays_short', language).split(',');
 
   return (
     <Screen>
@@ -54,13 +56,13 @@ export default function PrayerTrackerScreen() {
         {streak > 0 ? (
           <View className="flex-row items-center bg-orange-50 dark:bg-orange-900/20 rounded-xl px-2.5 py-1.5">
             <Text className="text-sm leading-none">🔥</Text>
-            <Text className="font-body-bold text-xs text-orange-600 dark:text-orange-400 ml-1">{streak}</Text>
+            <Text className="font-body-bold text-xs text-orange-600 dark:text-orange-400 ml-1">{localDigits(streak, language)}</Text>
           </View>
         ) : null}
       </View>
 
       <Text className="font-body text-sm text-ink-500 dark:text-ink-400 mb-4">
-        {tr('tracker_today_progress', language)} {doneCount}/5
+        {tr('tracker_today_progress', language)} {localDigits(`${doneCount}/5`, language)}
       </Text>
 
       <View className="mb-6">
@@ -104,7 +106,7 @@ export default function PrayerTrackerScreen() {
             {recent.map((day) => (
               <View key={day.date} className="flex-1 items-center">
                 <Text className="font-body-medium text-[10px] text-ink-400">
-                  {WEEKDAY_SHORT[new Date(day.date).getDay()]}
+                  {weekdays[parseLocalISODate(day.date).getDay()]}
                 </Text>
               </View>
             ))}

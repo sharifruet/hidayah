@@ -7,13 +7,17 @@ import { Card } from '../ui/Card';
 import { getDateRangeCalendar } from '../../lib/services/prayer';
 import { useApp } from '../../context/AppContext';
 import { tr } from '../../data/translations';
-import { PRAYER_LABELS, type PrayerKey } from '../../lib/constants';
+import type { PrayerKey } from '../../lib/constants';
+import { formatDate, formatTime } from '../../lib/format';
+import { localISODate, parseLocalISODate } from '../../lib/dates';
+import { ErrorState } from '../ui/ErrorState';
 
 const MAX_DAYS = 365;
 const SHOWN_PRAYERS: PrayerKey[] = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
+const RANGE_DATE: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', year: 'numeric' };
 
 function toISO(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  return localISODate(d);
 }
 
 function addDays(base: Date, days: number): Date {
@@ -29,7 +33,7 @@ interface RangeDay {
 }
 
 export function DateRangeCalendarView() {
-  const { location, method, language } = useApp();
+  const { location, method, language, timeFormat } = useApp();
   const today = new Date();
 
   const [start, setStart] = useState<string | null>(null);
@@ -38,9 +42,9 @@ export function DateRangeCalendarView() {
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth() + 1);
 
-  const tooLong = !!(start && end && (new Date(end).getTime() - new Date(start).getTime()) / 86400000 > MAX_DAYS);
+  const tooLong = !!(start && end && (parseLocalISODate(end).getTime() - parseLocalISODate(start).getTime()) / 86400000 > MAX_DAYS);
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, error, refetch, isRefetching } = useQuery({
     queryKey: ['date-range-calendar', location.lat, location.lng, start, end, method],
     queryFn: () => getDateRangeCalendar(location.lat, location.lng, start!, end!, method),
     enabled: !!start && !!end && !tooLong,
@@ -101,7 +105,11 @@ export function DateRangeCalendarView() {
       {customOpen ? (
         <Card className="p-4 mb-3">
           <Text className="font-body text-xs text-ink-400 mb-2">
-            {!start ? tr('calendar_range_tap_start', language) : !end ? tr('calendar_range_tap_end', language) : `${start} → ${end}`}
+            {!start
+              ? tr('calendar_range_tap_start', language)
+              : !end
+                ? tr('calendar_range_tap_end', language)
+                : `${formatDate(parseLocalISODate(start), language, RANGE_DATE)} → ${formatDate(parseLocalISODate(end), language, RANGE_DATE)}`}
           </Text>
           <RangePickerGrid
             viewYear={viewYear}
@@ -127,18 +135,18 @@ export function DateRangeCalendarView() {
           <Text className="font-body text-xs text-ink-400 mt-2">{tr('calendar_range_loading', language)}</Text>
         </View>
       ) : isError ? (
-        <Text className="font-body text-sm text-red-500">{tr('error_generic', language)}</Text>
+        <ErrorState error={error} onRetry={refetch} retrying={isRefetching} compact />
       ) : (
         <View>
           {days.map((day) => (
             <Card key={day.date} className="p-3.5 mb-2">
               <Text className="font-body-semibold text-sm text-ink-900 dark:text-white mb-2">
-                {day.date} · {day.day_of_week}
+                {formatDate(parseLocalISODate(day.date), language, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
               </Text>
               <View className="flex-row flex-wrap gap-x-4 gap-y-1">
                 {SHOWN_PRAYERS.map((key) => (
                   <Text key={key} className="font-body text-xs text-ink-500 dark:text-ink-400">
-                    {tr(`prayer_${key}`, language) || PRAYER_LABELS[key]}: {day.prayer_times[key] ?? '—'}
+                    {tr(`prayer_${key}`, language)}: {day.prayer_times[key] ? formatTime(day.prayer_times[key], language, timeFormat) : '—'}
                   </Text>
                 ))}
               </View>

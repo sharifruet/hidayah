@@ -39,19 +39,22 @@ const HIJRI_MONTH_NAMES_AR = [
  */
 export function gregorianToHijri(date) {
   const gYear = date.getFullYear();
-  const gMonth = date.getMonth();
+  // The Julian-day formula below expects a 1-based month.
+  const gMonth = date.getMonth() + 1;
   const gDay = date.getDate();
 
   // Julian day for Gregorian date
+  // (month - 14) / 12 must truncate toward zero like the algorithm's integer division —
+  // flooring it shifts every date from March to December by two days.
   const jd =
-    Math.floor((1461 * (gYear + 4800 + Math.floor((gMonth - 14) / 12))) / 4) +
+    Math.floor((1461 * (gYear + 4800 + Math.trunc((gMonth - 14) / 12))) / 4) +
     Math.floor(
-      (367 * (gMonth - 2 - 12 * Math.floor((gMonth - 14) / 12))) / 12
+      (367 * (gMonth - 2 - 12 * Math.trunc((gMonth - 14) / 12))) / 12
     ) -
     Math.floor(
       (3 *
         Math.floor(
-          (gYear + 4900 + Math.floor((gMonth - 14) / 12)) / 100
+          (gYear + 4900 + Math.trunc((gMonth - 14) / 12)) / 100
         )) /
         4
     ) +

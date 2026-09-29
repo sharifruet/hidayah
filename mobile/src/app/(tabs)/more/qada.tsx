@@ -7,6 +7,7 @@ import { Screen } from '../../../components/ui/Screen';
 import { Card } from '../../../components/ui/Card';
 import { useApp } from '../../../context/AppContext';
 import { tr } from '../../../data/translations';
+import { localDigits } from '../../../lib/format';
 import { getQadaCounts, incrementQada, decrementQada, type QadaCounts } from '../../../lib/qada';
 
 const PRAYERS: (keyof QadaCounts)[] = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
@@ -43,7 +44,7 @@ export default function QadaScreen() {
       {total > 0 ? (
         <Card className="p-4 mb-5 bg-gold-500/10 border-gold-500/30">
           <Text className="font-body-medium text-sm text-gold-700 dark:text-gold-400">
-            {tr('qada_total_owed', language)} {total}
+            {tr('qada_total_owed', language)} {localDigits(total, language)}
           </Text>
         </Card>
       ) : null}
@@ -61,7 +62,7 @@ export default function QadaScreen() {
             >
               <Ionicons name="remove" size={18} color="#5b6579" />
             </TouchableOpacity>
-            <Text className="font-body-bold text-lg text-ink-900 dark:text-white w-8 text-center">{counts[prayer]}</Text>
+            <Text className="font-body-bold text-lg text-ink-900 dark:text-white w-8 text-center">{localDigits(counts[prayer], language)}</Text>
             <TouchableOpacity
               onPress={() => inc(prayer)}
               className="w-9 h-9 rounded-full items-center justify-center bg-primary-600"
