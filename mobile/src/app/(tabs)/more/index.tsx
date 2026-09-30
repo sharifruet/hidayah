@@ -7,6 +7,7 @@ import { Card } from '../../../components/ui/Card';
 import { useApp } from '../../../context/AppContext';
 import { tr } from '../../../data/translations';
 import { localDigits } from '../../../lib/format';
+import Constants from 'expo-constants';
 
 interface MenuItem {
   labelKey: string;
@@ -62,7 +63,7 @@ export default function MoreScreen() {
       </Card>
 
       <Text className="font-body text-xs text-ink-300 dark:text-ink-600 text-center mt-8">
-        {tr('app_name', language)} · v{localDigits('1.0.0', language)}
+        {tr('app_name', language)} · v{localDigits(Constants.expoConfig?.version ?? '', language)}
       </Text>
     </Screen>
   );
