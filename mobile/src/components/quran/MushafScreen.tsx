@@ -114,7 +114,7 @@ export function MushafScreen({ pageNumber }: { pageNumber: number }) {
               <View className="items-center mb-5">
                 <View className="w-full border border-green-600/40 dark:border-green-700/40 rounded px-6 py-4 bg-green-50/60 dark:bg-green-950/30">
                   <TouchableOpacity onPress={() => router.push(`/quran/${surah.number}` as never)}>
-                    <Text className="font-arabic text-3xl text-green-900 dark:text-green-300 text-center leading-loose">
+                    <Text style={{ lineHeight: 58 }} className="font-arabic text-3xl text-green-900 dark:text-green-300 text-center">
                       {surah.name_ar}
                     </Text>
                     <Text className="font-body-medium text-xs text-green-800 dark:text-green-500 text-center mt-1">
@@ -124,7 +124,7 @@ export function MushafScreen({ pageNumber }: { pageNumber: number }) {
                   </TouchableOpacity>
                 </View>
                 {surah.number !== 1 && surah.number !== 9 ? (
-                  <Text className="font-arabic text-2xl text-ink-800 dark:text-ink-200 text-center mt-4">
+                  <Text style={{ lineHeight: 46 }} className="font-arabic text-2xl text-ink-800 dark:text-ink-200 text-center mt-4">
                     بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ
                   </Text>
                 ) : null}

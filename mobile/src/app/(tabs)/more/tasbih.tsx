@@ -70,7 +70,7 @@ export default function TasbihScreen() {
 
       <View className="flex-1 items-center justify-center px-8">
         {preset.arabic ? (
-          <Text className="font-arabic text-3xl text-ink-800 dark:text-ink-200 mb-2 text-center">{preset.arabic}</Text>
+          <Text style={{ lineHeight: 58, paddingTop: 4 }} className="font-arabic text-3xl text-ink-800 dark:text-ink-200 mb-2 text-center">{preset.arabic}</Text>
         ) : null}
         <Text className="font-body-medium text-sm text-ink-400 mb-8">{tr(preset.targetKey, language)}</Text>
 

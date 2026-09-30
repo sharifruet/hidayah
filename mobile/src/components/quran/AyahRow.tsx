@@ -99,7 +99,7 @@ export function AyahRow({
       }`}
     >
       {data.basmalah ? (
-        <Text className="font-arabic text-xl text-center text-primary-700 dark:text-primary-400 mb-3">
+        <Text style={{ lineHeight: 38 }} className="font-arabic text-xl text-center text-primary-700 dark:text-primary-400 mb-3">
           {data.basmalah}
         </Text>
       ) : null}

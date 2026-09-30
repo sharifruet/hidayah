@@ -139,7 +139,7 @@ export function ReaderScreen({ surahNumber, initialAyah }: { surahNumber: number
             ) : null}
           </View>
         </View>
-        {surahMeta ? <Text className="font-arabic text-xl text-ink-700 dark:text-ink-300 mr-2">{surahMeta.name_ar}</Text> : null}
+        {surahMeta ? <Text style={{ lineHeight: 38 }} className="font-arabic text-xl text-ink-700 dark:text-ink-300 mr-2">{surahMeta.name_ar}</Text> : null}
         {audioCached ? (
           <Ionicons name="cloud-done-outline" size={16} color="#15805a" style={{ marginRight: 6 }} />
         ) : null}

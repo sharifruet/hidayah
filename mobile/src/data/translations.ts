@@ -179,7 +179,7 @@ const t: Record<string, Entry> = {
 
   // ── Calendar ─────────────────────────────────────────────────────────────────
   calendar_title: { en: 'Calendar', bn: 'ক্যালেন্ডার', ur: 'کیلنڈر', tr: 'Takvim', id: 'Kalender' },
-  calendar_hijri_months: { en: 'Hijri months this Gregorian year', bn: 'এই খ্রিস্টীয় বছরের হিজরি মাসসমূহ', ur: 'اس عیسوی سال کے ہجری مہینے', tr: 'Bu miladi yıldaki hicri aylar', id: 'Bulan Hijriah tahun Masehi ini' },
+  calendar_hijri_months: { en: 'Hijri months this month', bn: 'এই মাসের হিজরি মাস', ur: 'اس مہینے کے ہجری مہینے', tr: 'Bu aydaki hicri aylar', id: 'Bulan Hijriah bulan ini' },
   calendar_view_month: { en: 'Month', bn: 'মাস', ur: 'مہینہ', tr: 'Ay', id: 'Bulan' },
   calendar_view_year: { en: 'Year', bn: 'বছর', ur: 'سال', tr: 'Yıl', id: 'Tahun' },
   calendar_view_range: { en: 'Range', bn: 'পরিসীমা', ur: 'رینج', tr: 'Aralık', id: 'Rentang' },

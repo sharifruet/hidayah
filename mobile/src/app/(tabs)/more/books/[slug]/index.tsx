@@ -49,7 +49,7 @@ export default function BookDetailScreen() {
             )}
             <View className="flex-1 ml-4 justify-center">
               <Text className="font-body-bold text-lg text-ink-900 dark:text-white">{book.title}</Text>
-              {book.title_ar ? <Text className="font-arabic text-base text-ink-500 mt-1">{book.title_ar}</Text> : null}
+              {book.title_ar ? <Text style={{ lineHeight: 30 }} className="font-arabic text-base text-ink-500 mt-1">{book.title_ar}</Text> : null}
               {book.author ? (
                 <Text className="font-body text-sm text-ink-500 mt-2">{tr('books_by', language)} {book.author}</Text>
               ) : null}

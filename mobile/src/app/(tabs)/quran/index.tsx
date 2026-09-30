@@ -138,7 +138,7 @@ export default function QuranIndexScreen() {
                 </Text>
               </View>
               {item.name_ar ? (
-                <Text className="font-arabic text-lg text-ink-700 dark:text-ink-300">{item.name_ar}</Text>
+                <Text style={{ lineHeight: 34 }} className="font-arabic text-lg text-ink-700 dark:text-ink-300">{item.name_ar}</Text>
               ) : null}
             </TouchableOpacity>
           );

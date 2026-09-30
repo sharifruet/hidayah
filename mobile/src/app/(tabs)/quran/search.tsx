@@ -79,7 +79,7 @@ export default function QuranSearchScreen() {
               {localDigits(item.ayah, language)}
             </Text>
             {item.text_ar ? (
-              <Text className="font-arabic text-lg text-right text-ink-900 dark:text-white mb-1.5">
+              <Text style={{ lineHeight: 34 }} className="font-arabic text-lg text-right text-ink-900 dark:text-white mb-1.5">
                 {item.text_ar}
               </Text>
             ) : null}

@@ -64,7 +64,7 @@ export default function NamesScreen() {
               <Text className="font-body text-xs text-ink-500 dark:text-ink-400 mt-0.5">{isBn ? item.bn : item.en}</Text>
               {isBn ? <Text className="font-body text-[11px] text-ink-400 mt-0.5">{item.tr} · {item.en}</Text> : null}
             </View>
-            <Text className="font-arabic text-2xl text-ink-900 dark:text-white ml-2">{item.ar}</Text>
+            <Text style={{ lineHeight: 46 }} className="font-arabic text-2xl text-ink-900 dark:text-white ml-2">{item.ar}</Text>
           </Card>
         )}
       />

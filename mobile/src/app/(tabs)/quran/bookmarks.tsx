@@ -87,7 +87,7 @@ export default function SavedScreen() {
                   <Ionicons name="trash-outline" size={16} color="#7d879a" />
                 </TouchableOpacity>
               </View>
-              <Text className="font-arabic text-lg text-right text-ink-900 dark:text-white mb-1.5">{item.text_ar}</Text>
+              <Text style={{ lineHeight: 34 }} className="font-arabic text-lg text-right text-ink-900 dark:text-white mb-1.5">{item.text_ar}</Text>
               {item.translationText ? (
                 <Text className="font-body text-sm text-ink-600 dark:text-ink-300">{item.translationText}</Text>
               ) : null}
