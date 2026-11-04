@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext.jsx';
 import { tr } from '../../i18n/translations.js';
 import { localDigits } from '../../utils/format.js';
@@ -10,6 +11,9 @@ export default function Footer() {
         <div className="text-center text-sm text-gray-600 dark:text-gray-400">
           <p>© {localDigits(new Date().getFullYear(), language)} {tr('app_name', language)}</p>
           <p className="mt-2">{tr('ct_footer_tagline', language)}</p>
+          <p className="mt-2">
+            <Link to="/privacy" className="hover:underline">{tr('more_privacy', language)}</Link>
+          </p>
         </div>
       </div>
     </footer>

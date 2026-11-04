@@ -33,6 +33,7 @@ const ITEMS: MenuItem[] = [
   { labelKey: 'methods_title', subKey: 'more_methods_sub', icon: 'options-outline', href: '/prayer/methods' as Href },
   { labelKey: 'sync_title', subKey: 'sync_menu_sub', icon: 'cloud-outline', href: '/more/sync' as Href },
   { labelKey: 'nav_settings', subKey: 'more_settings_sub', icon: 'settings-outline', href: '/more/settings' as Href },
+  { labelKey: 'more_privacy', subKey: 'more_privacy_sub', icon: 'shield-checkmark-outline', href: '/more/privacy' as Href },
 ];
 
 export default function MoreScreen() {

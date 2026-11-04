@@ -36,6 +36,7 @@ import IslamicDays from './pages/IslamicDays.jsx';
 import Zakat from './pages/Zakat.jsx';
 import Names from './pages/Names.jsx';
 import Sync from './pages/Sync.jsx';
+import Privacy from './pages/Privacy.jsx';
 import { startAutoSync } from './utils/sync.js';
 import AdminLogin from './pages/admin/AdminLogin.jsx';
 import AdminDashboard from './pages/admin/AdminDashboard.jsx';
@@ -96,6 +97,7 @@ function AppShell() {
             <Route path="/zakat"                       element={<Zakat />} />
             <Route path="/names"                       element={<Names />} />
             <Route path="/sync"                        element={<Sync />} />
+            <Route path="/privacy"                     element={<Privacy />} />
           </Routes>
         </ErrorBoundary>
       </main>

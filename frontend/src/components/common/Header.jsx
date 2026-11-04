@@ -30,6 +30,7 @@ export default function Header() {
     { path: '/names',        key: 'names_title' },
     { path: '/bookmarks',    key: 'sv_title' },
     { path: '/sync',         key: 'sync_title' },
+    { path: '/privacy',      key: 'more_privacy' },
   ];
 
   return (

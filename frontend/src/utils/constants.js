@@ -6,6 +6,11 @@
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 export const API_VERSION = import.meta.env.VITE_API_VERSION || 'v1';
 
+// Contact for privacy questions and data-removal requests, shown on /privacy
+export const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || 'privacy@bandhanhara.com';
+// ISO date of the last wording change in i18n/strings/privacy.js
+export const PRIVACY_POLICY_UPDATED = '2026-11-04';
+
 // Bangladesh bounds
 export const BANGLADESH_BOUNDS = {
   north: 26.638,

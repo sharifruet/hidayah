@@ -15,6 +15,14 @@ export const API_BASE_URL = resolveApiBase();
 const rawApiVersion = process.env.EXPO_PUBLIC_API_VERSION ?? 'v1';
 export const API_VERSION = rawApiVersion === 'none' ? '' : rawApiVersion;
 
+// Public website; the privacy policy lives at `${WEBSITE_URL}/privacy` (the URL for the store listings).
+export const WEBSITE_URL = (process.env.EXPO_PUBLIC_WEB_URL ?? 'https://hidayah.bandhanhara.com').replace(/\/$/, '');
+export const PRIVACY_POLICY_URL = `${WEBSITE_URL}/privacy`;
+// Contact for privacy questions and data-removal requests, shown in the privacy policy.
+export const PRIVACY_CONTACT_EMAIL = process.env.EXPO_PUBLIC_CONTACT_EMAIL ?? 'privacy@bandhanhara.com';
+// ISO date of the last wording change in `data/privacyStrings.ts`.
+export const PRIVACY_POLICY_UPDATED = '2026-11-04';
+
 export const DEFAULT_LOCATION = {
   lat: 23.8103,
   lng: 90.4125,

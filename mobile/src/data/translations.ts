@@ -6,6 +6,7 @@
  */
 import type { LanguageCode } from '../lib/constants';
 import { featureStrings } from './featureStrings';
+import { privacyStrings } from './privacyStrings';
 import { localDigits } from '../lib/format';
 
 export const RTL_LANGUAGES = new Set<LanguageCode>(['ur']);
@@ -432,7 +433,7 @@ const t: Record<string, Entry> = {
   masjid_location_set: { en: 'Location set', bn: 'অবস্থান নির্ধারিত', ur: 'مقام متعین', tr: 'Konum ayarlandı', id: 'Lokasi ditetapkan' },
 };
 
-Object.assign(t, featureStrings);
+Object.assign(t, featureStrings, privacyStrings);
 
 export function tr(key: string, language: LanguageCode = 'en'): string {
   const entry = t[key];

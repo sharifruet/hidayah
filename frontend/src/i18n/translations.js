@@ -15,6 +15,7 @@ import { prayerStrings } from './strings/prayer.js';
 import { contentStrings } from './strings/content.js';
 import { savedStrings } from './strings/saved.js';
 import { syncStrings } from './strings/sync.js';
+import { privacyStrings } from './strings/privacy.js';
 
 export const RTL_LANGUAGES = new Set(['ur']);
 
@@ -476,7 +477,8 @@ Object.assign(
   prayerStrings,
   contentStrings,
   savedStrings,
-  syncStrings
+  syncStrings,
+  privacyStrings
 );
 
 /**
